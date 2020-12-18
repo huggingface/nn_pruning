@@ -44,6 +44,7 @@ class ModelPatcher:
     def patch(self, model):
         modules = {}
         modified = False
+
         for k, v in model.named_modules():
             modules[k] = v
             match, patch_info = self.pattern_match(k)
@@ -54,6 +55,7 @@ class ModelPatcher:
                 father = modules[father_module_name]
                 self.replace_module(father, k, child_name, v, patch_info)
                 modified = True
+
         if not modified:
             print(
                 "Warning: the patcher did not patch anything!"

@@ -19,7 +19,7 @@ the weight matrix to prune a portion of the weights.
 The pruned weight matrix is then multiplied against the inputs (and if necessary, the bias is added).
 """
 
-from typing import List, Union
+from typing import List
 import math
 from dataclasses import dataclass
 from itertools import permutations
@@ -29,6 +29,7 @@ from nn_pruning.training_patcher import (
     ModulePatcher,
     PatcherContext,
     PatcherContextModule,
+    ReplacementModule
 )
 from nn_pruning.model_structure import ModelStructure
 
@@ -124,15 +125,15 @@ class AmpereLinearPruningContextModule(GenericLinearPruningContextModule):
         self.mask_scores = nn.Parameter(torch.Tensor(size=ampere_mask_size))
         self.init_masks(self.parameters.ampere_init)
 
-
 class AmpereMaskModule(nn.Module):
-    def __init__(self, context_module: AmpereLinearPruningContextModule):
+    def __init__(self, context_module: AmpereLinearPruningContextModule, parameters:LinearPruningParameters):
         super().__init__()
         self.context_module = context_module
         ampere_pattern = self.build_ampere_pattern(
             context_module.mask_scores.device
         )
         self.register_buffer("ampere_pattern", ampere_pattern)
+        self.parameters = parameters
 
     @staticmethod
     def build_ampere_pattern(device):
@@ -159,10 +160,9 @@ class AmpereMaskModule(nn.Module):
 
         return s
 
-    def forward(self):
-        ampere_temperature = self.context_module.get_context_data("ampere_temperature")
+    def forward(self, ampere_temperature):
         return self.mask(
-            self.context_module.ampere_permut_scores,
+            self.context_module.mask_scores,
             self.ampere_pattern,
             ampere_temperature,
             self.training,
@@ -172,15 +172,12 @@ class AmpereMaskModule(nn.Module):
 class MaskModule(nn.Module):
     def __init__(
         self,
-        context_modules: Union[LinearPruningContextModule, List[LinearPruningContextModule]],
+        context_modules: List[LinearPruningContextModule],
         parameters: LinearPruningParameters,
     ):
         super().__init__()
-        if parameters.submethod.startswith("1d"):
-            assert(isinstance(context_modules, (list, tuple)))
-        else:
-            assert(isinstance(context_modules, LinearPruningContextModule))
-        self.context_modules = context_modules
+        assert(isinstance(context_modules, (list, tuple)))
+        self.context_modules = nn.ModuleList(context_modules)
         self.parameters = parameters
 
     @staticmethod
@@ -201,6 +198,8 @@ class MaskModule(nn.Module):
         submethod = parameters.submethod
         if submethod.startswith("1d"):
             mask_scores = mask_scores[0].unsqueeze(-1).matmul(mask_scores[1].unsqueeze(0))
+        else:
+            mask_scores = mask_scores[0]
 
         if method == "topK":
             mask = TopKBinarizer.apply(mask_scores, threshold)
@@ -221,31 +220,26 @@ class MaskModule(nn.Module):
 
         if method not in "magnitude":
             # Expand block mask to individual element mask
-            mask = MaskedLinear.expand_mask_(
+            mask = MaskModule.expand_mask(
                 mask,
-                mask_block_rows=parameters.block_rows,
-                mask_block_cols=parameters.block_cols,
+                block_rows=parameters.block_rows,
+                block_cols=parameters.block_cols,
             )
 
         return mask
 
-    def forward(self, weight):
-        threshold = self.context_module.get_context_data("threshold")
-
+    def forward(self, weight, threshold):
         mask_scores = None
         if self.parameters.method != "magnitude":
-            if isinstance(self.context_modules, (list, tuple)):
-                mask_scores = [c.mask_scores for c in self.context_modules]
-            else:
-                mask_scores = self.context_module.mask_scores
+            mask_scores = [c.mask_scores for c in self.context_modules]
 
         return self.mask(weight, mask_scores, self.parameters, threshold, self.training)
 
-class MaskedLinear(nn.Module):
+class MaskedLinear(ReplacementModule):
     def __init__(
         self,
         linear_module: nn.Linear,
-        mask_context_modules: Union[LinearPruningContextModule, List[LinearPruningContextModule]],
+        mask_context_modules: List[LinearPruningContextModule],
         ampere_context_module: AmpereLinearPruningContextModule,
         parameters: LinearPruningParameters,
     ):
@@ -257,13 +251,18 @@ class MaskedLinear(nn.Module):
 
         self.mask_module = MaskModule(mask_context_modules, parameters)
         if ampere_context_module != None:
-            self.ampere_module = AmpereMaskModule(ampere_context_module)
+            self.ampere_module = AmpereMaskModule(ampere_context_module, parameters)
         self.parameters = parameters
 
     def forward(self, input):
-        mask = self.mask_module(self.weight)
+        threshold = self.get_context_data("threshold")
+        mask = self.mask_module(self.weight, threshold)
         if self.parameters.ampere_method != "disabled":
-            mask = mask * self.ampere_module()
+            ampere_temperature = self.get_context_data("ampere_temperature")
+            ampere_mask = self.ampere_module(ampere_temperature)
+            if mask.shape != ampere_mask.shape:
+                raise Exception("Shape mismatch")
+            mask = mask * ampere_mask
 
         weight_thresholded = mask * self.weight
         # Compute output (linear layer) with masked weights
@@ -319,18 +318,19 @@ class LinearPruningModulePatcher(ModulePatcher):
         else:
             raise RuntimeError(f"Unknown context module kind {prefix}")
 
-    def linear_patch(self, child_module_name, child_module):
+    def patch(self, child_module_name, child_module):
         if self.parameters.submethod.startswith("1d"):
             mask_row = self.get_context_module(child_module_name, child_module, kind="mask_row", row=True)
             mask_col = self.get_context_module(child_module_name, child_module, kind="mask_col", row=False)
             shape = child_module.weight.shape
             assert(mask_row.mask_scores.shape[0] == shape[0] // self.parameters.block_rows)
             assert(mask_col.mask_scores.shape[0] == shape[1] // self.parameters.block_cols)
-            mask_context_module = [mask_row, mask_col]
+            mask_context_modules = [mask_row, mask_col]
         else:
             mask_context_module = self.get_context_module(
                child_module_name, child_module, kind="mask"
             )
+            mask_context_modules = [mask_context_module]
 
         if self.parameters.ampere_method != "disabled":
             ampere_context_module = self.get_context_module(
@@ -340,7 +340,7 @@ class LinearPruningModulePatcher(ModulePatcher):
             ampere_context_module = None
 
         return MaskedLinear(
-            child_module, mask_context_module, ampere_context_module, self.parameters
+            child_module, mask_context_modules, ampere_context_module, self.parameters
         )
 
 class JointPruningModulePatcher(LinearPruningModulePatcher):

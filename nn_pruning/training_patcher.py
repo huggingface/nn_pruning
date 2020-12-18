@@ -7,17 +7,19 @@ import torch
 from torch.nn import init
 from .model_patcher import ModelPatcher
 
-class PatcherContextModule(nn.Module):
-    def set_context(self, context):
-        self._context = context
 
-    def get_context_data(self, context, key):
-        return self._context.get_context_data(key)
+class PatcherContextModule(nn.Module):
+    pass
+
 
 class PatcherContext:
     def __init__(self):
         self.context_modules: Dict = {}
         self.context_data = {}
+
+    def set_context_data(self, data_key, data):
+        print("set_context_data", data_key, data)
+        self.context_data[data_key] = data
 
     def get_context_data(self, data_key):
         return self.context_data[data_key]
@@ -45,6 +47,15 @@ class PatcherContext:
         assert(key[-1] not in d)
         d[key[-1]] = module_context
 
+
+
+class ReplacementModule(nn.Module):
+    def set_context(self, context):
+        self._context = context
+
+    def get_context_data(self, key):
+        return self._context.get_context_data(key)
+
 class ModulePatcher:
     def __init__(self, context:PatcherContext):
         self.context = context
@@ -71,8 +82,15 @@ class ModulePatcher:
             self.context.set_module_context(key, module_context)
             return module_context
 
-    def linear_patch(self, child_module_name, child_module):
+    def patch(self, child_module_name, child_module) -> ReplacementModule:
         raise NotImplementedError("Implement in subclass")
+
+    def patch_and_connect(self, child_module_name, child_module) -> ReplacementModule:
+        ret = self.patch(child_module_name, child_module)
+        if ret is not None:
+            ret.set_context(self.context)
+        return ret
+
 
 class ModelDispatchingPatcher(ModelPatcher):
     def __init__(self):
@@ -83,7 +101,7 @@ class ModelDispatchingPatcher(ModelPatcher):
         super().add_pattern(pattern, patch_info)
 
     def new_child_module(self, child_module_name:str, child_module:nn.Module, patch_info:Dict):
-        return patch_info["patcher"].linear_patch(child_module_name, child_module)
+        return patch_info["patcher"].patch_and_connect(child_module_name, child_module)
 
 class BertLinearModelPatcher(ModelDispatchingPatcher):
     PATTERN_PREFIX="bert.encoder.layer.[0-9]+."
