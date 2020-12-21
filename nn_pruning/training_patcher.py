@@ -18,11 +18,15 @@ class PatcherContext:
         self.context_data = {}
 
     def set_context_data(self, data_key, data):
-        print("set_context_data", data_key, data)
+        #print("set_context_data", data_key, data)
         self.context_data[data_key] = data
 
     def get_context_data(self, data_key):
         return self.context_data[data_key]
+
+    def enumerate_context_data(self):
+        for k,v in self.context_data.items():
+            yield k, v
 
     def has_module_context(self, key):
         d = self.context_modules

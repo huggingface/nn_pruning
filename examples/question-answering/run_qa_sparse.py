@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-
+from typing import Dict
 import torch.nn as nn
 from nn_pruning.model_structure import BertStructure
 from nn_pruning.modules.masked_nn import (
@@ -108,10 +108,19 @@ class QASparseTrainer(QuestionAnsweringTrainer):
         super().__init__(*args, **kwargs)
         self.sparse_args = sparse_args
 
+    def set_members(self, patcher_context:PatcherContext):
+        self.patcher_context = patcher_context
+
     def compute_loss(self, model, inputs):
         loss = super().compute_loss(model, inputs)
         # loss += self.regularization(model)
         return loss
+
+    def log(self, logs: Dict[str, float]) -> None:
+        for k,v in self.patcher_context.enumerate_context_data():
+            logs[k] = v
+
+        return super().log(logs)
 
     def regularization(model: nn.Module, mode: str):
         # TODO
@@ -273,6 +282,7 @@ class QASparseTraining(QATraining):
 
     def create_trainer(self, *args, **kwargs):
         super().create_trainer(*args, **kwargs)
+        self.trainer.set_members(patcher_context = self.patcher_context)
         scheduling = SchedulingCallback(self.patcher_context, self.sparse_args)
         self.trainer.add_callback(scheduling)
 
