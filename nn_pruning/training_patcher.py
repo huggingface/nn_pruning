@@ -6,6 +6,7 @@ import torch.nn as nn
 import torch
 from torch.nn import init
 from .model_patcher import ModelPatcher
+from typing import Dict, Any
 
 
 class PatcherContextModule(nn.Module):
@@ -20,6 +21,10 @@ class PatcherContext:
     def set_context_data(self, data_key, data):
         #print("set_context_data", data_key, data)
         self.context_data[data_key] = data
+
+    def set_context_data_dict(self, d:Dict[str, Any]):
+        for k,v in d.items():
+            self.set_context_data(k, v)
 
     def get_context_data(self, data_key):
         return self.context_data[data_key]

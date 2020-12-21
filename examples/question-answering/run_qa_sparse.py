@@ -107,6 +107,7 @@ class QASparseTrainer(QuestionAnsweringTrainer):
     def __init__(self, sparse_args, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.sparse_args = sparse_args
+        self.log_prefix = ""
 
     def set_members(self, patcher_context:PatcherContext):
         self.patcher_context = patcher_context
@@ -118,9 +119,67 @@ class QASparseTrainer(QuestionAnsweringTrainer):
 
     def log(self, logs: Dict[str, float]) -> None:
         for k,v in self.patcher_context.enumerate_context_data():
-            logs[k] = v
+            logs[self.log_prefix+k] = v
 
         return super().log(logs)
+
+    def schedule_threshold(self, training:bool):
+        state = self.state
+        args = self.args
+        sparse_args = self.sparse_args
+
+        step = state.global_step
+        total_step = state.max_steps
+        warmup_steps = args.warmup_steps
+        initial_threshold = sparse_args.initial_threshold
+        final_threshold = sparse_args.final_threshold
+        initial_warmup = sparse_args.initial_warmup
+        final_warmup = sparse_args.final_warmup
+        final_lambda = sparse_args.final_lambda
+        initial_ampere_temperature = sparse_args.initial_ampere_temperature
+        final_ampere_temperature = sparse_args.final_ampere_temperature
+
+        if training:
+            print(warmup_steps, initial_warmup)
+            if step <= initial_warmup * warmup_steps:
+                threshold = initial_threshold
+                ampere_temperature = initial_ampere_temperature
+            elif step > (total_step - final_warmup * warmup_steps):
+                threshold = final_threshold
+                ampere_temperature = final_ampere_temperature
+            else:
+                spars_warmup_steps = initial_warmup * warmup_steps
+                spars_schedu_steps = (final_warmup + initial_warmup) * warmup_steps
+                mul_coeff = 1 - (step - spars_warmup_steps) / (
+                    total_step - spars_schedu_steps
+                )
+                threshold = final_threshold + (initial_threshold - final_threshold) * (
+                    mul_coeff ** 3
+                )
+                ampere_temperature = final_ampere_temperature + (
+                    initial_ampere_temperature - final_ampere_temperature
+                ) * (mul_coeff ** 3)
+        else:
+            threshold = final_threshold
+            ampere_temperature = final_ampere_temperature
+
+        regu_lambda = final_lambda * threshold / final_threshold
+
+        context_data = dict(threshold=threshold, ampere_temperature=ampere_temperature, regu_lambda=regu_lambda)
+
+        self.patcher_context.set_context_data_dict(context_data)
+
+    def training_step(self, *args, **kwargs):
+        self.schedule_threshold(True)
+        self.log_prefix = ""
+        return super().training_step(*args, **kwargs)
+
+    def evaluate(self, *args, **kwargs):
+        self.schedule_threshold(False)
+        self.log_prefix = "eval_"
+        ret = super().evaluate(*args, **kwargs)
+        return ret
+
 
     def regularization(model: nn.Module, mode: str):
         # TODO
@@ -203,73 +262,7 @@ class QASparseTrainer(QuestionAnsweringTrainer):
         return scheduler
 
 
-from transformers.trainer import TrainerControl, TrainerState, TrainingArguments
-from transformers.trainer_callback import TrainerCallback
 
-
-class SchedulingCallback(TrainerCallback):
-    def __init__(self, context: PatcherContext, sparse_args: SparseTrainingArguments):
-        self.context = context
-        self.sparse_args = sparse_args
-
-    def on_step_begin(
-        self,
-        args: TrainingArguments,
-        state: TrainerState,
-        control: TrainerControl,
-        **kwargs
-    ):
-        sparse_args = self.sparse_args
-        self.schedule_threshold(
-            step=state.global_step,
-            total_step=state.max_steps,
-            warmup_steps=args.warmup_steps,
-            initial_threshold=sparse_args.initial_threshold,
-            final_threshold=sparse_args.final_threshold,
-            initial_warmup=sparse_args.initial_warmup,
-            final_warmup=sparse_args.final_warmup,
-            final_lambda=sparse_args.final_lambda,
-            initial_ampere_temperature=sparse_args.initial_ampere_temperature,
-            final_ampere_temperature=sparse_args.final_ampere_temperature,
-        )
-
-    def schedule_threshold(
-        self,
-        step: int,
-        total_step: int,
-        warmup_steps: int,
-        initial_threshold: float,
-        final_threshold: float,
-        initial_warmup: float,
-        final_warmup: float,
-        final_lambda: float,
-        initial_ampere_temperature: float,
-        final_ampere_temperature: float,
-    ):
-        if step <= initial_warmup * warmup_steps:
-            threshold = initial_threshold
-            ampere_temperature = initial_ampere_temperature
-        elif step > (total_step - final_warmup * warmup_steps):
-            threshold = final_threshold
-            ampere_temperature = final_ampere_temperature
-        else:
-            spars_warmup_steps = initial_warmup * warmup_steps
-            spars_schedu_steps = (final_warmup + initial_warmup) * warmup_steps
-            mul_coeff = 1 - (step - spars_warmup_steps) / (
-                total_step - spars_schedu_steps
-            )
-            threshold = final_threshold + (initial_threshold - final_threshold) * (
-                mul_coeff ** 3
-            )
-            ampere_temperature = final_ampere_temperature + (
-                initial_ampere_temperature - final_ampere_temperature
-            ) * (mul_coeff ** 3)
-
-        regu_lambda = final_lambda * threshold / final_threshold
-
-        self.context.set_context_data("threshold", threshold)
-        self.context.set_context_data("ampere_temperature", ampere_temperature)
-        self.context.set_context_data("regu_lambda", regu_lambda)
 
 
 class QASparseTraining(QATraining):
@@ -283,8 +276,8 @@ class QASparseTraining(QATraining):
     def create_trainer(self, *args, **kwargs):
         super().create_trainer(*args, **kwargs)
         self.trainer.set_members(patcher_context = self.patcher_context)
-        scheduling = SchedulingCallback(self.patcher_context, self.sparse_args)
-        self.trainer.add_callback(scheduling)
+        #scheduling = SchedulingCallback(self.patcher_context, self.sparse_args)
+        #self.trainer.add_callback(scheduling)
 
     def get_arguments(self):
         return {"sparse": SparseTrainingArguments}
@@ -353,10 +346,6 @@ class QASparseTraining(QATraining):
         super().create_model()
         self.patch_model()
 
-    def train(self):
-        self.patcher_context.set_context_data("threshold", 1.0)
-        self.patcher_context.set_context_data("ampere_temperature", 0.0)
-        super().train()
 
 
 def main():
