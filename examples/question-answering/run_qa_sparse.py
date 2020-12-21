@@ -140,7 +140,6 @@ class QASparseTrainer(QuestionAnsweringTrainer):
         final_ampere_temperature = sparse_args.final_ampere_temperature
 
         if training:
-            print(warmup_steps, initial_warmup)
             if step <= initial_warmup * warmup_steps:
                 threshold = initial_threshold
                 ampere_temperature = initial_ampere_temperature
