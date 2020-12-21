@@ -62,7 +62,8 @@ class QuestionAnsweringTrainer(Trainer):
             eval_preds = self.post_process_function(eval_examples, eval_dataset, output.predictions)
             metrics = self.compute_metrics(eval_preds)
 
-            self.log(metrics)
+            log_metrics = {"eval_"+k:v for k,v in metrics.items()}
+            self.log(log_metrics)
         else:
             metrics = {}
 
