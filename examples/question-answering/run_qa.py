@@ -669,7 +669,6 @@ class QATraining:
                 try:
                     _ = json.dumps(v)
                 except Exception as e:
-                    v = str(v)
                     continue
 
                 if k in d:
