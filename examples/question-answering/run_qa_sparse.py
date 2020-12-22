@@ -16,7 +16,7 @@ from nn_pruning.training_patcher import BertLinearModelPatcher, PatcherContext
 from run_qa import QATraining
 from trainer_qa import QuestionAnsweringTrainer
 from transformers.optimization import AdamW, get_linear_schedule_with_warmup
-
+from run_qa import ModelArguments, QADataTrainingArguments, TrainingArguments
 
 @dataclass
 class SparseTrainingArguments:
@@ -343,6 +343,12 @@ class SparseQAShortNamer(TrialShortNamer):
 
 
 class QASparseTraining(QATraining):
+    ARGUMENTS = {
+        "model": ModelArguments,
+        "data": QADataTrainingArguments,
+        "training": TrainingArguments,
+        "sparse":SparseTrainingArguments
+    }
     QA_TRAINER_CLASS = QASparseTrainer
     SHORT_NAMER = SparseQAShortNamer
 
@@ -354,9 +360,6 @@ class QASparseTraining(QATraining):
     def create_trainer(self, *args, **kwargs):
         super().create_trainer(*args, **kwargs)
         self.trainer.set_members(patcher_context=self.patcher_context)
-
-    def get_arguments(self):
-        return {"sparse": SparseTrainingArguments}
 
     def parse_pruning_method(self, method):
         parts = method.split(":")
