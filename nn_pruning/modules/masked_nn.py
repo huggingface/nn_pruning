@@ -197,6 +197,12 @@ class MaskModule(nn.Module):
         method = parameters.method
         submethod = parameters.submethod
         if submethod.startswith("1d"):
+            dividers = parameters.block_rows, parameters.block_cols
+            for i, m in enumerate(mask_scores):
+                if m is None:
+                    assert(submethod == "1d_alt")
+                    mask_scores[i] = torch.ones(weight.shape[i] // dividers[i], device = weight.device)
+
             mask_scores = mask_scores[0].unsqueeze(-1).matmul(mask_scores[1].unsqueeze(0))
         else:
             mask_scores = mask_scores[0]
@@ -231,7 +237,7 @@ class MaskModule(nn.Module):
     def forward(self, weight, threshold):
         mask_scores = None
         if self.parameters.method != "magnitude":
-            mask_scores = [c.mask_scores for c in self.context_modules]
+            mask_scores = [(c.mask_scores if c is not None else None) for c in self.context_modules]
 
         return self.mask(weight, mask_scores, self.parameters, threshold, self.training)
 
@@ -250,7 +256,7 @@ class MaskedLinear(ReplacementModule):
         self.bias = linear_module.bias
 
         self.mask_module = MaskModule(mask_context_modules, parameters)
-        if ampere_context_module != None:
+        if ampere_context_module is not None:
             self.ampere_module = AmpereMaskModule(ampere_context_module, parameters)
         self.parameters = parameters
 
@@ -323,8 +329,10 @@ class LinearPruningModulePatcher(ModulePatcher):
             mask_row = self.get_context_module(child_module_name, child_module, kind="mask_row", row=True)
             mask_col = self.get_context_module(child_module_name, child_module, kind="mask_col", row=False)
             shape = child_module.weight.shape
-            assert(mask_row.mask_scores.shape[0] == shape[0] // self.parameters.block_rows)
-            assert(mask_col.mask_scores.shape[0] == shape[1] // self.parameters.block_cols)
+            if mask_row is not None:
+                assert(mask_row.mask_scores.shape[0] == shape[0] // self.parameters.block_rows)
+            if mask_col is not None:
+                assert(mask_col.mask_scores.shape[0] == shape[1] // self.parameters.block_cols)
             mask_context_modules = [mask_row, mask_col]
         else:
             mask_context_module = self.get_context_module(
