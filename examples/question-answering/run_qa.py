@@ -673,6 +673,8 @@ class QATraining:
                         continue
                     else:
                         v = str(v)
+                        if k == "evaluation_strategy":
+                            v = v.split(".")[-1].lower()
                     print(k, v)
 
                 if k in d:
