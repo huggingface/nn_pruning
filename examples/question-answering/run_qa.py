@@ -19,6 +19,7 @@ Fine-tuning the library models for question answering.
 
 import copy
 import logging
+import json
 import os
 import sys
 import dataclasses
@@ -44,6 +45,7 @@ from transformers import (
 from transformers.hf_argparser import DataClass
 from transformers.trainer_utils import is_main_process
 from utils_qa import postprocess_qa_predictions
+from nn_pruning.hp_naming import TrialShortNamer
 
 logger = logging.getLogger(__name__)
 
@@ -194,6 +196,7 @@ class QATraining:
         "training": TrainingArguments,
     }
     QA_TRAINER_CLASS = QuestionAnsweringTrainer
+    SHORT_NAMER = TrialShortNamer
 
     def __init__(self, param_dict):
         # See all possible arguments in src/transformers/training_args.py
@@ -222,8 +225,6 @@ class QATraining:
 
     @classmethod
     def run_from_json_file(cls, filename):
-        import json
-
         json_file_name = Path(filename).resolve()
         param_dict = json.load(open(json_file_name))
 
@@ -342,14 +343,15 @@ class QATraining:
                 "requirement"
             )
 
-    def create_model(self):
+    def model_init(self, trial=None):
         model_args = self.model_args
-        self.model = AutoModelForQuestionAnswering.from_pretrained(
+        model = AutoModelForQuestionAnswering.from_pretrained(
             model_args.model_name_or_path,
             from_tf=bool(".ckpt" in model_args.model_name_or_path),
             config=self.config,
             cache_dir=model_args.cache_dir,
         )
+        return model
 
     def prepare_column_names(self):
         training_args = self.training_args
@@ -566,6 +568,16 @@ class QATraining:
         ]
         return EvalPrediction(predictions=formatted_predictions, label_ids=references)
 
+    def get_all_args(self, exclude_base=False):
+        # Extract the other arguments
+        all_args = {}
+        for k in self.arguments_names:
+            if exclude_base and k in self.QA_TRAINING_ARGUMENTS:
+                continue
+            name = k + "_args"
+            all_args[name] = getattr(self, name)
+        return all_args
+
     def create_trainer(self):
         # Data collator
         # We have already padded to max length if the corresponding flag is True, otherwise we need to pad in the data
@@ -590,17 +602,11 @@ class QATraining:
         def compute_metrics(p: EvalPrediction):
             return metric.compute(predictions=p.predictions, references=p.label_ids)
 
-        # Extract the other arguments
-        all_args = {}
-        for k in self.arguments_names:
-            if k in self.QA_TRAINING_ARGUMENTS:
-                continue
-            name = k + "_args"
-            all_args[name] = getattr(self, name)
+        all_args = self.get_all_args(exclude_base=True)
 
         # Initialize our Trainer
         self.trainer = self.QA_TRAINER_CLASS(
-            model=self.model,
+            model=None,
             args=training_args,
             train_dataset=self.train_dataset if training_args.do_train else None,
             eval_dataset=self.validation_dataset if training_args.do_eval else None,
@@ -611,6 +617,7 @@ class QATraining:
             data_collator=data_collator,
             post_process_function=self._post_processing_function,
             compute_metrics=compute_metrics,
+            model_init=self.model_init,
             **all_args,
         )
 
@@ -621,7 +628,6 @@ class QATraining:
         self.setup_random()
         self.create_dataset()
         self.create_config()
-        self.create_model()
         self.create_tokenizer()
         self.prepare_column_names()
         self.prepare_datasets()
@@ -638,17 +644,7 @@ class QATraining:
 
     def evaluate(self):
         logger.info("*** Evaluate ***")
-        results = self.trainer.evaluate()
-
-        output_eval_file = os.path.join(
-            self.training_args.output_dir, "eval_results.txt"
-        )
-        if self.trainer.is_world_process_zero():
-            with open(output_eval_file, "w") as writer:
-                logger.info("***** Eval results *****")
-                for key, value in results.items():
-                    logger.info(f"  {key} = {value}")
-                    writer.write(f"{key} = {value}\n")
+        _ = self.trainer.evaluate()
 
     def run(self):
         self.prepare()
@@ -663,6 +659,36 @@ class QATraining:
 
         return results
 
+    def hp_name(self, trial):
+        all_args = self.get_all_args()
+        d = {}
+        for key, value in all_args.items():
+            for k, v in value.__dict__.items():
+                if v is None:
+                    continue
+                try:
+                    _ = json.dumps(v)
+                except Exception as e:
+                    v = str(v)
+                    continue
+
+                if k in d:
+                    raise RuntimeError(f"Duplicate parameters {k} in arguments")
+                d[k] = v
+
+        EXCLUDES = ["logging_dir"]
+        for exclude in EXCLUDES:
+            del d[exclude]
+        try:
+            ret = self.SHORT_NAMER.shortname(d)
+        except:
+            raise
+        return ret
+
+    def hyperparameter_search(self, *args, **kwargs):
+        self.prepare()
+
+        return self.trainer.hyperparameter_search(*args, hp_name=self.hp_name, **kwargs)
 
 def main():
     QATraining.run_from_command_line()

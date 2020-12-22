@@ -1,6 +1,11 @@
+import json
+import sys
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Dict
+
 import torch.nn as nn
+from nn_pruning.hp_naming import TrialShortNamer
 from nn_pruning.model_structure import BertStructure
 from nn_pruning.modules.masked_nn import (
     ChannelPruningModulePatcher,
@@ -109,7 +114,7 @@ class QASparseTrainer(QuestionAnsweringTrainer):
         self.sparse_args = sparse_args
         self.log_prefix = ""
 
-    def set_members(self, patcher_context:PatcherContext):
+    def set_members(self, patcher_context: PatcherContext):
         self.patcher_context = patcher_context
 
     def compute_loss(self, model, inputs):
@@ -118,12 +123,12 @@ class QASparseTrainer(QuestionAnsweringTrainer):
         return loss
 
     def log(self, logs: Dict[str, float]) -> None:
-        for k,v in self.patcher_context.enumerate_context_data():
-            logs[self.log_prefix+k] = v
+        for k, v in self.patcher_context.enumerate_context_data():
+            logs[self.log_prefix + k] = v
 
         return super().log(logs)
 
-    def schedule_threshold(self, training:bool):
+    def schedule_threshold(self, training: bool):
         state = self.state
         args = self.args
         sparse_args = self.sparse_args
@@ -164,7 +169,11 @@ class QASparseTrainer(QuestionAnsweringTrainer):
 
         regu_lambda = final_lambda * threshold / final_threshold
 
-        context_data = dict(threshold=threshold, ampere_temperature=ampere_temperature, regu_lambda=regu_lambda)
+        context_data = dict(
+            threshold=threshold,
+            ampere_temperature=ampere_temperature,
+            regu_lambda=regu_lambda,
+        )
 
         self.patcher_context.set_context_data_dict(context_data)
 
@@ -178,7 +187,6 @@ class QASparseTrainer(QuestionAnsweringTrainer):
         self.log_prefix = "eval_"
         ret = super().evaluate(*args, **kwargs)
         return ret
-
 
     def regularization(model: nn.Module, mode: str):
         # TODO
@@ -261,11 +269,81 @@ class QASparseTrainer(QuestionAnsweringTrainer):
         return scheduler
 
 
-
+class SparseQAShortNamer(TrialShortNamer):
+    DEFAULTS = {
+        "model_name_or_path": "bert-base-uncased",
+        "dataset_name": "squad",
+        "overwrite_cache": 0,
+        "dataset_cache_dir": "dataset_cache",
+        "max_seq_length": 384,
+        "pad_to_max_length": True,
+        "version_2_with_negative": False,
+        "null_score_diff_threshold": 0.0,
+        "doc_stride": 128,
+        "n_best_size": 20,
+        "max_answer_length": 30,
+        "output_dir": "output/squad_test",
+        "overwrite_output_dir": 1,
+        "do_train": 1,
+        "do_eval": 1,
+        "do_predict": False,
+        "model_parallel": False,
+        "prediction_loss_only": False,
+        "per_device_train_batch_size": 1,
+        "per_device_eval_batch_size": 8,
+        "gradient_accumulation_steps": 1,
+        "learning_rate": 3e-05,
+        "weight_decay": 0.0,
+        "adam_beta1": 0.9,
+        "adam_beta2": 0.999,
+        "adam_epsilon": 1e-08,
+        "max_grad_norm": 1.0,
+        "num_train_epochs": 20,
+        "max_steps": -1,
+        "warmup_steps": 5400,
+        "logging_first_step": False,
+        "logging_steps": 500,
+        "save_steps": 5000,
+        "save_total_limit": 5,
+        "no_cuda": False,
+        "seed": 17,
+        "fp16": False,
+        "fp16_opt_level": "O1",
+        "local_rank": -1,
+        "tpu_metrics_debug": False,
+        "debug": False,
+        "dataloader_drop_last": False,
+        "eval_steps": 5,
+        "dataloader_num_workers": 0,
+        "past_index": -1,
+        "run_name": "output/squad_test",
+        "disable_tqdm": False,
+        "remove_unused_columns": True,
+        "load_best_model_at_end": False,
+        "ignore_data_skip": False,
+        "mask_scores_learning_rate": 0.01,
+        "dense_pruning_method": "topK",
+        "attention_pruning_method": "topK",
+        "ampere_pruning_method": "disabled",
+        "mask_init": "constant",
+        "mask_scale": 0.0,
+        "dense_block_rows": 32,
+        "dense_block_cols": 32,
+        "attention_block_rows": 64,
+        "attention_block_cols": 768,
+        "initial_threshold": 1,
+        "final_threshold": 0.1,
+        "initial_warmup": 0,
+        "final_warmup": 10,
+        "initial_ampere_temperature": 0.0,
+        "final_ampere_temperature": 20.0,
+        "final_lambda": 0.0,
+    }
 
 
 class QASparseTraining(QATraining):
     QA_TRAINER_CLASS = QASparseTrainer
+    SHORT_NAMER = SparseQAShortNamer
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -274,9 +352,7 @@ class QASparseTraining(QATraining):
 
     def create_trainer(self, *args, **kwargs):
         super().create_trainer(*args, **kwargs)
-        self.trainer.set_members(patcher_context = self.patcher_context)
-        #scheduling = SchedulingCallback(self.patcher_context, self.sparse_args)
-        #self.trainer.add_callback(scheduling)
+        self.trainer.set_members(patcher_context=self.patcher_context)
 
     def get_arguments(self):
         return {"sparse": SparseTrainingArguments}
@@ -290,8 +366,10 @@ class QASparseTraining(QATraining):
         else:
             raise RuntimeError("Could not parse pruning method")
 
-    def patch_model(self):
-        attention_pruning_method_parts = self.parse_pruning_method(self.sparse_args.attention_pruning_method)
+    def patch_model(self, model, trial):
+        attention_pruning_method_parts = self.parse_pruning_method(
+            self.sparse_args.attention_pruning_method
+        )
 
         parameters_attention = LinearPruningParameters(
             method=attention_pruning_method_parts[0],
@@ -301,7 +379,9 @@ class QASparseTraining(QATraining):
             block_cols=self.sparse_args.attention_block_cols,
         )
 
-        dense_pruning_method_parts = self.parse_pruning_method(self.sparse_args.dense_pruning_method)
+        dense_pruning_method_parts = self.parse_pruning_method(
+            self.sparse_args.dense_pruning_method
+        )
 
         parameters_dense = LinearPruningParameters(
             method=dense_pruning_method_parts[0],
@@ -330,7 +410,7 @@ class QASparseTraining(QATraining):
         )
 
         patcher = BertLinearModelPatcher(module_patchers)
-        patcher.patch(self.model)
+        patcher.patch(model)
 
         assert patcher.stats["patched"] == 72
         if False:
@@ -341,14 +421,25 @@ class QASparseTraining(QATraining):
 
             assert key_sizes == {"ampere_mask": 72, "mask": 12, "mask_1d": 48}
 
-    def create_model(self):
-        super().create_model()
-        self.patch_model()
+    def model_init(self, trial=None):
+        model = super().model_init(trial)
+        self.patch_model(model, trial)
+        return model
 
 
 
 def main():
-    QASparseTraining.run_from_command_line()
+    if len(sys.argv) < 2:
+        raise RuntimeError("Please specify json file")
+    filename = Path(sys.argv[1]).resolve()
+    param_dict = json.load(open(filename))
+
+    qa = QASparseTraining(param_dict)
+
+    def hp_space(trial):
+        return {}
+
+    qa.hyperparameter_search(direction="minimize", hp_space=hp_space, n_trials=4)
 
 
 def _mp_fn(index):

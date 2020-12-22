@@ -16,9 +16,18 @@
 A subclass of `Trainer` specific to Question-Answering tasks
 """
 
+import os
 from transformers import Trainer, is_datasets_available, is_torch_tpu_available
-from transformers.trainer_utils import PredictionOutput
+from transformers.utils import logging
+from transformers.trainer_utils import (
+    HPSearchBackend,
+    PredictionOutput,
+    PREFIX_CHECKPOINT_DIR,
+    )
+from transformers.integrations import is_ray_available
 
+if is_ray_available():
+    from ray import tune
 
 if is_datasets_available():
     import datasets
@@ -27,12 +36,28 @@ if is_torch_tpu_available():
     import torch_xla.core.xla_model as xm
     import torch_xla.debug.metrics as met
 
+logger = logging.get_logger(__name__)
 
 class QuestionAnsweringTrainer(Trainer):
     def __init__(self, *args, eval_examples=None, post_process_function=None, **kwargs):
         super().__init__(*args, **kwargs)
         self.eval_examples = eval_examples
         self.post_process_function = post_process_function
+
+    def checkpoint_dir(self):
+        # Save model checkpoint
+        checkpoint_folder = f"{PREFIX_CHECKPOINT_DIR}-{self.state.global_step}"
+
+        trial = self._trial
+        if self.hp_search_backend is not None and trial is not None:
+            run_id = trial.number if self.hp_search_backend == HPSearchBackend.OPTUNA else tune.get_trial_id()
+            run_name = self.hp_name(trial) if self.hp_name is not None else f"run-{run_id}"
+            checkpoint_dir = os.path.join(self.args.output_dir, run_name, checkpoint_folder)
+        else:
+            checkpoint_dir = os.path.join(self.args.output_dir, checkpoint_folder)
+
+        return checkpoint_dir
+
 
     def evaluate(self, eval_dataset=None, eval_examples=None, ignore_keys=None):
         eval_dataset = self.eval_dataset if eval_dataset is None else eval_dataset
@@ -72,6 +97,15 @@ class QuestionAnsweringTrainer(Trainer):
             xm.master_print(met.metrics_report())
 
         self.control = self.callback_handler.on_evaluate(self.args, self.state, self.control, metrics)
+
+        if self.is_world_process_zero():
+            output_eval_file = self.checkpoint_dir()
+            with open(output_eval_file, "w") as writer:
+                logger.info("***** Eval results *****")
+                for key, value in metrics.items():
+                    logger.info(f"  {key} = {value}")
+                    writer.write(f"{key} = {value}\n")
+
         return metrics
 
     def predict(self, test_dataset, test_examples, ignore_keys=None):
