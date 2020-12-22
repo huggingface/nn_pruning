@@ -290,7 +290,7 @@ class LinearPruningModulePatcher(ModulePatcher):
                 f"Unknown pruning method '{method}', should be in {PRUNING_METHODS}"
             )
 
-        PRUNING_SUB_METHODS = ["default", "1d"]
+        PRUNING_SUB_METHODS = ["default", "1d", "1d_alt"]
         if submethod not in PRUNING_SUB_METHODS:
             raise RuntimeError(
                 f"Unknown pruning sub method '{submethod}', should be in {PRUNING_SUB_METHODS}"
@@ -378,7 +378,16 @@ class ChannelPruningModulePatcher(LinearPruningModulePatcher):
         elif kind in ["mask_row", "mask_col"] :
             layer_number = self.extract_layer_number_from_name(child_module_name)
 
+            if self.parameters.submethod == "1d_alt":
+                if (layer_number % 2) == 0:
+                    if kind == "mask_row":
+                        return None
+                else:
+                    if kind == "mask_col":
+                        return None
+
             offset = 1 if kind == "mask_row" else 0 # The weight matrix has a shape [output, input]
+
             position, name = self.model_structure.get_module_intra_layer_position(child_module_name)
 
             return ("mask_1d", f"{layer_number}.{position+offset}.{self.suffix}")

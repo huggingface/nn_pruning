@@ -84,6 +84,8 @@ class ModulePatcher:
 
     def get_context_module(self, child_module_name, child_module, kind="default", **kwargs):
         key = self.get_context_key(child_module_name, kind=kind)
+        if key == None:
+            return None
         if self.context.has_module_context(key):
             return self.context.get_context_module(key)
         else:

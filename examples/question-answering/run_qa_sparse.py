@@ -414,13 +414,8 @@ class QASparseTraining(QATraining):
         patcher.patch(model)
 
         assert patcher.stats["patched"] == 72
-        if False:
-            key_sizes = {k: len(v) for k, v in patcher_context.context_modules.items()}
 
-            for k, v in key_sizes.items():
-                print(k, v)
 
-            assert key_sizes == {"ampere_mask": 72, "mask": 12, "mask_1d": 48}
 
     def model_init(self, trial=None):
         model = super().model_init(trial)

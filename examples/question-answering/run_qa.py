@@ -669,7 +669,11 @@ class QATraining:
                 try:
                     _ = json.dumps(v)
                 except Exception as e:
-                    continue
+                    if k.startswith("__"):
+                        continue
+                    else:
+                        v = str(v)
+                    print(k, v)
 
                 if k in d:
                     raise RuntimeError(f"Duplicate parameters {k} in arguments")

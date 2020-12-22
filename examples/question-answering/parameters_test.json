@@ -23,7 +23,7 @@
   "final_warmup": 10,
   "initial_threshold": 1,
   "final_threshold": 0.1,
-  "dense_pruning_method": "topK:1d",
+  "dense_pruning_method": "topK:1d_alt",
   "dense_block_rows":32,
   "dense_block_cols":32,
   "attention_pruning_method": "topK",
