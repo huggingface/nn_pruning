@@ -1,20 +1,14 @@
 import unittest
 from unittest import TestCase
-from transformers import (
-    BertConfig,
-    BertForQuestionAnswering,
-)
 
-from nn_pruning.modules.masked_nn import (
-    LinearPruningModulePatcher,
-    LinearPruningParameters,
-    JointPruningModulePatcher,
-    ChannelPruningModulePatcher,
-)
-
-from nn_pruning.training_patcher import BertLinearModelPatcher, PatcherContext
+from transformers import BertConfig, BertForQuestionAnswering
 
 from nn_pruning.model_structure import BertStructure
+from nn_pruning.modules.masked_nn import (ChannelPruningModulePatcher,
+                                          JointPruningModulePatcher,
+                                          LinearPruningModulePatcher,
+                                          LinearPruningParameters)
+from nn_pruning.training_patcher import BertLinearModelPatcher, PatcherContext
 
 
 class TestFun(TestCase):
@@ -43,9 +37,7 @@ class TestFun(TestCase):
 
         p = LinearPruningModulePatcher(context, parameters)
 
-        module_patchers = dict(
-            query=p, key=p, value=p, att_dense=p, interm_dense=p, output_dense=p
-        )
+        module_patchers = dict(query=p, key=p, value=p, att_dense=p, interm_dense=p, output_dense=p)
 
         patcher = BertLinearModelPatcher(module_patchers)
         patcher.patch(model)
@@ -71,9 +63,7 @@ class TestFun(TestCase):
 
         p = LinearPruningModulePatcher(context, parameters)
 
-        module_patchers = dict(
-            query=p, key=p, value=p, att_dense=p, interm_dense=p, output_dense=p
-        )
+        module_patchers = dict(query=p, key=p, value=p, att_dense=p, interm_dense=p, output_dense=p)
 
         patcher = BertLinearModelPatcher(module_patchers)
         patcher.patch(model)
@@ -139,12 +129,8 @@ class TestFun(TestCase):
 
         context = PatcherContext()
 
-        p_attention = JointPruningModulePatcher(
-            context, parameters_attention, suffix=".attention"
-        )
-        p_dense = ChannelPruningModulePatcher(
-            context, parameters_dense, BertStructure, suffix="dense"
-        )
+        p_attention = JointPruningModulePatcher(context, parameters_attention, suffix=".attention")
+        p_dense = ChannelPruningModulePatcher(context, parameters_dense, BertStructure, suffix="dense")
 
         module_patchers = dict(
             query=p_attention,

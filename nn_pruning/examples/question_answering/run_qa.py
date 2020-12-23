@@ -23,18 +23,16 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from datasets import load_dataset, load_metric
-from .run import Training, ModelArguments, DataTrainingArguments, TrainingArguments
-from .trainer_qa import QuestionAnsweringTrainer
+from transformers import (AutoModelForQuestionAnswering,
+                          DataCollatorWithPadding, EvalPrediction,
+                          default_data_collator)
 
-from transformers import (
-    AutoModelForQuestionAnswering,
-    DataCollatorWithPadding,
-    EvalPrediction,
-    default_data_collator,
-)
-
-from .utils_qa import postprocess_qa_predictions
 from nn_pruning.hp_naming import TrialShortNamer
+
+from .run import (DataTrainingArguments, ModelArguments, Training,
+                  TrainingArguments)
+from .trainer_qa import QuestionAnsweringTrainer
+from .utils_qa import postprocess_qa_predictions
 
 logger = logging.getLogger(__name__)
 
@@ -59,9 +57,7 @@ class QADataTrainingArguments(DataTrainingArguments):
     )
     n_best_size: int = field(
         default=20,
-        metadata={
-            "help": "The total number of n-best predictions to generate when looking for an answer."
-        },
+        metadata={"help": "The total number of n-best predictions to generate when looking for an answer."},
     )
     max_answer_length: int = field(
         default=30,
@@ -102,15 +98,9 @@ class QATraining(Training):
         else:
             column_names = self.datasets["validation"].column_names
         self.column_names = column_names
-        self.question_column_name = (
-            "question" if "question" in column_names else column_names[0]
-        )
-        self.context_column_name = (
-            "context" if "context" in column_names else column_names[1]
-        )
-        self.answer_column_name = (
-            "answers" if "answers" in column_names else column_names[2]
-        )
+        self.question_column_name = "question" if "question" in column_names else column_names[0]
+        self.context_column_name = "context" if "context" in column_names else column_names[1]
+        self.answer_column_name = "answers" if "answers" in column_names else column_names[2]
 
     # Validation preprocessing
     def _prepare_validation_features(self, examples):
@@ -120,12 +110,8 @@ class QATraining(Training):
         data_args = self.data_args
         pad_on_right = self.pad_on_right
         tokenized_examples = self.tokenizer(
-            examples[
-                self.question_column_name if pad_on_right else self.context_column_name
-            ],
-            examples[
-                self.context_column_name if pad_on_right else self.question_column_name
-            ],
+            examples[self.question_column_name if pad_on_right else self.context_column_name],
+            examples[self.context_column_name if pad_on_right else self.question_column_name],
             truncation="only_second" if pad_on_right else "only_first",
             max_length=data_args.max_seq_length,
             stride=data_args.doc_stride,
@@ -230,19 +216,13 @@ class QATraining(Training):
                     token_end_index -= 1
 
                 # Detect if the answer is out of the span (in which case this feature is labeled with the CLS index).
-                if not (
-                    offsets[token_start_index][0] <= start_char
-                    and offsets[token_end_index][1] >= end_char
-                ):
+                if not (offsets[token_start_index][0] <= start_char and offsets[token_end_index][1] >= end_char):
                     tokenized_examples["start_positions"].append(cls_index)
                     tokenized_examples["end_positions"].append(cls_index)
                 else:
                     # Otherwise move the token_start_index and token_end_index to the two ends of the answer.
                     # Note: we could go after the last offset if the answer is the last word (edge case).
-                    while (
-                        token_start_index < len(offsets)
-                        and offsets[token_start_index][0] <= start_char
-                    ):
+                    while token_start_index < len(offsets) and offsets[token_start_index][0] <= start_char:
                         token_start_index += 1
                     tokenized_examples["start_positions"].append(token_start_index - 1)
                     while offsets[token_end_index][1] >= end_char:
@@ -296,17 +276,11 @@ class QATraining(Training):
         # Format the result to the format the metric expects.
         if data_args.version_2_with_negative:
             formatted_predictions = [
-                {"id": k, "prediction_text": v, "no_answer_probability": 0.0}
-                for k, v in predictions.items()
+                {"id": k, "prediction_text": v, "no_answer_probability": 0.0} for k, v in predictions.items()
             ]
         else:
-            formatted_predictions = [
-                {"id": k, "prediction_text": v} for k, v in predictions.items()
-            ]
-        references = [
-            {"id": ex["id"], "answers": ex[self.answer_column_name]}
-            for ex in self.datasets["validation"]
-        ]
+            formatted_predictions = [{"id": k, "prediction_text": v} for k, v in predictions.items()]
+        references = [{"id": ex["id"], "answers": ex[self.answer_column_name]} for ex in self.datasets["validation"]]
         return EvalPrediction(predictions=formatted_predictions, label_ids=references)
 
     def create_trainer(self):
@@ -317,17 +291,13 @@ class QATraining(Training):
         data_args = self.data_args
 
         data_collator = (
-            default_data_collator
-            if data_args.pad_to_max_length
-            else DataCollatorWithPadding(self.tokenizer)
+            default_data_collator if data_args.pad_to_max_length else DataCollatorWithPadding(self.tokenizer)
         )
 
         # TODO: Once the fix lands in a Datasets release, remove the _local here and the squad_v2_local folder.
         current_dir = os.path.sep.join(os.path.join(__file__).split(os.path.sep)[:-1])
         metric = load_metric(
-            os.path.join(current_dir, "squad_v2_local")
-            if data_args.version_2_with_negative
-            else "squad"
+            os.path.join(current_dir, "squad_v2_local") if data_args.version_2_with_negative else "squad"
         )
 
         def compute_metrics(p: EvalPrediction):
@@ -341,9 +311,7 @@ class QATraining(Training):
             args=training_args,
             train_dataset=self.train_dataset if training_args.do_train else None,
             eval_dataset=self.validation_dataset if training_args.do_eval else None,
-            eval_examples=self.datasets["validation"]
-            if training_args.do_eval
-            else None,
+            eval_examples=self.datasets["validation"] if training_args.do_eval else None,
             tokenizer=self.tokenizer,
             data_collator=data_collator,
             post_process_function=self._post_processing_function,

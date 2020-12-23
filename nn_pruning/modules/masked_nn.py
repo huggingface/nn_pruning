@@ -19,23 +19,20 @@ the weight matrix to prune a portion of the weights.
 The pruned weight matrix is then multiplied against the inputs (and if necessary, the bias is added).
 """
 
-from typing import List
 import math
 from dataclasses import dataclass
 from itertools import permutations
+from typing import List
 
 import torch
-from nn_pruning.training_patcher import (
-    ModulePatcher,
-    PatcherContext,
-    PatcherContextModule,
-    ReplacementModule,
-)
-from nn_pruning.model_structure import ModelStructure
-
 from torch import nn
 from torch.nn import functional as F
 from torch.nn import init
+
+from nn_pruning.model_structure import ModelStructure
+from nn_pruning.training_patcher import (ModulePatcher, PatcherContext,
+                                         PatcherContextModule,
+                                         ReplacementModule)
 
 from .binarizer import MagnitudeBinarizer, ThresholdBinarizer, TopKBinarizer
 
@@ -151,15 +148,11 @@ class AmpereMaskModule(nn.Module):
     def build_ampere_pattern(device):
         patterns = torch.zeros(AmpereLinearPruningContextModule.AMPERE_M)
         patterns[: AmpereLinearPruningContextModule.AMPERE_N] = 1
-        sparse_patterns = torch.Tensor(list(set(permutations(patterns.tolist())))).to(
-            device=device
-        )
+        sparse_patterns = torch.Tensor(list(set(permutations(patterns.tolist())))).to(device=device)
         return sparse_patterns
 
     @staticmethod
-    def mask(
-        ampere_permut_scores, ampere_pattern, ampere_temperature: float, training: bool
-    ):
+    def mask(ampere_permut_scores, ampere_pattern, ampere_temperature: float, training: bool):
         if training:
             s = F.softmax(ampere_permut_scores * ampere_temperature, dim=-1)
         else:
@@ -213,13 +206,9 @@ class MaskModule(nn.Module):
             for i, m in enumerate(mask_scores):
                 if m is None:
                     assert submethod == "1d_alt"
-                    mask_scores[i] = torch.ones(
-                        weight.shape[i] // dividers[i], device=weight.device
-                    )
+                    mask_scores[i] = torch.ones(weight.shape[i] // dividers[i], device=weight.device)
 
-            mask_scores = (
-                mask_scores[0].unsqueeze(-1).matmul(mask_scores[1].unsqueeze(0))
-            )
+            mask_scores = mask_scores[0].unsqueeze(-1).matmul(mask_scores[1].unsqueeze(0))
         else:
             mask_scores = mask_scores[0]
 
@@ -253,9 +242,7 @@ class MaskModule(nn.Module):
     def forward(self, weight, threshold):
         mask_scores = None
         if self.parameters.method != "magnitude":
-            mask_scores = [
-                (c.mask_scores if c is not None else None) for c in self.context_modules
-            ]
+            mask_scores = [(c.mask_scores if c is not None else None) for c in self.context_modules]
 
         return self.mask(weight, mask_scores, self.parameters, threshold, self.training)
 
@@ -301,9 +288,7 @@ class MaskedLinear(ReplacementModule):
     def compile(self):
         masked_weights = self.get_masked_weights()
 
-        ret = nn.Linear(
-            self.weight.shape[1], self.weight.shape[0], bias=self.bias is not None
-        )
+        ret = nn.Linear(self.weight.shape[1], self.weight.shape[0], bias=self.bias is not None)
         with torch.no_grad():
             ret.weight.copy_(masked_weights)
             if ret.bias is not None:
@@ -328,21 +313,15 @@ class LinearPruningModulePatcher(ModulePatcher):
         ampere_method = parameters.ampere_method
         PRUNING_METHODS = ["topK", "threshold", "sigmoied_threshold", "magnitude", "l0"]
         if method not in PRUNING_METHODS:
-            raise RuntimeError(
-                f"Unknown pruning method '{method}', should be in {PRUNING_METHODS}"
-            )
+            raise RuntimeError(f"Unknown pruning method '{method}', should be in {PRUNING_METHODS}")
 
         PRUNING_SUB_METHODS = ["default", "1d", "1d_alt"]
         if submethod not in PRUNING_SUB_METHODS:
-            raise RuntimeError(
-                f"Unknown pruning sub method '{submethod}', should be in {PRUNING_SUB_METHODS}"
-            )
+            raise RuntimeError(f"Unknown pruning sub method '{submethod}', should be in {PRUNING_SUB_METHODS}")
 
         AMPERE_METHODS = ["disabled", "annealing"]
         if ampere_method not in AMPERE_METHODS:
-            raise RuntimeError(
-                f"Unknown ampere pruning method '{ampere_method}', should be in {AMPERE_METHODS}"
-            )
+            raise RuntimeError(f"Unknown ampere pruning method '{ampere_method}', should be in {AMPERE_METHODS}")
 
     def create_context_module(self, child_module_name, child_module, key, row=None):
         shape = child_module.weight.shape
@@ -362,46 +341,28 @@ class LinearPruningModulePatcher(ModulePatcher):
 
     def patch(self, child_module_name, child_module):
         if self.parameters.submethod.startswith("1d"):
-            mask_row = self.get_context_module(
-                child_module_name, child_module, kind="mask_row", row=True
-            )
-            mask_col = self.get_context_module(
-                child_module_name, child_module, kind="mask_col", row=False
-            )
+            mask_row = self.get_context_module(child_module_name, child_module, kind="mask_row", row=True)
+            mask_col = self.get_context_module(child_module_name, child_module, kind="mask_col", row=False)
             shape = child_module.weight.shape
             if mask_row is not None:
-                assert (
-                    mask_row.mask_scores.shape[0]
-                    == shape[0] // self.parameters.block_rows
-                )
+                assert mask_row.mask_scores.shape[0] == shape[0] // self.parameters.block_rows
             if mask_col is not None:
-                assert (
-                    mask_col.mask_scores.shape[0]
-                    == shape[1] // self.parameters.block_cols
-                )
+                assert mask_col.mask_scores.shape[0] == shape[1] // self.parameters.block_cols
             mask_context_modules = [mask_row, mask_col]
         else:
-            mask_context_module = self.get_context_module(
-                child_module_name, child_module, kind="mask"
-            )
+            mask_context_module = self.get_context_module(child_module_name, child_module, kind="mask")
             mask_context_modules = [mask_context_module]
 
         if self.parameters.ampere_method != "disabled":
-            ampere_context_module = self.get_context_module(
-                child_module_name, child_module, kind="ampere_mask"
-            )
+            ampere_context_module = self.get_context_module(child_module_name, child_module, kind="ampere_mask")
         else:
             ampere_context_module = None
 
-        return MaskedLinear(
-            child_module, mask_context_modules, ampere_context_module, self.parameters
-        )
+        return MaskedLinear(child_module, mask_context_modules, ampere_context_module, self.parameters)
 
 
 class JointPruningModulePatcher(LinearPruningModulePatcher):
-    def __init__(
-        self, context: PatcherContext, parameters: LinearPruningParameters, suffix: str
-    ):
+    def __init__(self, context: PatcherContext, parameters: LinearPruningParameters, suffix: str):
 
         super().__init__(context, parameters)
         self.suffix = suffix
@@ -434,14 +395,9 @@ class ChannelPruningModulePatcher(LinearPruningModulePatcher):
         elif kind in ["mask_row", "mask_col"]:
             layer_number = self.extract_layer_number_from_name(child_module_name)
 
+            offset = 1 if kind == "mask_row" else 0  # The weight matrix has a shape [output, input]
 
-            offset = (
-                1 if kind == "mask_row" else 0
-            )  # The weight matrix has a shape [output, input]
-
-            position, name = self.model_structure.get_module_intra_layer_position(
-                child_module_name
-            )
+            position, name = self.model_structure.get_module_intra_layer_position(child_module_name)
 
             if self.parameters.submethod == "1d_alt":
                 if (position % 2) == 1:

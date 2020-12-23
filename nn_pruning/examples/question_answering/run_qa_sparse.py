@@ -5,26 +5,23 @@ from pathlib import Path
 from types import SimpleNamespace
 from typing import Dict
 
+import numpy as np
+import torch
 import torch.nn as nn
+from transformers.optimization import AdamW, get_linear_schedule_with_warmup
+
 from nn_pruning.hp_naming import TrialShortNamer
 from nn_pruning.model_patcher import ModelPatcher
 from nn_pruning.model_structure import BertStructure
-from nn_pruning.modules.masked_nn import (
-    LinearPruningParameters,
-    LinearPruningModulePatcher,
-    ChannelPruningModulePatcher,
-    JointPruningModulePatcher,
-    MaskedLinear,
-)
+from nn_pruning.modules.masked_nn import (ChannelPruningModulePatcher,
+                                          JointPruningModulePatcher,
+                                          LinearPruningModulePatcher,
+                                          LinearPruningParameters,
+                                          MaskedLinear)
 from nn_pruning.training_patcher import BertLinearModelPatcher, PatcherContext
-from transformers.optimization import AdamW, get_linear_schedule_with_warmup
 
-from .run_qa import (
-    ModelArguments,
-    QADataTrainingArguments,
-    QATraining,
-    TrainingArguments,
-)
+from .run_qa import (ModelArguments, QADataTrainingArguments, QATraining,
+                     TrainingArguments)
 from .trainer_qa import QuestionAnsweringTrainer
 
 
@@ -38,22 +35,21 @@ class SparseTrainingArguments:
         default=1e-2, metadata={"help": "The initial learning rate for mask_scores."}
     )
 
-    dense_pruning_method: str = field(
-        default="topk", metadata={"help": "Dense Layers pruning method."}
-    )
+    dense_pruning_method: str = field(default="topk", metadata={"help": "Dense Layers pruning method."})
 
-    attention_pruning_method: str = field(
-        default="topk", metadata={"help": "Dense Layers pruning method."}
-    )
+    attention_pruning_method: str = field(default="topk", metadata={"help": "Dense Layers pruning method."})
 
     ampere_pruning_method: str = field(
         default="disabled",
         metadata={"help": "Ampere sparse method ('disabled' for no ampere sparsity)"},
     )
 
-    mask_init: str = field(
-        default="constant", metadata={"help": "Mask scores initialization method"}
+    regularization: str = field(
+        default="disabled",
+        metadata={"help": "Add L0 or L1 regularization to the mask scores."},
     )
+
+    mask_init: str = field(default="constant", metadata={"help": "Mask scores initialization method"})
 
     mask_scale: float = field(
         default=0.0,
@@ -110,11 +106,10 @@ class SparseTrainingArguments:
         default=20.0,
         metadata={"help": "Final value of the ampere temperature (for scheduling)."},
     )
+
     final_lambda: float = field(
         default=0.0,
-        metadata={
-            "help": "Regularization intensity (used in conjunction with `regularization`)."
-        },
+        metadata={"help": "Regularization intensity (used in conjunction with `regularization`)."},
     )
 
 
@@ -130,6 +125,8 @@ class BertLinearModelCompiler(ModelPatcher):
 
 
 class QASparseModelPatcher:
+    MODEL_STRUCTURE = BertStructure
+
     def __init__(self, sparse_args):
         self.sparse_args = sparse_args
         self.patcher_context = PatcherContext()
@@ -168,12 +165,8 @@ class QASparseModelPatcher:
             else:
                 spars_warmup_steps = initial_warmup * warmup_steps
                 spars_schedu_steps = (final_warmup + initial_warmup) * warmup_steps
-                mul_coeff = 1 - (step - spars_warmup_steps) / (
-                    total_step - spars_schedu_steps
-                )
-                threshold = final_threshold + (initial_threshold - final_threshold) * (
-                    mul_coeff ** 3
-                )
+                mul_coeff = 1 - (step - spars_warmup_steps) / (total_step - spars_schedu_steps)
+                threshold = final_threshold + (initial_threshold - final_threshold) * (mul_coeff ** 3)
                 ampere_temperature = final_ampere_temperature + (
                     initial_ampere_temperature - final_ampere_temperature
                 ) * (mul_coeff ** 3)
@@ -191,23 +184,19 @@ class QASparseModelPatcher:
 
         self.patcher_context.set_context_data_dict(context_data)
 
-    def regularization(model: nn.Module, mode: str):
-        # TODO
-        assert False
+    def regularization(self, model: nn.Module):
+        mode = self.sparse_args.regularization
         if mode not in ["l0", "l1"]:
             return 0
+
         regu, counter = 0, 0
         for name, module in model.named_modules():
-            # if isinstance(module, )
-
             if "mask_scores" in name:
+                param = name.mask_scores
                 if mode == "l1":
                     regu += torch.norm(torch.sigmoid(param), p=1) / param.numel()
                 elif mode == "l0":
-                    regu += (
-                        torch.sigmoid(param - 2 / 3 * np.log(0.1 / 1.1)).sum()
-                        / param.numel()
-                    )
+                    regu += torch.sigmoid(param - 2 / 3 * np.log(0.1 / 1.1)).sum() / param.numel()
                 else:
                     ValueError("Don't know this mode.")
                 counter += 1
@@ -223,9 +212,8 @@ class QASparseModelPatcher:
             raise RuntimeError("Could not parse pruning method")
 
     def patch_model(self, model, trial):
-        attention_pruning_method_parts = self.parse_pruning_method(
-            self.sparse_args.attention_pruning_method
-        )
+        assert trial is None or len(trial) == 0
+        attention_pruning_method_parts = self.parse_pruning_method(self.sparse_args.attention_pruning_method)
 
         parameters_attention = LinearPruningParameters(
             method=attention_pruning_method_parts[0],
@@ -235,9 +223,7 @@ class QASparseModelPatcher:
             block_cols=self.sparse_args.attention_block_cols,
         )
 
-        dense_pruning_method_parts = self.parse_pruning_method(
-            self.sparse_args.dense_pruning_method
-        )
+        dense_pruning_method_parts = self.parse_pruning_method(self.sparse_args.dense_pruning_method)
 
         parameters_dense = LinearPruningParameters(
             method=dense_pruning_method_parts[0],
@@ -249,18 +235,14 @@ class QASparseModelPatcher:
 
         patcher_context = self.patcher_context
 
-        p_attention = JointPruningModulePatcher(
-            patcher_context, parameters_attention, suffix=".attention"
-        )
+        p_attention = JointPruningModulePatcher(patcher_context, parameters_attention, suffix=".attention")
 
         if parameters_dense.submethod.startswith("1d"):
             p_dense = ChannelPruningModulePatcher(
-                patcher_context, parameters_dense, BertStructure, suffix="dense"
+                patcher_context, parameters_dense, self.MODEL_STRUCTURE, suffix="dense"
             )
         else:
-            p_dense = LinearPruningModulePatcher(
-                patcher_context, parameters_dense, suffix="dense"
-            )
+            p_dense = LinearPruningModulePatcher(patcher_context, parameters_dense, suffix="dense")
 
         module_patchers = dict(
             query=p_attention,
@@ -293,11 +275,11 @@ class QASparseTrainer(QuestionAnsweringTrainer):
 
     def compute_loss(self, model, inputs):
         loss = super().compute_loss(model, inputs)
-        # loss += self.regularization(model)
+        loss += self.patcher.regularization(model)
         return loss
 
     def log(self, logs: Dict[str, float]) -> None:
-        add = {self.log_prefix + k:v for k,v in self.patcher.log().items()}
+        add = {self.log_prefix + k: v for k, v in self.patcher.log().items()}
 
         logs.update(add)
 
@@ -305,9 +287,7 @@ class QASparseTrainer(QuestionAnsweringTrainer):
 
     def schedule_threshold(self, training: bool):
         step = self.state.global_step
-        self.patcher.schedule_threshold(
-            step, self.state.max_steps, self.args.warmup_steps, training
-        )
+        self.patcher.schedule_threshold(step, self.state.max_steps, self.args.warmup_steps, training)
 
     def training_step(self, *args, **kwargs):
         self.schedule_threshold(True)
@@ -319,9 +299,6 @@ class QASparseTrainer(QuestionAnsweringTrainer):
         self.log_prefix = "eval_"
         ret = super().evaluate(*args, **kwargs)
         return ret
-
-    def regularization(self, model: nn.Module, mode: str):
-        return self.patcher.regularization(model, mode)
 
     def create_optimizer_and_scheduler(self, num_training_steps: int):
         assert self.optimizer is None
@@ -368,9 +345,7 @@ class QASparseTrainer(QuestionAnsweringTrainer):
             },
         ]
 
-        optimizer = AdamW(
-            optimizer_grouped_parameters, lr=args.learning_rate, eps=args.adam_epsilon
-        )
+        optimizer = AdamW(optimizer_grouped_parameters, lr=args.learning_rate, eps=args.adam_epsilon)
         return optimizer
 
     def create_scheduler(self, num_training_steps: int):
@@ -443,6 +418,7 @@ class SparseQAShortNamer(TrialShortNamer):
         "per_device_eval_batch_size": 8,
         "per_device_train_batch_size": 16,
         "prediction_loss_only": False,
+        "regularization": "disabled",
         "remove_unused_columns": True,
         "run_name": "output/squad_test",
         "save_steps": 5000,

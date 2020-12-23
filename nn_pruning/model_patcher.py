@@ -39,12 +39,8 @@ class ModelPatcher:
     def new_child_module(self, child_module_name, child_module, patch_info):
         raise NotImplementedError("Implement this in subclasses")
 
-    def replace_module(
-        self, father, child_module_name, child_name, child_module, patch_info
-    ):
-        new_child_module = self.new_child_module(
-            child_module_name, child_module, patch_info
-        )
+    def replace_module(self, father, child_module_name, child_name, child_module, patch_info):
+        new_child_module = self.new_child_module(child_module_name, child_module, patch_info)
         if new_child_module is not None:
             self.stats["patched"] += 1
             setattr(father, child_name, new_child_module)
@@ -53,9 +49,7 @@ class ModelPatcher:
         modules = {}
         modified = False
         if self.all_match and len(self.patterns) != 0:
-            Warning(
-                "all match is true, but there are some defined patterns, those will be ignored"
-            )
+            Warning("all match is true, but there are some defined patterns, those will be ignored")
         for k, v in model.named_modules():
             modules[k] = v
             match, patch_info = self.pattern_match(k)
@@ -79,12 +73,7 @@ class BertHeadsPruner:
         self.model = model
 
     def analyze_head(self, p, head_size):
-        p0 = (
-            (p != 0)
-            .reshape(p.shape[0] // head_size, head_size, p.shape[1])
-            .any(-1)
-            .any(-1)
-        )
+        p0 = (p != 0).reshape(p.shape[0] // head_size, head_size, p.shape[1]).any(-1).any(-1)
         return p0
 
     def get_pruned_heads(self):
@@ -95,9 +84,7 @@ class BertHeadsPruner:
                 layer_number = int(name.split(".")[3])
                 parts = []
                 for a in ["query", "key", "value"]:
-                    p = self.analyze_head(
-                        getattr(module, a).weight, module.attention_head_size
-                    )
+                    p = self.analyze_head(getattr(module, a).weight, module.attention_head_size)
                     parts.append(p)
                 parts = list(torch.stack(parts, 0).all(0).cpu().detach().numpy())
                 heads_count += len(parts)

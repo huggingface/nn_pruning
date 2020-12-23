@@ -2,8 +2,9 @@ import sys
 
 
 def main():
-    from pathlib import Path
     import json
+    from pathlib import Path
+
     import nn_pruning.examples.question_answering.run_qa_sparse as run_qa_sparse
 
     if len(sys.argv) < 2:

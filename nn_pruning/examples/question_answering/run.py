@@ -1,22 +1,16 @@
-import sys
 import copy
 import json
-import os.path
-from pathlib import Path
-from dataclasses import dataclass, field
-from typing import Optional
 import logging
-from datasets import load_dataset
+import os.path
+import sys
+from dataclasses import dataclass, field
+from pathlib import Path
+from typing import Optional
 
 import transformers
-from transformers import (
-    AutoConfig,
-    AutoTokenizer,
-    HfArgumentParser,
-    PreTrainedTokenizerFast,
-    TrainingArguments,
-    set_seed,
-)
+from datasets import load_dataset
+from transformers import (AutoConfig, AutoTokenizer, HfArgumentParser,
+                          PreTrainedTokenizerFast, TrainingArguments, set_seed)
 from transformers.trainer_utils import is_main_process
 
 logger = logging.getLogger(__name__)
@@ -29,27 +23,19 @@ class ModelArguments:
     """
 
     model_name_or_path: str = field(
-        metadata={
-            "help": "Path to pretrained model or model identifier from huggingface.co/models"
-        }
+        metadata={"help": "Path to pretrained model or model identifier from huggingface.co/models"}
     )
     config_name: Optional[str] = field(
         default=None,
-        metadata={
-            "help": "Pretrained config name or path if not the same as model_name"
-        },
+        metadata={"help": "Pretrained config name or path if not the same as model_name"},
     )
     tokenizer_name: Optional[str] = field(
         default=None,
-        metadata={
-            "help": "Pretrained tokenizer name or path if not the same as model_name"
-        },
+        metadata={"help": "Pretrained tokenizer name or path if not the same as model_name"},
     )
     cache_dir: Optional[str] = field(
         default=None,
-        metadata={
-            "help": "Path to directory to store the pretrained models downloaded from huggingface.co"
-        },
+        metadata={"help": "Path to directory to store the pretrained models downloaded from huggingface.co"},
     )
 
 
@@ -65,18 +51,12 @@ class DataTrainingArguments:
     )
     dataset_config_name: Optional[str] = field(
         default=None,
-        metadata={
-            "help": "The configuration name of the dataset to use (via the datasets library)."
-        },
+        metadata={"help": "The configuration name of the dataset to use (via the datasets library)."},
     )
-    train_file: Optional[str] = field(
-        default=None, metadata={"help": "The input training data file (a text file)."}
-    )
+    train_file: Optional[str] = field(default=None, metadata={"help": "The input training data file (a text file)."})
     validation_file: Optional[str] = field(
         default=None,
-        metadata={
-            "help": "An optional input evaluation data file to evaluate the perplexity on (a text file)."
-        },
+        metadata={"help": "An optional input evaluation data file to evaluate the perplexity on (a text file)."},
     )
     overwrite_cache: bool = field(
         default=False,
@@ -108,20 +88,12 @@ class DataTrainingArguments:
     )
     doc_stride: int = field(
         default=128,
-        metadata={
-            "help": "When splitting up a long document into chunks, how much stride to take between chunks."
-        },
+        metadata={"help": "When splitting up a long document into chunks, how much stride to take between chunks."},
     )
 
     def __post_init__(self):
-        if (
-            self.dataset_name is None
-            and self.train_file is None
-            and self.validation_file is None
-        ):
-            raise ValueError(
-                "Need either a dataset name or a training/validation file."
-            )
+        if self.dataset_name is None and self.train_file is None and self.validation_file is None:
+            raise ValueError("Need either a dataset name or a training/validation file.")
         else:
             if self.train_file is not None:
                 extension = self.train_file.split(".")[-1]
@@ -198,9 +170,7 @@ class Training:
             format="%(asctime)s - %(levelname)s - %(name)s -   %(message)s",
             datefmt="%m/%d/%Y %H:%M:%S",
         )
-        logger.setLevel(
-            logging.INFO if is_main_process(training_args.local_rank) else logging.WARN
-        )
+        logger.setLevel(logging.INFO if is_main_process(training_args.local_rank) else logging.WARN)
 
     def create_directories(self):
         training_args = self.training_args
@@ -250,9 +220,7 @@ class Training:
         data_args = self.data_args
         if data_args.dataset_name is not None:
             # Downloading and loading a dataset from the hub.
-            self.datasets = load_dataset(
-                data_args.dataset_name, data_args.dataset_config_name
-            )
+            self.datasets = load_dataset(data_args.dataset_name, data_args.dataset_config_name)
         else:
             data_files = {}
             if data_args.train_file is not None:
@@ -271,9 +239,7 @@ class Training:
         model_args = self.model_args
 
         self.config = AutoConfig.from_pretrained(
-            model_args.config_name
-            if model_args.config_name
-            else model_args.model_name_or_path,
+            model_args.config_name if model_args.config_name else model_args.model_name_or_path,
             cache_dir=model_args.cache_dir,
         )
 
@@ -282,9 +248,7 @@ class Training:
         # https://huggingface.co/docs/datasets/loading_datasets.html.
         model_args = self.model_args
         self.tokenizer = AutoTokenizer.from_pretrained(
-            model_args.tokenizer_name
-            if model_args.tokenizer_name
-            else model_args.model_name_or_path,
+            model_args.tokenizer_name if model_args.tokenizer_name else model_args.model_name_or_path,
             cache_dir=model_args.cache_dir,
             use_fast=True,
         )

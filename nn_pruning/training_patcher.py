@@ -1,7 +1,9 @@
 import re
+from typing import Any, Dict
+
 import torch.nn as nn
+
 from .model_patcher import ModelPatcher
-from typing import Dict, Any
 
 
 class PatcherContextModule(nn.Module):
@@ -77,18 +79,14 @@ class ModulePatcher:
     def create_context_module(self, child_module_name, child_module, key):
         raise NotImplementedError("Implement in subclass")
 
-    def get_context_module(
-        self, child_module_name, child_module, kind="default", **kwargs
-    ):
+    def get_context_module(self, child_module_name, child_module, kind="default", **kwargs):
         key = self.get_context_key(child_module_name, kind=kind)
         if key == None:
             return None
         if self.context.has_module_context(key):
             return self.context.get_context_module(key)
         else:
-            module_context = self.create_context_module(
-                child_module_name, child_module, key, **kwargs
-            )
+            module_context = self.create_context_module(child_module_name, child_module, key, **kwargs)
             self.context.set_module_context(key, module_context)
             return module_context
 
@@ -110,9 +108,7 @@ class ModelDispatchingPatcher(ModelPatcher):
         patch_info = dict(patcher=patcher)
         super().add_pattern(pattern, patch_info)
 
-    def new_child_module(
-        self, child_module_name: str, child_module: nn.Module, patch_info: Dict
-    ):
+    def new_child_module(self, child_module_name: str, child_module: nn.Module, patch_info: Dict):
         return patch_info["patcher"].patch_and_connect(child_module_name, child_module)
 
 
@@ -131,9 +127,7 @@ class BertLinearModelPatcher(ModelDispatchingPatcher):
         super().__init__()
 
         for layer_type, patcher in patchers.items():
-            layer_pattern = (
-                self.PATTERN_PREFIX + self.LAYERS_PATTERNS[layer_type]
-            ).replace(".", "\.")
+            layer_pattern = (self.PATTERN_PREFIX + self.LAYERS_PATTERNS[layer_type]).replace(".", "\.")
             self.add_patcher(layer_pattern, patcher)
 
     def is_patchable(self, module_name, module, raiseError):

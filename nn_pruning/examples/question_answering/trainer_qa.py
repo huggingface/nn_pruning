@@ -19,13 +19,11 @@ A subclass of `Trainer` specific to Question-Answering tasks
 import json
 import os
 from pathlib import Path
+
 from transformers import Trainer, is_datasets_available, is_torch_tpu_available
 from transformers.integrations import is_ray_available
-from transformers.trainer_utils import (
-    PREFIX_CHECKPOINT_DIR,
-    HPSearchBackend,
-    PredictionOutput,
-)
+from transformers.trainer_utils import (PREFIX_CHECKPOINT_DIR, HPSearchBackend,
+                                        PredictionOutput)
 from transformers.utils import logging
 
 if is_ray_available():
@@ -55,14 +53,8 @@ class QuestionAnsweringTrainer(Trainer):
 
         trial = self._trial
         if self.hp_search_backend is not None and trial is not None:
-            run_id = (
-                trial.number
-                if self.hp_search_backend == HPSearchBackend.OPTUNA
-                else tune.get_trial_id()
-            )
-            run_name = (
-                self.hp_name(trial) if self.hp_name is not None else f"run-{run_id}"
-            )
+            run_id = trial.number if self.hp_search_backend == HPSearchBackend.OPTUNA else tune.get_trial_id()
+            run_name = self.hp_name(trial) if self.hp_name is not None else f"run-{run_id}"
             checkpoint_dir = Path(self.args.output_dir) / run_name / checkpoint_folder
         else:
             checkpoint_dir = Path(self.args.output_dir) / checkpoint_folder
@@ -97,13 +89,8 @@ class QuestionAnsweringTrainer(Trainer):
                     columns=list(eval_dataset.features.keys()),
                 )
 
-            if (
-                self.post_process_function is not None
-                and self.compute_metrics is not None
-            ):
-                eval_preds = self.post_process_function(
-                    eval_examples, eval_dataset, output.predictions
-                )
+            if self.post_process_function is not None and self.compute_metrics is not None:
+                eval_preds = self.post_process_function(eval_examples, eval_dataset, output.predictions)
                 metrics = self.compute_metrics(eval_preds)
 
                 log_metrics = {"eval_" + k: v for k, v in metrics.items()}
@@ -115,9 +102,7 @@ class QuestionAnsweringTrainer(Trainer):
                 # tpu-comment: Logging debug metrics for PyTorch/XLA (compile, execute times, ops, etc.)
                 xm.master_print(met.metrics_report())
 
-            self.control = self.callback_handler.on_evaluate(
-                self.args, self.state, self.control, metrics
-            )
+            self.control = self.callback_handler.on_evaluate(self.args, self.state, self.control, metrics)
         else:
             # TEMPORARY
             metrics = {"eval_loss": 1.03}
@@ -173,9 +158,7 @@ class QuestionAnsweringTrainer(Trainer):
                 columns=list(test_dataset.features.keys()),
             )
 
-        eval_preds = self.post_process_function(
-            test_examples, test_dataset, output.predictions
-        )
+        eval_preds = self.post_process_function(test_examples, test_dataset, output.predictions)
         metrics = self.compute_metrics(eval_preds)
 
         return PredictionOutput(
