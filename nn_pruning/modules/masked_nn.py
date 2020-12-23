@@ -434,13 +434,6 @@ class ChannelPruningModulePatcher(LinearPruningModulePatcher):
         elif kind in ["mask_row", "mask_col"]:
             layer_number = self.extract_layer_number_from_name(child_module_name)
 
-            if self.parameters.submethod == "1d_alt":
-                if (layer_number % 2) == 0:
-                    if kind == "mask_row":
-                        return None
-                else:
-                    if kind == "mask_col":
-                        return None
 
             offset = (
                 1 if kind == "mask_row" else 0
@@ -449,6 +442,14 @@ class ChannelPruningModulePatcher(LinearPruningModulePatcher):
             position, name = self.model_structure.get_module_intra_layer_position(
                 child_module_name
             )
+
+            if self.parameters.submethod == "1d_alt":
+                if (position % 2) == 1:
+                    if kind == "mask_row":
+                        return None
+                else:
+                    if kind == "mask_col":
+                        return None
 
             return ("mask_1d", f"{layer_number}.{position+offset}.{self.suffix}")
         else:

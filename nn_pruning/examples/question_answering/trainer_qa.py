@@ -77,7 +77,7 @@ class QuestionAnsweringTrainer(Trainer):
         # Temporarily disable metric computation, we will do it in the loop here.
         compute_metrics = self.compute_metrics
         self.compute_metrics = None
-        if True:
+        if False:
             try:
                 output = self.prediction_loop(
                     eval_dataloader,
@@ -119,6 +119,7 @@ class QuestionAnsweringTrainer(Trainer):
                 self.args, self.state, self.control, metrics
             )
         else:
+            # TEMPORARY
             metrics = {"eval_loss": 1.03}
 
         if self.is_world_process_zero():

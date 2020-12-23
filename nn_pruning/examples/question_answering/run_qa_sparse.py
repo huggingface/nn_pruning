@@ -10,9 +10,10 @@ from nn_pruning.hp_naming import TrialShortNamer
 from nn_pruning.model_patcher import ModelPatcher
 from nn_pruning.model_structure import BertStructure
 from nn_pruning.modules.masked_nn import (
+    LinearPruningParameters,
+    LinearPruningModulePatcher,
     ChannelPruningModulePatcher,
     JointPruningModulePatcher,
-    LinearPruningParameters,
     MaskedLinear,
 )
 from nn_pruning.training_patcher import BertLinearModelPatcher, PatcherContext
@@ -136,7 +137,7 @@ class QASparseModelPatcher:
     def log(self):
         logs = {}
         for k, v in self.patcher_context.enumerate_context_data():
-            logs[self.log_prefix + k] = v
+            logs[k] = v
 
         return logs
 
@@ -251,9 +252,15 @@ class QASparseModelPatcher:
         p_attention = JointPruningModulePatcher(
             patcher_context, parameters_attention, suffix=".attention"
         )
-        p_dense = ChannelPruningModulePatcher(
-            patcher_context, parameters_dense, BertStructure, suffix="dense"
-        )
+
+        if parameters_dense.submethod.startswith("1d"):
+            p_dense = ChannelPruningModulePatcher(
+                patcher_context, parameters_dense, BertStructure, suffix="dense"
+            )
+        else:
+            p_dense = LinearPruningModulePatcher(
+                patcher_context, parameters_dense, suffix="dense"
+            )
 
         module_patchers = dict(
             query=p_attention,
@@ -280,7 +287,6 @@ class QASparseTrainer(QuestionAnsweringTrainer):
         super().__init__(*args, **kwargs)
 
         self.sparse_args = sparse_args
-        self.log_prefix = ""
 
     def set_patcher(self, patcher: QASparseModelPatcher):
         self.patcher = patcher
@@ -291,7 +297,9 @@ class QASparseTrainer(QuestionAnsweringTrainer):
         return loss
 
     def log(self, logs: Dict[str, float]) -> None:
-        logs.update(self.patcher.log())
+        add = {self.log_prefix + k:v for k,v in self.patcher.log().items()}
+
+        logs.update(add)
 
         return super().log(logs)
 
