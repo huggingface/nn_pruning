@@ -18,7 +18,7 @@ A subclass of `Trainer` specific to Question-Answering tasks
 
 import json
 import os
-
+from pathlib import Path
 from transformers import Trainer, is_datasets_available, is_torch_tpu_available
 from transformers.integrations import is_ray_available
 from transformers.trainer_utils import (
@@ -43,6 +43,8 @@ logger = logging.get_logger(__name__)
 
 class QuestionAnsweringTrainer(Trainer):
     def __init__(self, *args, eval_examples=None, post_process_function=None, **kwargs):
+        self.model_args = kwargs.pop("model_args")
+        self.data_args = kwargs.pop("data_args")
         super().__init__(*args, **kwargs)
         self.eval_examples = eval_examples
         self.post_process_function = post_process_function
@@ -61,11 +63,9 @@ class QuestionAnsweringTrainer(Trainer):
             run_name = (
                 self.hp_name(trial) if self.hp_name is not None else f"run-{run_id}"
             )
-            checkpoint_dir = os.path.join(
-                self.args.output_dir, run_name, checkpoint_folder
-            )
+            checkpoint_dir = Path(self.args.output_dir) / run_name / checkpoint_folder
         else:
-            checkpoint_dir = os.path.join(self.args.output_dir, checkpoint_folder)
+            checkpoint_dir = Path(self.args.output_dir) / checkpoint_folder
 
         return checkpoint_dir
 
@@ -77,49 +77,55 @@ class QuestionAnsweringTrainer(Trainer):
         # Temporarily disable metric computation, we will do it in the loop here.
         compute_metrics = self.compute_metrics
         self.compute_metrics = None
+        if True:
+            try:
+                output = self.prediction_loop(
+                    eval_dataloader,
+                    description="Evaluation",
+                    # No point gathering the predictions if there are no metrics, otherwise we defer to
+                    # self.args.prediction_loss_only
+                    prediction_loss_only=True if compute_metrics is None else None,
+                    ignore_keys=ignore_keys,
+                )
+            finally:
+                self.compute_metrics = compute_metrics
 
-        try:
-            output = self.prediction_loop(
-                eval_dataloader,
-                description="Evaluation",
-                # No point gathering the predictions if there are no metrics, otherwise we defer to
-                # self.args.prediction_loss_only
-                prediction_loss_only=True if compute_metrics is None else None,
-                ignore_keys=ignore_keys,
+            # We might have removed columns from the dataset so we put them back.
+            if isinstance(eval_dataset, datasets.Dataset):
+                eval_dataset.set_format(
+                    type=eval_dataset.format["type"],
+                    columns=list(eval_dataset.features.keys()),
+                )
+
+            if (
+                self.post_process_function is not None
+                and self.compute_metrics is not None
+            ):
+                eval_preds = self.post_process_function(
+                    eval_examples, eval_dataset, output.predictions
+                )
+                metrics = self.compute_metrics(eval_preds)
+
+                log_metrics = {"eval_" + k: v for k, v in metrics.items()}
+                self.log(log_metrics)
+            else:
+                metrics = {}
+
+            if self.args.tpu_metrics_debug or self.args.debug:
+                # tpu-comment: Logging debug metrics for PyTorch/XLA (compile, execute times, ops, etc.)
+                xm.master_print(met.metrics_report())
+
+            self.control = self.callback_handler.on_evaluate(
+                self.args, self.state, self.control, metrics
             )
-        finally:
-            self.compute_metrics = compute_metrics
-
-        # We might have removed columns from the dataset so we put them back.
-        if isinstance(eval_dataset, datasets.Dataset):
-            eval_dataset.set_format(
-                type=eval_dataset.format["type"],
-                columns=list(eval_dataset.features.keys()),
-            )
-
-        if self.post_process_function is not None and self.compute_metrics is not None:
-            eval_preds = self.post_process_function(
-                eval_examples, eval_dataset, output.predictions
-            )
-            metrics = self.compute_metrics(eval_preds)
-
-            log_metrics = {"eval_" + k: v for k, v in metrics.items()}
-            self.log(log_metrics)
         else:
-            metrics = {}
-
-        if self.args.tpu_metrics_debug or self.args.debug:
-            # tpu-comment: Logging debug metrics for PyTorch/XLA (compile, execute times, ops, etc.)
-            xm.master_print(met.metrics_report())
-
-        self.control = self.callback_handler.on_evaluate(
-            self.args, self.state, self.control, metrics
-        )
+            metrics = {"eval_loss": 1.03}
 
         if self.is_world_process_zero():
             checkpoint_dir = self.checkpoint_dir()
-            if not os.path.exists(checkpoint_dir):
-                os.mkdir(checkpoint_dir)
+            if not checkpoint_dir.exists():
+                checkpoint_dir.mkdir()
+
             logger.info("***** Eval results *****")
             for key, value in metrics.items():
                 logger.info(f"  {key} = {value}")

@@ -1,16 +1,19 @@
 import json
-import sys
+import shutil
 from dataclasses import dataclass, field
 from pathlib import Path
+from types import SimpleNamespace
 from typing import Dict
 
 import torch.nn as nn
 from nn_pruning.hp_naming import TrialShortNamer
+from nn_pruning.model_patcher import ModelPatcher
 from nn_pruning.model_structure import BertStructure
 from nn_pruning.modules.masked_nn import (
     ChannelPruningModulePatcher,
     JointPruningModulePatcher,
     LinearPruningParameters,
+    MaskedLinear,
 )
 from nn_pruning.training_patcher import BertLinearModelPatcher, PatcherContext
 from transformers.optimization import AdamW, get_linear_schedule_with_warmup
@@ -114,34 +117,38 @@ class SparseTrainingArguments:
     )
 
 
-class QASparseTrainer(QuestionAnsweringTrainer):
-    def __init__(self, sparse_args, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+class BertLinearModelCompiler(ModelPatcher):
+    def __init__(self):
+        super().__init__(all_match=True)
+
+    def is_patchable(self, module_name, module, raiseError):
+        return isinstance(module, MaskedLinear)
+
+    def new_child_module(self, child_module_name, child_module, patch_info):
+        return child_module.compile()
+
+
+class QASparseModelPatcher:
+    def __init__(self, sparse_args):
         self.sparse_args = sparse_args
-        self.log_prefix = ""
+        self.patcher_context = PatcherContext()
 
-    def set_members(self, patcher_context: PatcherContext):
-        self.patcher_context = patcher_context
-
-    def compute_loss(self, model, inputs):
-        loss = super().compute_loss(model, inputs)
-        # loss += self.regularization(model)
-        return loss
-
-    def log(self, logs: Dict[str, float]) -> None:
+    def log(self):
+        logs = {}
         for k, v in self.patcher_context.enumerate_context_data():
             logs[self.log_prefix + k] = v
 
-        return super().log(logs)
+        return logs
 
-    def schedule_threshold(self, training: bool):
-        state = self.state
-        args = self.args
+    def schedule_threshold(
+        self,
+        step: int = -1,
+        total_step: int = -1,
+        warmup_steps: int = -1,
+        training: bool = False,
+    ):
         sparse_args = self.sparse_args
 
-        step = state.global_step
-        total_step = state.max_steps
-        warmup_steps = args.warmup_steps
         initial_threshold = sparse_args.initial_threshold
         final_threshold = sparse_args.final_threshold
         initial_warmup = sparse_args.initial_warmup
@@ -183,17 +190,6 @@ class QASparseTrainer(QuestionAnsweringTrainer):
 
         self.patcher_context.set_context_data_dict(context_data)
 
-    def training_step(self, *args, **kwargs):
-        self.schedule_threshold(True)
-        self.log_prefix = ""
-        return super().training_step(*args, **kwargs)
-
-    def evaluate(self, *args, **kwargs):
-        self.schedule_threshold(False)
-        self.log_prefix = "eval_"
-        ret = super().evaluate(*args, **kwargs)
-        return ret
-
     def regularization(model: nn.Module, mode: str):
         # TODO
         assert False
@@ -215,6 +211,109 @@ class QASparseTrainer(QuestionAnsweringTrainer):
                     ValueError("Don't know this mode.")
                 counter += 1
         return regu / counter
+
+    def parse_pruning_method(self, method):
+        parts = method.split(":")
+        if len(parts) == 2:
+            return parts
+        elif len(parts) == 1:
+            return parts[0], "default"
+        else:
+            raise RuntimeError("Could not parse pruning method")
+
+    def patch_model(self, model, trial):
+        attention_pruning_method_parts = self.parse_pruning_method(
+            self.sparse_args.attention_pruning_method
+        )
+
+        parameters_attention = LinearPruningParameters(
+            method=attention_pruning_method_parts[0],
+            submethod=attention_pruning_method_parts[1],
+            ampere_method=self.sparse_args.ampere_pruning_method,
+            block_rows=self.sparse_args.attention_block_rows,
+            block_cols=self.sparse_args.attention_block_cols,
+        )
+
+        dense_pruning_method_parts = self.parse_pruning_method(
+            self.sparse_args.dense_pruning_method
+        )
+
+        parameters_dense = LinearPruningParameters(
+            method=dense_pruning_method_parts[0],
+            submethod=dense_pruning_method_parts[1],
+            ampere_method=self.sparse_args.ampere_pruning_method,
+            block_rows=self.sparse_args.dense_block_rows,
+            block_cols=self.sparse_args.dense_block_cols,
+        )
+
+        patcher_context = self.patcher_context
+
+        p_attention = JointPruningModulePatcher(
+            patcher_context, parameters_attention, suffix=".attention"
+        )
+        p_dense = ChannelPruningModulePatcher(
+            patcher_context, parameters_dense, BertStructure, suffix="dense"
+        )
+
+        module_patchers = dict(
+            query=p_attention,
+            key=p_attention,
+            value=p_attention,
+            att_dense=p_dense,
+            interm_dense=p_dense,
+            output_dense=p_dense,
+        )
+
+        patcher = BertLinearModelPatcher(module_patchers)
+        patcher.patch(model)
+
+        assert patcher.stats["patched"] == 72
+
+    def compile_model(self, model):
+        self.schedule_threshold()
+        compiler = BertLinearModelCompiler()
+        compiler.patch(model)
+
+
+class QASparseTrainer(QuestionAnsweringTrainer):
+    def __init__(self, sparse_args, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        self.sparse_args = sparse_args
+        self.log_prefix = ""
+
+    def set_patcher(self, patcher: QASparseModelPatcher):
+        self.patcher = patcher
+
+    def compute_loss(self, model, inputs):
+        loss = super().compute_loss(model, inputs)
+        # loss += self.regularization(model)
+        return loss
+
+    def log(self, logs: Dict[str, float]) -> None:
+        logs.update(self.patcher.log())
+
+        return super().log(logs)
+
+    def schedule_threshold(self, training: bool):
+        step = self.state.global_step
+        self.patcher.schedule_threshold(
+            step, self.state.max_steps, self.args.warmup_steps, training
+        )
+
+    def training_step(self, *args, **kwargs):
+        self.schedule_threshold(True)
+        self.log_prefix = ""
+        return super().training_step(*args, **kwargs)
+
+    def evaluate(self, *args, **kwargs):
+        self.schedule_threshold(False)
+        self.log_prefix = "eval_"
+        ret = super().evaluate(*args, **kwargs)
+        return ret
+
+    def regularization(self, model: nn.Module, mode: str):
+        return self.patcher.regularization(model, mode)
 
     def create_optimizer_and_scheduler(self, num_training_steps: int):
         assert self.optimizer is None
@@ -361,73 +460,48 @@ class QASparseTraining(QATraining):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        self.patcher_context = PatcherContext()
+        self.patcher = QASparseModelPatcher(self.sparse_args)
 
     def create_trainer(self, *args, **kwargs):
         super().create_trainer(*args, **kwargs)
-        self.trainer.set_members(patcher_context=self.patcher_context)
-
-    def parse_pruning_method(self, method):
-        parts = method.split(":")
-        if len(parts) == 2:
-            return parts
-        elif len(parts) == 1:
-            return parts[0], "default"
-        else:
-            raise RuntimeError("Could not parse pruning method")
-
-    def patch_model(self, model, trial):
-        attention_pruning_method_parts = self.parse_pruning_method(
-            self.sparse_args.attention_pruning_method
-        )
-
-        parameters_attention = LinearPruningParameters(
-            method=attention_pruning_method_parts[0],
-            submethod=attention_pruning_method_parts[1],
-            ampere_method=self.sparse_args.ampere_pruning_method,
-            block_rows=self.sparse_args.attention_block_rows,
-            block_cols=self.sparse_args.attention_block_cols,
-        )
-
-        dense_pruning_method_parts = self.parse_pruning_method(
-            self.sparse_args.dense_pruning_method
-        )
-
-        parameters_dense = LinearPruningParameters(
-            method=dense_pruning_method_parts[0],
-            submethod=dense_pruning_method_parts[1],
-            ampere_method=self.sparse_args.ampere_pruning_method,
-            block_rows=self.sparse_args.dense_block_rows,
-            block_cols=self.sparse_args.dense_block_cols,
-        )
-
-        patcher_context = self.patcher_context
-
-        p_attention = JointPruningModulePatcher(
-            patcher_context, parameters_attention, suffix=".attention"
-        )
-        p_dense = ChannelPruningModulePatcher(
-            patcher_context, parameters_dense, BertStructure, suffix="dense"
-        )
-
-        module_patchers = dict(
-            query=p_attention,
-            key=p_attention,
-            value=p_attention,
-            att_dense=p_dense,
-            interm_dense=p_dense,
-            output_dense=p_dense,
-        )
-
-        patcher = BertLinearModelPatcher(module_patchers)
-        patcher.patch(model)
-
-        assert patcher.stats["patched"] == 72
+        self.trainer.set_patcher(self.patcher)
 
     def model_init(self, trial=None):
         model = super().model_init(trial)
-        self.patch_model(model, trial)
+        self.patcher.patch_model(model, trial)
         return model
 
+    @classmethod
+    def compile_model(cls, src_path, dest_path):
+        shutil.copytree(src_path, dest_path)
 
+        src_path = Path(src_path)
+        dest_path = Path(dest_path)
+        model_bin_name = "pytorch_model.bin"
 
+        def load_json_to_obj(name):
+            with (src_path / name).open() as f:
+                return json.load(f, object_hook=lambda d: SimpleNamespace(**d))
+
+        with (src_path / "config.json").open() as f:
+            model_config = json.load(f)
+
+        model_args = load_json_to_obj("model_args.json")
+        sparse_args = load_json_to_obj("sparse_args.json")
+
+        model_args.model_name_or_path = str(src_path)
+
+        model = cls._model_init(model_args, model_config, trial=None)
+        patcher = QASparseModelPatcher(sparse_args)
+        patcher.patch_model(model, trial=None)
+        import torch
+
+        state_dict = torch.load(src_path / model_bin_name)
+        model.load_state_dict(state_dict, strict=True)
+
+        patcher.compile_model(model)
+
+        state_dict = model.state_dict()
+        torch.save(state_dict, dest_path / model_bin_name)
+
+        return model

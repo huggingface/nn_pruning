@@ -9,7 +9,7 @@ from nn_pruning.modules.masked_nn import (
     LinearPruningModulePatcher,
     LinearPruningParameters,
     JointPruningModulePatcher,
-    ChannelPruningModulePatcher
+    ChannelPruningModulePatcher,
 )
 
 from nn_pruning.training_patcher import BertLinearModelPatcher, PatcherContext
@@ -24,7 +24,7 @@ class TestFun(TestCase):
 
         patcher = BertLinearModelPatcher({})
         layers = patcher.get_patchable_layers(model)
-        #for regexp, layers in layers.items():
+        # for regexp, layers in layers.items():
         #    print(regexp)
 
     def test_patch_module_independent_parameters(self):
@@ -139,8 +139,12 @@ class TestFun(TestCase):
 
         context = PatcherContext()
 
-        p_attention = JointPruningModulePatcher(context, parameters_attention, suffix=".attention")
-        p_dense = ChannelPruningModulePatcher(context, parameters_dense, BertStructure, suffix="dense")
+        p_attention = JointPruningModulePatcher(
+            context, parameters_attention, suffix=".attention"
+        )
+        p_dense = ChannelPruningModulePatcher(
+            context, parameters_dense, BertStructure, suffix="dense"
+        )
 
         module_patchers = dict(
             query=p_attention,
@@ -157,12 +161,12 @@ class TestFun(TestCase):
         self.assertEqual(patcher.stats["patched"], 72)
         key_sizes = {k: len(v) for k, v in context.context_modules.items()}
 
-        for k,v in key_sizes.items():
+        for k, v in key_sizes.items():
             print(k, v)
 
-        for k,v in context.context_modules.items():
-            print(k,v)
-        self.assertEqual(key_sizes, {"ampere_mask": 72, "mask": 12, 'mask_1d': 48})
+        for k, v in context.context_modules.items():
+            print(k, v)
+        self.assertEqual(key_sizes, {"ampere_mask": 72, "mask": 12, "mask_1d": 48})
 
 
 if __name__ == "__main__":

@@ -21,6 +21,7 @@ from transformers.trainer_utils import is_main_process
 
 logger = logging.getLogger(__name__)
 
+
 @dataclass
 class ModelArguments:
     """
@@ -112,7 +113,6 @@ class DataTrainingArguments:
         },
     )
 
-
     def __post_init__(self):
         if (
             self.dataset_name is None
@@ -153,9 +153,9 @@ class Training:
         parser = HfArgumentParser(arguments.values())
         parse_results = parser.parse_dict(param_dict, strict=True)
 
-        assert(self.arguments_names[0] == "model")
-        assert(self.arguments_names[1] == "data")
-        assert(self.arguments_names[2] == "training")
+        assert self.arguments_names[0] == "model"
+        assert self.arguments_names[1] == "data"
+        assert self.arguments_names[2] == "training"
 
         # Explicitly affect args, to make IDE not flagging members as unknown
         self.model_args = parse_results[0]
@@ -171,7 +171,7 @@ class Training:
         # Extract the other arguments
         all_args = {}
         for k in self.arguments_names:
-            if exclude_base and k in Training.ARGUMENTS:
+            if exclude_base and k == "training":
                 continue
             name = k + "_args"
             all_args[name] = getattr(self, name)
@@ -201,7 +201,6 @@ class Training:
         logger.setLevel(
             logging.INFO if is_main_process(training_args.local_rank) else logging.WARN
         )
-
 
     def create_directories(self):
         training_args = self.training_args
@@ -369,9 +368,14 @@ class Training:
             raise
         return ret
 
-    def hyperparameter_search(self, direction, hp_space = None, n_trials=4):
+    def hyperparameter_search(self, direction, hp_space=None, n_trials=4):
         self.prepare()
         if hp_space is None:
             hp_space = {}
 
-        return self.trainer.hyperparameter_search(hp_name=self.hp_name, direction=direction, hp_space = hp_space, n_trials=n_trials)
+        return self.trainer.hyperparameter_search(
+            hp_name=self.hp_name,
+            direction=direction,
+            hp_space=hp_space,
+            n_trials=n_trials,
+        )

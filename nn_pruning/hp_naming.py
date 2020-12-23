@@ -15,6 +15,7 @@
 import copy
 import re
 
+
 class TrialShortNamer:
     PREFIX = "hp"
     DEFAULTS = {}
@@ -39,7 +40,7 @@ class TrialShortNamer:
     def names_enumerator(s, splitter="_", separator="_"):
         parts = s.split(splitter)
         for ls in TrialShortNamer.length_tuple_enumerator(parts):
-            ps = [p[:ls[i]] for i, p in enumerate(parts)]
+            ps = [p[: ls[i]] for i, p in enumerate(parts)]
             yield separator.join(ps)
 
     @staticmethod
@@ -49,7 +50,9 @@ class TrialShortNamer:
         separators = ["", "_"]
 
         for separator in separators:
-            for shortname in TrialShortNamer.names_enumerator(param_name, separator=separator):
+            for shortname in TrialShortNamer.names_enumerator(
+                param_name, separator=separator
+            ):
                 if shortname not in info["reverse_short_param"]:
                     info["short_param"][param_name] = shortname
                     info["reverse_short_param"][shortname] = param_name
@@ -95,7 +98,9 @@ class TrialShortNamer:
 
         if len(missing_defaults) != 0:
             print(missing_defaults)
-            raise Exception(f"You should provide a default value for the params {missing_defaults}")
+            raise Exception(
+                f"You should provide a default value for the params {missing_defaults}"
+            )
 
         for k, v in params.items():
             if v == cls.DEFAULTS[k]:
@@ -142,13 +147,12 @@ class TrialShortNamer:
 
 
 if False:
+
     class MyTrialShortNamer(TrialShortNamer):
         DEFAULTS = {"a": 0, "b": 0}
 
-
     def hp_space(trial):
         return {}
-
 
     def model_init(trial):
         if trial is not None:
@@ -161,10 +165,8 @@ if False:
 
         return RegressionPreTrainedModel(config)
 
-
     def hp_name(trial):
         return MyTrialShortNamer.shortname(trial.params)
-
 
     with tempfile.TemporaryDirectory() as tmp_dir:
         trainer = get_regression_trainer(
@@ -179,4 +181,6 @@ if False:
             run_name="test",
             model_init=model_init,
         )
-        trainer.hyperparameter_search(direction="minimize", hp_space=hp_space, hp_name=hp_name, n_trials=4)
+        trainer.hyperparameter_search(
+            direction="minimize", hp_space=hp_space, hp_name=hp_name, n_trials=4
+        )

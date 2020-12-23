@@ -52,21 +52,33 @@ class ModelArguments:
     """
 
     model_name_or_path: str = field(
-        metadata={"help": "Path to pretrained model or model identifier from huggingface.co/models"}
+        metadata={
+            "help": "Path to pretrained model or model identifier from huggingface.co/models"
+        }
     )
     config_name: Optional[str] = field(
-        default=None, metadata={"help": "Pretrained config name or path if not the same as model_name"}
+        default=None,
+        metadata={
+            "help": "Pretrained config name or path if not the same as model_name"
+        },
     )
     tokenizer_name: Optional[str] = field(
-        default=None, metadata={"help": "Pretrained tokenizer name or path if not the same as model_name"}
+        default=None,
+        metadata={
+            "help": "Pretrained tokenizer name or path if not the same as model_name"
+        },
     )
     cache_dir: Optional[str] = field(
         default=None,
-        metadata={"help": "Where do you want to store the pretrained models downloaded from huggingface.co"},
+        metadata={
+            "help": "Where do you want to store the pretrained models downloaded from huggingface.co"
+        },
     )
     use_fast_tokenizer: bool = field(
         default=True,
-        metadata={"help": "Whether to use one of the fast tokenizer (backed by the tokenizers library) or not."},
+        metadata={
+            "help": "Whether to use one of the fast tokenizer (backed by the tokenizers library) or not."
+        },
     )
 
 
@@ -77,18 +89,27 @@ class DataTrainingArguments:
     """
 
     dataset_name: Optional[str] = field(
-        default=None, metadata={"help": "The name of the dataset to use (via the datasets library)."}
+        default=None,
+        metadata={"help": "The name of the dataset to use (via the datasets library)."},
     )
     dataset_config_name: Optional[str] = field(
-        default=None, metadata={"help": "The configuration name of the dataset to use (via the datasets library)."}
+        default=None,
+        metadata={
+            "help": "The configuration name of the dataset to use (via the datasets library)."
+        },
     )
-    train_file: Optional[str] = field(default=None, metadata={"help": "The input training data file (a text file)."})
+    train_file: Optional[str] = field(
+        default=None, metadata={"help": "The input training data file (a text file)."}
+    )
     validation_file: Optional[str] = field(
         default=None,
-        metadata={"help": "An optional input evaluation data file to evaluate the perplexity on (a text file)."},
+        metadata={
+            "help": "An optional input evaluation data file to evaluate the perplexity on (a text file)."
+        },
     )
     overwrite_cache: bool = field(
-        default=False, metadata={"help": "Overwrite the cached training and evaluation sets"}
+        default=False,
+        metadata={"help": "Overwrite the cached training and evaluation sets"},
     )
     preprocessing_num_workers: Optional[int] = field(
         default=None,
@@ -110,7 +131,8 @@ class DataTrainingArguments:
         },
     )
     version_2_with_negative: bool = field(
-        default=False, metadata={"help": "If true, some of the examples do not have an answer."}
+        default=False,
+        metadata={"help": "If true, some of the examples do not have an answer."},
     )
     null_score_diff_threshold: float = field(
         default=0.0,
@@ -122,11 +144,15 @@ class DataTrainingArguments:
     )
     doc_stride: int = field(
         default=128,
-        metadata={"help": "When splitting up a long document into chunks, how much stride to take between chunks."},
+        metadata={
+            "help": "When splitting up a long document into chunks, how much stride to take between chunks."
+        },
     )
     n_best_size: int = field(
         default=20,
-        metadata={"help": "The total number of n-best predictions to generate when looking for an answer."},
+        metadata={
+            "help": "The total number of n-best predictions to generate when looking for an answer."
+        },
     )
     max_answer_length: int = field(
         default=30,
@@ -137,15 +163,27 @@ class DataTrainingArguments:
     )
 
     def __post_init__(self):
-        if self.dataset_name is None and self.train_file is None and self.validation_file is None:
-            raise ValueError("Need either a dataset name or a training/validation file.")
+        if (
+            self.dataset_name is None
+            and self.train_file is None
+            and self.validation_file is None
+        ):
+            raise ValueError(
+                "Need either a dataset name or a training/validation file."
+            )
         else:
             if self.train_file is not None:
                 extension = self.train_file.split(".")[-1]
-                assert extension in ["csv", "json"], "`train_file` should be a csv or a json file."
+                assert extension in [
+                    "csv",
+                    "json",
+                ], "`train_file` should be a csv or a json file."
             if self.validation_file is not None:
                 extension = self.validation_file.split(".")[-1]
-                assert extension in ["csv", "json"], "`validation_file` should be a csv or a json file."
+                assert extension in [
+                    "csv",
+                    "json",
+                ], "`validation_file` should be a csv or a json file."
 
 
 def main():
@@ -153,11 +191,15 @@ def main():
     # or by passing the --help flag to this script.
     # We now keep distinct sets of args, for a cleaner separation of concerns.
 
-    parser = HfArgumentParser((ModelArguments, DataTrainingArguments, TrainingArguments))
+    parser = HfArgumentParser(
+        (ModelArguments, DataTrainingArguments, TrainingArguments)
+    )
     if len(sys.argv) == 2 and sys.argv[1].endswith(".json"):
         # If we pass only one argument to the script and it's the path to a json file,
         # let's parse it to get our arguments.
-        model_args, data_args, training_args = parser.parse_json_file(json_file=os.path.abspath(sys.argv[1]))
+        model_args, data_args, training_args = parser.parse_json_file(
+            json_file=os.path.abspath(sys.argv[1])
+        )
     else:
         model_args, data_args, training_args = parser.parse_args_into_dataclasses()
 
@@ -177,7 +219,9 @@ def main():
         format="%(asctime)s - %(levelname)s - %(name)s -   %(message)s",
         datefmt="%m/%d/%Y %H:%M:%S",
     )
-    logger.setLevel(logging.INFO if is_main_process(training_args.local_rank) else logging.WARN)
+    logger.setLevel(
+        logging.INFO if is_main_process(training_args.local_rank) else logging.WARN
+    )
 
     # Log on each process the small summary:
     logger.warning(
@@ -221,11 +265,15 @@ def main():
     # The .from_pretrained methods guarantee that only one local process can concurrently
     # download model & vocab.
     config = XLNetConfig.from_pretrained(
-        model_args.config_name if model_args.config_name else model_args.model_name_or_path,
+        model_args.config_name
+        if model_args.config_name
+        else model_args.model_name_or_path,
         cache_dir=model_args.cache_dir,
     )
     tokenizer = XLNetTokenizerFast.from_pretrained(
-        model_args.tokenizer_name if model_args.tokenizer_name else model_args.model_name_or_path,
+        model_args.tokenizer_name
+        if model_args.tokenizer_name
+        else model_args.model_name_or_path,
         cache_dir=model_args.cache_dir,
     )
     model = XLNetForQuestionAnswering.from_pretrained(
@@ -299,7 +347,9 @@ def main():
             # The cls token gets 1.0 too (for predictions of empty answers).
             tokenized_examples["p_mask"].append(
                 [
-                    0.0 if (not special_tokens[i][k] and s == context_idx) or k == cls_index else 1.0
+                    0.0
+                    if (not special_tokens[i][k] and s == context_idx) or k == cls_index
+                    else 1.0
                     for k, s in enumerate(sequence_ids)
                 ]
             )
@@ -327,14 +377,20 @@ def main():
                 while sequence_ids[token_end_index] != context_idx:
                     token_end_index -= 1
                 # Detect if the answer is out of the span (in which case this feature is labeled with the CLS index).
-                if not (offsets[token_start_index][0] <= start_char and offsets[token_end_index][1] >= end_char):
+                if not (
+                    offsets[token_start_index][0] <= start_char
+                    and offsets[token_end_index][1] >= end_char
+                ):
                     tokenized_examples["start_positions"].append(cls_index)
                     tokenized_examples["end_positions"].append(cls_index)
                     tokenized_examples["is_impossible"].append(1.0)
                 else:
                     # Otherwise move the token_start_index and token_end_index to the two ends of the answer.
                     # Note: we could go after the last offset if the answer is the last word (edge case).
-                    while token_start_index < len(offsets) and offsets[token_start_index][0] <= start_char:
+                    while (
+                        token_start_index < len(offsets)
+                        and offsets[token_start_index][0] <= start_char
+                    ):
                         token_start_index += 1
                     tokenized_examples["start_positions"].append(token_start_index - 1)
                     while offsets[token_end_index][1] >= end_char:
@@ -401,7 +457,9 @@ def main():
             # Build the p_mask: non special tokens and context gets 0.0, the others 1.0.
             tokenized_examples["p_mask"].append(
                 [
-                    0.0 if (not special_tokens[i][k] and s == context_idx) or k == cls_index else 1.0
+                    0.0
+                    if (not special_tokens[i][k] and s == context_idx) or k == cls_index
+                    else 1.0
                     for k, s in enumerate(sequence_ids)
                 ]
             )
@@ -431,7 +489,11 @@ def main():
     # Data collator
     # We have already padded to max length if the corresponding flag is True, otherwise we need to pad in the data
     # collator.
-    data_collator = default_data_collator if data_args.pad_to_max_length else DataCollatorWithPadding(tokenizer)
+    data_collator = (
+        default_data_collator
+        if data_args.pad_to_max_length
+        else DataCollatorWithPadding(tokenizer)
+    )
 
     # Post-processing:
     def post_processing_function(examples, features, predictions):
@@ -451,17 +513,30 @@ def main():
         # Format the result to the format the metric expects.
         if data_args.version_2_with_negative:
             formatted_predictions = [
-                {"id": k, "prediction_text": v, "no_answer_probability": scores_diff_json[k]}
+                {
+                    "id": k,
+                    "prediction_text": v,
+                    "no_answer_probability": scores_diff_json[k],
+                }
                 for k, v in predictions.items()
             ]
         else:
-            formatted_predictions = [{"id": k, "prediction_text": v} for k, v in predictions.items()]
-        references = [{"id": ex["id"], "answers": ex[answer_column_name]} for ex in datasets["validation"]]
+            formatted_predictions = [
+                {"id": k, "prediction_text": v} for k, v in predictions.items()
+            ]
+        references = [
+            {"id": ex["id"], "answers": ex[answer_column_name]}
+            for ex in datasets["validation"]
+        ]
         return EvalPrediction(predictions=formatted_predictions, label_ids=references)
 
     # TODO: Once the fix lands in a Datasets release, remove the _local here and the squad_v2_local folder.
     current_dir = os.path.sep.join(os.path.join(__file__).split(os.path.sep)[:-1])
-    metric = load_metric(os.path.join(current_dir, "squad_v2_local") if data_args.version_2_with_negative else "squad")
+    metric = load_metric(
+        os.path.join(current_dir, "squad_v2_local")
+        if data_args.version_2_with_negative
+        else "squad"
+    )
 
     def compute_metrics(p: EvalPrediction):
         return metric.compute(predictions=p.predictions, references=p.label_ids)
@@ -482,7 +557,9 @@ def main():
     # Training
     if training_args.do_train:
         trainer.train(
-            model_path=model_args.model_name_or_path if os.path.isdir(model_args.model_name_or_path) else None
+            model_path=model_args.model_name_or_path
+            if os.path.isdir(model_args.model_name_or_path)
+            else None
         )
         trainer.save_model()  # Saves the tokenizer too for easy upload
 

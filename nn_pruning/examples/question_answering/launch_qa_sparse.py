@@ -1,9 +1,11 @@
 import sys
 
+
 def main():
     from pathlib import Path
     import json
     import nn_pruning.examples.question_answering.run_qa_sparse as run_qa_sparse
+
     if len(sys.argv) < 2:
         raise RuntimeError("Please specify json file")
     filename = Path(sys.argv[1]).resolve()

@@ -9,7 +9,7 @@ from nn_pruning.modules.masked_nn import (
     LinearPruningModulePatcher,
     LinearPruningParameters,
     JointPruningModulePatcher,
-    ChannelPruningModulePatcher
+    ChannelPruningModulePatcher,
 )
 
 from nn_pruning.training_patcher import BertLinearModelPatcher, PatcherContext
@@ -20,6 +20,7 @@ from nn_pruning.model_structure import BertStructure
 class TestFun(TestCase):
     def test_base(self):
         pass
+
 
 if __name__ == "__main__":
     unittest.main()

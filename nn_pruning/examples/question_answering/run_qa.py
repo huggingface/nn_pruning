@@ -31,7 +31,6 @@ from transformers import (
     DataCollatorWithPadding,
     EvalPrediction,
     default_data_collator,
-
 )
 
 from .utils_qa import postprocess_qa_predictions
@@ -45,6 +44,7 @@ class QADataTrainingArguments(DataTrainingArguments):
     """
     Arguments pertaining to what data we are going to input our model for training and eval.
     """
+
     version_2_with_negative: bool = field(
         default=False,
         metadata={"help": "If true, some of the examples do not have an answer."},
@@ -81,15 +81,18 @@ class QATraining(Training):
     QA_TRAINER_CLASS = QuestionAnsweringTrainer
     SHORT_NAMER = TrialShortNamer
 
-    def model_init(self, trial=None):
-        model_args = self.model_args
+    @classmethod
+    def _model_init(self, model_args, model_config, trial=None):
         model = AutoModelForQuestionAnswering.from_pretrained(
             model_args.model_name_or_path,
             from_tf=bool(".ckpt" in model_args.model_name_or_path),
-            config=self.config,
+            config=model_config,
             cache_dir=model_args.cache_dir,
         )
         return model
+
+    def model_init(self, trial=None):
+        return self._model_init(self.model_args, self.config, trial)
 
     def prepare_column_names(self):
         training_args = self.training_args
@@ -306,8 +309,6 @@ class QATraining(Training):
         ]
         return EvalPrediction(predictions=formatted_predictions, label_ids=references)
 
-
-
     def create_trainer(self):
         # Data collator
         # We have already padded to max length if the corresponding flag is True, otherwise we need to pad in the data
@@ -362,6 +363,7 @@ class QATraining(Training):
         self.prepare_column_names()
         self.prepare_datasets()
         self.create_trainer()
+
 
 def main():
     QATraining.run_from_command_line()

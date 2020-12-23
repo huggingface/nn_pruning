@@ -9,5 +9,6 @@ class TestFun(TestCase):
         s = nn_pruning.run()
         self.assertTrue(isinstance(s, basestring))
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     unittest.main()
