@@ -14,7 +14,7 @@ def main():
     def hp_space(trial):
         return {}
 
-    qa.hyperparameter_search(direction="minimize", hp_space=hp_space, n_trials=4)
+    qa.hyperparameter_search(direction="minimize", hp_space=hp_space, n_trials=1)
 
 
 def _mp_fn(index):
