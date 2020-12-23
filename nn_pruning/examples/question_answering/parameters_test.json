@@ -32,5 +32,6 @@
   "attention_block_cols":768,
   "ampere_pruning_method": "disabled",
   "mask_init": "constant",
-  "mask_scale": 0.0
+  "mask_scale": 0.0,
+  "regularization": "l1"
 }

@@ -19,8 +19,9 @@ from nn_pruning.modules.masked_nn import (
     LinearPruningModulePatcher,
     LinearPruningParameters,
     MaskedLinear,
+
 )
-from nn_pruning.training_patcher import BertLinearModelPatcher, PatcherContext
+from nn_pruning.training_patcher import BertLinearModelPatcher, PatcherContext, PatcherContextModule
 
 from .run_qa import (
     ModelArguments,
@@ -197,15 +198,20 @@ class QASparseModelPatcher:
 
         regu, counter = 0, 0
         for name, module in model.named_modules():
-            if "mask_scores" in name:
-                param = name.mask_scores
+            if isinstance(module, PatcherContextModule):
+                param = module.mask_scores
                 if mode == "l1":
-                    regu += torch.norm(torch.sigmoid(param), p=1) / param.numel()
+                    regu_add = torch.norm(torch.sigmoid(param), p=1) / param.numel()
                 elif mode == "l0":
-                    regu += torch.sigmoid(param - 2 / 3 * np.log(0.1 / 1.1)).sum() / param.numel()
+                    regu_add = torch.sigmoid(param - 2 / 3 * np.log(0.1 / 1.1)).sum() / param.numel()
                 else:
                     ValueError("Don't know this mode.")
+                print(regu_add)
+                regu += regu_add
                 counter += 1
+        if counter == 0:
+            return 0
+        print(regu, counter)
         return regu / counter
 
     def parse_pruning_method(self, method):
@@ -218,7 +224,7 @@ class QASparseModelPatcher:
             raise RuntimeError("Could not parse pruning method")
 
     def patch_model(self, model, trial):
-        assert trial is None or len(trial) == 0
+        assert trial is None or len(trial.params) == 0
         attention_pruning_method_parts = self.parse_pruning_method(self.sparse_args.attention_pruning_method)
 
         parameters_attention = LinearPruningParameters(
