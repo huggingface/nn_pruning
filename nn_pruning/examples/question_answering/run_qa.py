@@ -23,14 +23,21 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from datasets import load_dataset, load_metric
-from transformers import (AutoModelForQuestionAnswering,
-                          DataCollatorWithPadding, EvalPrediction,
-                          default_data_collator)
+from transformers import (
+    AutoModelForQuestionAnswering,
+    DataCollatorWithPadding,
+    EvalPrediction,
+    default_data_collator,
+)
 
 from nn_pruning.hp_naming import TrialShortNamer
 
-from .run import (DataTrainingArguments, ModelArguments, Training,
-                  TrainingArguments)
+from .run import (
+    DataTrainingArguments,
+    ModelArguments,
+    Training,
+    TrainingArguments,
+)
 from .trainer_qa import QuestionAnsweringTrainer
 from .utils_qa import postprocess_qa_predictions
 

@@ -26,10 +26,17 @@ from typing import Optional
 import transformers
 from datasets import load_dataset, load_metric
 from trainer_qa import QuestionAnsweringTrainer
-from transformers import (DataCollatorWithPadding, EvalPrediction,
-                          HfArgumentParser, TrainingArguments, XLNetConfig,
-                          XLNetForQuestionAnswering, XLNetTokenizerFast,
-                          default_data_collator, set_seed)
+from transformers import (
+    DataCollatorWithPadding,
+    EvalPrediction,
+    HfArgumentParser,
+    TrainingArguments,
+    XLNetConfig,
+    XLNetForQuestionAnswering,
+    XLNetTokenizerFast,
+    default_data_collator,
+    set_seed,
+)
 from transformers.trainer_utils import is_main_process
 from utils_qa import postprocess_qa_predictions_with_beam_search
 

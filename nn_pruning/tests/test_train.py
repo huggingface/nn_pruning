@@ -4,10 +4,12 @@ from unittest import TestCase
 from transformers import BertConfig, BertForQuestionAnswering
 
 from nn_pruning.model_structure import BertStructure
-from nn_pruning.modules.masked_nn import (ChannelPruningModulePatcher,
-                                          JointPruningModulePatcher,
-                                          LinearPruningModulePatcher,
-                                          LinearPruningParameters)
+from nn_pruning.modules.masked_nn import (
+    ChannelPruningModulePatcher,
+    JointPruningModulePatcher,
+    LinearPruningModulePatcher,
+    LinearPruningParameters,
+)
 from nn_pruning.training_patcher import BertLinearModelPatcher, PatcherContext
 
 

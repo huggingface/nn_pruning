@@ -13,15 +13,21 @@ from transformers.optimization import AdamW, get_linear_schedule_with_warmup
 from nn_pruning.hp_naming import TrialShortNamer
 from nn_pruning.model_patcher import ModelPatcher
 from nn_pruning.model_structure import BertStructure
-from nn_pruning.modules.masked_nn import (ChannelPruningModulePatcher,
-                                          JointPruningModulePatcher,
-                                          LinearPruningModulePatcher,
-                                          LinearPruningParameters,
-                                          MaskedLinear)
+from nn_pruning.modules.masked_nn import (
+    ChannelPruningModulePatcher,
+    JointPruningModulePatcher,
+    LinearPruningModulePatcher,
+    LinearPruningParameters,
+    MaskedLinear,
+)
 from nn_pruning.training_patcher import BertLinearModelPatcher, PatcherContext
 
-from .run_qa import (ModelArguments, QADataTrainingArguments, QATraining,
-                     TrainingArguments)
+from .run_qa import (
+    ModelArguments,
+    QADataTrainingArguments,
+    QATraining,
+    TrainingArguments,
+)
 from .trainer_qa import QuestionAnsweringTrainer
 
 

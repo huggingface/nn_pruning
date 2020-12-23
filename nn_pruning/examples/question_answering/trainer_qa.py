@@ -22,8 +22,11 @@ from pathlib import Path
 
 from transformers import Trainer, is_datasets_available, is_torch_tpu_available
 from transformers.integrations import is_ray_available
-from transformers.trainer_utils import (PREFIX_CHECKPOINT_DIR, HPSearchBackend,
-                                        PredictionOutput)
+from transformers.trainer_utils import (
+    PREFIX_CHECKPOINT_DIR,
+    HPSearchBackend,
+    PredictionOutput,
+)
 from transformers.utils import logging
 
 if is_ray_available():

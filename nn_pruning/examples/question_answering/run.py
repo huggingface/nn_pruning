@@ -9,8 +9,14 @@ from typing import Optional
 
 import transformers
 from datasets import load_dataset
-from transformers import (AutoConfig, AutoTokenizer, HfArgumentParser,
-                          PreTrainedTokenizerFast, TrainingArguments, set_seed)
+from transformers import (
+    AutoConfig,
+    AutoTokenizer,
+    HfArgumentParser,
+    PreTrainedTokenizerFast,
+    TrainingArguments,
+    set_seed,
+)
 from transformers.trainer_utils import is_main_process
 
 logger = logging.getLogger(__name__)

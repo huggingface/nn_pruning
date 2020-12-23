@@ -30,9 +30,12 @@ from torch.nn import functional as F
 from torch.nn import init
 
 from nn_pruning.model_structure import ModelStructure
-from nn_pruning.training_patcher import (ModulePatcher, PatcherContext,
-                                         PatcherContextModule,
-                                         ReplacementModule)
+from nn_pruning.training_patcher import (
+    ModulePatcher,
+    PatcherContext,
+    PatcherContextModule,
+    ReplacementModule,
+)
 
 from .binarizer import MagnitudeBinarizer, ThresholdBinarizer, TopKBinarizer
 
