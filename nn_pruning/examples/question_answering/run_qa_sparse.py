@@ -13,10 +13,16 @@ from nn_pruning.modules.masked_nn import (
     LinearPruningParameters,
 )
 from nn_pruning.training_patcher import BertLinearModelPatcher, PatcherContext
-from run_qa import QATraining
-from trainer_qa import QuestionAnsweringTrainer
 from transformers.optimization import AdamW, get_linear_schedule_with_warmup
-from run_qa import ModelArguments, QADataTrainingArguments, TrainingArguments
+
+from .run_qa import (
+    ModelArguments,
+    QADataTrainingArguments,
+    QATraining,
+    TrainingArguments,
+)
+from .trainer_qa import QuestionAnsweringTrainer
+
 
 @dataclass
 class SparseTrainingArguments:
@@ -291,8 +297,8 @@ class SparseQAShortNamer(TrialShortNamer):
         "do_eval": 1,
         "do_predict": False,
         "do_train": 1,
-        "evaluation_strategy":"epoch",
-        "eval_steps":500,
+        "evaluation_strategy": "epoch",
+        "eval_steps": 500,
         "final_ampere_temperature": 20.0,
         "final_lambda": 0.0,
         "final_threshold": 0.1,
@@ -347,7 +353,7 @@ class QASparseTraining(QATraining):
         "model": ModelArguments,
         "data": QADataTrainingArguments,
         "training": TrainingArguments,
-        "sparse":SparseTrainingArguments
+        "sparse": SparseTrainingArguments,
     }
     QA_TRAINER_CLASS = QASparseTrainer
     SHORT_NAMER = SparseQAShortNamer
@@ -418,8 +424,6 @@ class QASparseTraining(QATraining):
 
         assert patcher.stats["patched"] == 72
 
-
-
     def model_init(self, trial=None):
         model = super().model_init(trial)
         self.patch_model(model, trial)
@@ -427,24 +431,3 @@ class QASparseTraining(QATraining):
 
 
 
-def main():
-    if len(sys.argv) < 2:
-        raise RuntimeError("Please specify json file")
-    filename = Path(sys.argv[1]).resolve()
-    param_dict = json.load(open(filename))
-
-    qa = QASparseTraining(param_dict)
-
-    def hp_space(trial):
-        return {}
-
-    qa.hyperparameter_search(direction="minimize", hp_space=hp_space, n_trials=1)
-
-
-def _mp_fn(index):
-    # For xla_spawn (TPUs)
-    main()
-
-
-if __name__ == "__main__":
-    main()

@@ -16,15 +16,17 @@
 A subclass of `Trainer` specific to Question-Answering tasks
 """
 
+import json
 import os
+
 from transformers import Trainer, is_datasets_available, is_torch_tpu_available
-from transformers.utils import logging
+from transformers.integrations import is_ray_available
 from transformers.trainer_utils import (
+    PREFIX_CHECKPOINT_DIR,
     HPSearchBackend,
     PredictionOutput,
-    PREFIX_CHECKPOINT_DIR,
-    )
-from transformers.integrations import is_ray_available
+)
+from transformers.utils import logging
 
 if is_ray_available():
     from ray import tune
@@ -38,6 +40,7 @@ if is_torch_tpu_available():
 
 logger = logging.get_logger(__name__)
 
+
 class QuestionAnsweringTrainer(Trainer):
     def __init__(self, *args, eval_examples=None, post_process_function=None, **kwargs):
         super().__init__(*args, **kwargs)
@@ -50,14 +53,21 @@ class QuestionAnsweringTrainer(Trainer):
 
         trial = self._trial
         if self.hp_search_backend is not None and trial is not None:
-            run_id = trial.number if self.hp_search_backend == HPSearchBackend.OPTUNA else tune.get_trial_id()
-            run_name = self.hp_name(trial) if self.hp_name is not None else f"run-{run_id}"
-            checkpoint_dir = os.path.join(self.args.output_dir, run_name, checkpoint_folder)
+            run_id = (
+                trial.number
+                if self.hp_search_backend == HPSearchBackend.OPTUNA
+                else tune.get_trial_id()
+            )
+            run_name = (
+                self.hp_name(trial) if self.hp_name is not None else f"run-{run_id}"
+            )
+            checkpoint_dir = os.path.join(
+                self.args.output_dir, run_name, checkpoint_folder
+            )
         else:
             checkpoint_dir = os.path.join(self.args.output_dir, checkpoint_folder)
 
         return checkpoint_dir
-
 
     def evaluate(self, eval_dataset=None, eval_examples=None, ignore_keys=None):
         eval_dataset = self.eval_dataset if eval_dataset is None else eval_dataset
@@ -67,6 +77,7 @@ class QuestionAnsweringTrainer(Trainer):
         # Temporarily disable metric computation, we will do it in the loop here.
         compute_metrics = self.compute_metrics
         self.compute_metrics = None
+
         try:
             output = self.prediction_loop(
                 eval_dataloader,
@@ -81,13 +92,18 @@ class QuestionAnsweringTrainer(Trainer):
 
         # We might have removed columns from the dataset so we put them back.
         if isinstance(eval_dataset, datasets.Dataset):
-            eval_dataset.set_format(type=eval_dataset.format["type"], columns=list(eval_dataset.features.keys()))
+            eval_dataset.set_format(
+                type=eval_dataset.format["type"],
+                columns=list(eval_dataset.features.keys()),
+            )
 
         if self.post_process_function is not None and self.compute_metrics is not None:
-            eval_preds = self.post_process_function(eval_examples, eval_dataset, output.predictions)
+            eval_preds = self.post_process_function(
+                eval_examples, eval_dataset, output.predictions
+            )
             metrics = self.compute_metrics(eval_preds)
 
-            log_metrics = {"eval_"+k:v for k,v in metrics.items()}
+            log_metrics = {"eval_" + k: v for k, v in metrics.items()}
             self.log(log_metrics)
         else:
             metrics = {}
@@ -96,15 +112,29 @@ class QuestionAnsweringTrainer(Trainer):
             # tpu-comment: Logging debug metrics for PyTorch/XLA (compile, execute times, ops, etc.)
             xm.master_print(met.metrics_report())
 
-        self.control = self.callback_handler.on_evaluate(self.args, self.state, self.control, metrics)
+        self.control = self.callback_handler.on_evaluate(
+            self.args, self.state, self.control, metrics
+        )
 
         if self.is_world_process_zero():
-            output_eval_file = self.checkpoint_dir()
-            with open(output_eval_file, "w") as writer:
-                logger.info("***** Eval results *****")
-                for key, value in metrics.items():
-                    logger.info(f"  {key} = {value}")
-                    writer.write(f"{key} = {value}\n")
+            checkpoint_dir = self.checkpoint_dir()
+            if not os.path.exists(checkpoint_dir):
+                os.mkdir(checkpoint_dir)
+            logger.info("***** Eval results *****")
+            for key, value in metrics.items():
+                logger.info(f"  {key} = {value}")
+
+            filename = "eval_metrics.json"
+            s = json.dumps(metrics, indent=4, sort_keys=True)
+            with open(os.path.join(checkpoint_dir, filename), "w") as f:
+                f.write(s)
+
+            for k, v in self.__dict__.items():
+                if k.endswith("_args") and k != "args":
+                    filename = k + ".json"
+                    s = json.dumps(v.__dict__, indent=4, sort_keys=True)
+                    with open(os.path.join(checkpoint_dir, filename), "w") as f:
+                        f.write(s)
 
         return metrics
 
@@ -131,9 +161,18 @@ class QuestionAnsweringTrainer(Trainer):
 
         # We might have removed columns from the dataset so we put them back.
         if isinstance(test_dataset, datasets.Dataset):
-            test_dataset.set_format(type=test_dataset.format["type"], columns=list(test_dataset.features.keys()))
+            test_dataset.set_format(
+                type=test_dataset.format["type"],
+                columns=list(test_dataset.features.keys()),
+            )
 
-        eval_preds = self.post_process_function(test_examples, test_dataset, output.predictions)
+        eval_preds = self.post_process_function(
+            test_examples, test_dataset, output.predictions
+        )
         metrics = self.compute_metrics(eval_preds)
 
-        return PredictionOutput(predictions=eval_preds.predictions, label_ids=eval_preds.label_ids, metrics=metrics)
+        return PredictionOutput(
+            predictions=eval_preds.predictions,
+            label_ids=eval_preds.label_ids,
+            metrics=metrics,
+        )

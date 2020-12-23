@@ -23,9 +23,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from datasets import load_dataset, load_metric
-from run import Training
-from trainer_qa import QuestionAnsweringTrainer
-from run import ModelArguments, DataTrainingArguments, TrainingArguments
+from .run import Training, ModelArguments, DataTrainingArguments, TrainingArguments
+from .trainer_qa import QuestionAnsweringTrainer
 
 from transformers import (
     AutoModelForQuestionAnswering,
@@ -35,7 +34,7 @@ from transformers import (
 
 )
 
-from utils_qa import postprocess_qa_predictions
+from .utils_qa import postprocess_qa_predictions
 from nn_pruning.hp_naming import TrialShortNamer
 
 logger = logging.getLogger(__name__)

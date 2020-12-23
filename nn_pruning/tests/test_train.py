@@ -19,6 +19,7 @@ from nn_pruning.model_structure import BertStructure
 
 class TestFun(TestCase):
     def test_base(self):
+        pass
 
 if __name__ == "__main__":
     unittest.main()
