@@ -22,9 +22,10 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as nn_functional
 from transformers import AutoConfig, AutoModelForQuestionAnswering
+from dataclasses import dataclass, field
 
 from nn_pruning.model_structure import BertStructure
-from nn_pruning.modules.masked_nn import (
+from .masked_nn import (
     ChannelPruningModulePatcher,
     JointPruningModulePatcher,
     LinearPruningModulePatcher,
@@ -38,15 +39,114 @@ from nn_pruning.training_patcher import (
     PatcherContextModule,
 )
 
+@dataclass
+class SparseTrainingArguments:
+    """
+    Sparse training specific arguments
+    """
+
+    mask_scores_learning_rate: float = field(
+        default=1e-2, metadata={"help": "The initial learning rate for mask_scores."}
+    )
+
+    dense_pruning_method: str = field(default="topk", metadata={"help": "Dense Layers pruning method."})
+
+    attention_pruning_method: str = field(default="topk", metadata={"help": "Dense Layers pruning method."})
+
+    ampere_pruning_method: str = field(
+        default="disabled",
+        metadata={"help": "Ampere sparse method ('disabled' for no ampere sparsity)"},
+    )
+
+    mask_init: str = field(default="constant", metadata={"help": "Mask scores initialization method"})
+
+    mask_scale: float = field(
+        default=0.0,
+        metadata={"help": "Parameter to use with mask_init."},
+    )
+
+    dense_block_rows: int = field(
+        default=1,
+        metadata={"help": "Block size in rows for dense layers."},
+    )
+
+    dense_block_cols: int = field(
+        default=1,
+        metadata={"help": "Block size in cols for dense layers."},
+    )
+
+    attention_block_rows: int = field(
+        default=1,
+        metadata={"help": "Block size in rows for attention."},
+    )
+
+    attention_block_cols: int = field(
+        default=1,
+        metadata={"help": "Block size in cols for attention."},
+    )
+
+    initial_threshold: float = field(
+        default=1.0,
+        metadata={"help": "Initial value of the threshold (for scheduling)."},
+    )
+    final_threshold: float = field(
+        default=0.5,
+        metadata={"help": "Final value of the threshold (for scheduling)."},
+    )
+
+    initial_warmup: float = field(
+        default=1,
+        metadata={
+            "help": "Run `initial_warmup` * `warmup_steps` steps of threshold warmup during which threshold stays at its `initial_threshold` value (sparsity schedule)."
+        },
+    )
+    final_warmup: float = field(
+        default=2,
+        metadata={
+            "help": "Run `final_warmup` * `warmup_steps` steps of threshold cool-down during which threshold stays"
+        },
+    )
+
+    initial_ampere_temperature: float = field(
+        default=0.0,
+        metadata={"help": "Initial value of the ampere temperature (for scheduling)."},
+    )
+    final_ampere_temperature: float = field(
+        default=20.0,
+        metadata={"help": "Final value of the ampere temperature (for scheduling)."},
+    )
+
+    regularization: str = field(
+        default="disabled",
+        metadata={"help": "Add L0 or L1 regularization to the mask scores."},
+    )
+
+    regularization_final_lambda: float = field(
+        default=0.0,
+        metadata={"help": "Regularization intensity (used in conjunction with `regularization`)."},
+    )
+
+    distil_teacher_name_or_path: str = field(
+        default=None,
+        metadata={"help": "Path to the already SQuAD fine-tuned teacher model. Only for distillation."},
+    )
+
+    distil_alpha_ce: float = field(
+        default=0.5,
+        metadata={"help": "Cross entropy loss linear weight. Only for distillation."},
+    )
+
+    distil_alpha_teacher: float = field(
+        default=0.5,
+        metadata={"help": "Distillation loss linear weight. Only for distillation."},
+    )
+
+    distil_temperature: float = field(
+        default=2.0,
+        metadata={"help": "Distillation temperature. Only for distillation."},
+    )
+
 class ModelPatchingCoordinator:
-    def log(self):
-        logs = {}
-        for k, v in self.patcher_context.enumerate_context_data():
-            logs[k] = v
-
-        return logs
-
-class QASparseModelPatchingCoordinator(ModelPatchingCoordinator):
     MODEL_STRUCTURE = BertStructure
 
     def __init__(self, sparse_args, device, cache_dir):
@@ -64,51 +164,14 @@ class QASparseModelPatchingCoordinator(ModelPatchingCoordinator):
             raise RuntimeError("Could not parse pruning method")
 
     def patch_model(self, model, trial):
-        assert trial is None or len(trial.params) == 0
-        attention_pruning_method_parts = self.parse_pruning_method(self.sparse_args.attention_pruning_method)
+        raise NotImplementedError("Implement in subclass")
 
-        parameters_attention = LinearPruningParameters(
-            method=attention_pruning_method_parts[0],
-            submethod=attention_pruning_method_parts[1],
-            ampere_method=self.sparse_args.ampere_pruning_method,
-            block_rows=self.sparse_args.attention_block_rows,
-            block_cols=self.sparse_args.attention_block_cols,
-        )
+    def log(self):
+        logs = {}
+        for k, v in self.patcher_context.enumerate_context_data():
+            logs[k] = v
 
-        dense_pruning_method_parts = self.parse_pruning_method(self.sparse_args.dense_pruning_method)
-
-        parameters_dense = LinearPruningParameters(
-            method=dense_pruning_method_parts[0],
-            submethod=dense_pruning_method_parts[1],
-            ampere_method=self.sparse_args.ampere_pruning_method,
-            block_rows=self.sparse_args.dense_block_rows,
-            block_cols=self.sparse_args.dense_block_cols,
-        )
-
-        patcher_context = self.patcher_context
-
-        p_attention = JointPruningModulePatcher(patcher_context, parameters_attention, suffix=".attention")
-
-        if parameters_dense.submethod.startswith("1d"):
-            p_dense = ChannelPruningModulePatcher(
-                patcher_context, parameters_dense, self.MODEL_STRUCTURE, suffix="dense"
-            )
-        else:
-            p_dense = LinearPruningModulePatcher(patcher_context, parameters_dense, suffix="dense")
-
-        module_patchers = dict(
-            query=p_attention,
-            key=p_attention,
-            value=p_attention,
-            att_dense=p_dense,
-            interm_dense=p_dense,
-            output_dense=p_dense,
-        )
-
-        patcher = BertLinearModelPatcher(module_patchers)
-        patcher.patch(model)
-
-        assert patcher.stats["patched"] == 72
+        return logs
 
     def create_teacher(self, device, cache_dir):
         sparse_args = self.sparse_args
@@ -272,11 +335,6 @@ class QASparseModelPatchingCoordinator(ModelPatchingCoordinator):
                 "lr": args.learning_rate,
                 "weight_decay": args.weight_decay,
             },
-            {
-                "params": decay_params,
-                "lr": args.learning_rate,
-                "weight_decay": 0.0,
-            },
         ]
 
         return optimizer_grouped_parameters
@@ -285,3 +343,53 @@ class QASparseModelPatchingCoordinator(ModelPatchingCoordinator):
         self.schedule_threshold()
         compiler = MaskedLinearModelCompiler()
         compiler.patch(model)
+
+    def patch_model(self, model, trial):
+        assert trial is None or len(trial.params) == 0
+        attention_pruning_method_parts = self.parse_pruning_method(self.sparse_args.attention_pruning_method)
+
+        parameters_attention = LinearPruningParameters(
+            method=attention_pruning_method_parts[0],
+            submethod=attention_pruning_method_parts[1],
+            ampere_method=self.sparse_args.ampere_pruning_method,
+            block_rows=self.sparse_args.attention_block_rows,
+            block_cols=self.sparse_args.attention_block_cols,
+        )
+
+        dense_pruning_method_parts = self.parse_pruning_method(self.sparse_args.dense_pruning_method)
+
+        parameters_dense = LinearPruningParameters(
+            method=dense_pruning_method_parts[0],
+            submethod=dense_pruning_method_parts[1],
+            ampere_method=self.sparse_args.ampere_pruning_method,
+            block_rows=self.sparse_args.dense_block_rows,
+            block_cols=self.sparse_args.dense_block_cols,
+        )
+
+        patcher_context = self.patcher_context
+
+        p_attention = JointPruningModulePatcher(patcher_context, parameters_attention, suffix=".attention")
+
+        if parameters_dense.submethod.startswith("1d"):
+            p_dense = ChannelPruningModulePatcher(
+                patcher_context, parameters_dense, self.MODEL_STRUCTURE, suffix="dense"
+            )
+        else:
+            p_dense = LinearPruningModulePatcher(patcher_context, parameters_dense, suffix="dense")
+
+        module_patchers = dict(
+            query=p_attention,
+            key=p_attention,
+            value=p_attention,
+            att_dense=p_dense,
+            interm_dense=p_dense,
+            output_dense=p_dense,
+        )
+
+        patcher = BertLinearModelPatcher(module_patchers)
+        patcher.patch(model)
+        assert (patcher.stats["patched"] == 72)
+
+        return patcher
+
+

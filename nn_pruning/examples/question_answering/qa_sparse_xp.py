@@ -20,12 +20,11 @@ Sparse Fine-tuning the library models for question answering.
 
 import json
 import shutil
-from dataclasses import dataclass, field
 from pathlib import Path
 from types import SimpleNamespace
 
 from nn_pruning.hp_naming import TrialShortNamer
-from .qa_sparse_patch import QASparseModelPatchingCoordinator
+from nn_pruning.modules.patch_coordinator import SparseTrainingArguments, ModelPatchingCoordinator
 from .qa_sparse_train import QASparseTrainer
 from .qa_xp import (
     QAXP,
@@ -33,114 +32,6 @@ from .qa_xp import (
     QADataTrainingArguments,
     TrainingArguments,
 )
-
-
-@dataclass
-class SparseTrainingArguments:
-    """
-    Sparse training specific arguments
-    """
-
-    mask_scores_learning_rate: float = field(
-        default=1e-2, metadata={"help": "The initial learning rate for mask_scores."}
-    )
-
-    dense_pruning_method: str = field(default="topk", metadata={"help": "Dense Layers pruning method."})
-
-    attention_pruning_method: str = field(default="topk", metadata={"help": "Dense Layers pruning method."})
-
-    ampere_pruning_method: str = field(
-        default="disabled",
-        metadata={"help": "Ampere sparse method ('disabled' for no ampere sparsity)"},
-    )
-
-    mask_init: str = field(default="constant", metadata={"help": "Mask scores initialization method"})
-
-    mask_scale: float = field(
-        default=0.0,
-        metadata={"help": "Parameter to use with mask_init."},
-    )
-
-    dense_block_rows: int = field(
-        default=1,
-        metadata={"help": "Block size in rows for dense layers."},
-    )
-
-    dense_block_cols: int = field(
-        default=1,
-        metadata={"help": "Block size in cols for dense layers."},
-    )
-
-    attention_block_rows: int = field(
-        default=1,
-        metadata={"help": "Block size in rows for attention."},
-    )
-
-    attention_block_cols: int = field(
-        default=1,
-        metadata={"help": "Block size in cols for attention."},
-    )
-
-    initial_threshold: float = field(
-        default=1.0,
-        metadata={"help": "Initial value of the threshold (for scheduling)."},
-    )
-    final_threshold: float = field(
-        default=0.5,
-        metadata={"help": "Final value of the threshold (for scheduling)."},
-    )
-
-    initial_warmup: float = field(
-        default=1,
-        metadata={
-            "help": "Run `initial_warmup` * `warmup_steps` steps of threshold warmup during which threshold stays at its `initial_threshold` value (sparsity schedule)."
-        },
-    )
-    final_warmup: float = field(
-        default=2,
-        metadata={
-            "help": "Run `final_warmup` * `warmup_steps` steps of threshold cool-down during which threshold stays"
-        },
-    )
-
-    initial_ampere_temperature: float = field(
-        default=0.0,
-        metadata={"help": "Initial value of the ampere temperature (for scheduling)."},
-    )
-    final_ampere_temperature: float = field(
-        default=20.0,
-        metadata={"help": "Final value of the ampere temperature (for scheduling)."},
-    )
-
-    regularization: str = field(
-        default="disabled",
-        metadata={"help": "Add L0 or L1 regularization to the mask scores."},
-    )
-
-    regularization_final_lambda: float = field(
-        default=0.0,
-        metadata={"help": "Regularization intensity (used in conjunction with `regularization`)."},
-    )
-
-    distil_teacher_name_or_path: str = field(
-        default=None,
-        metadata={"help": "Path to the already SQuAD fine-tuned teacher model. Only for distillation."},
-    )
-
-    distil_alpha_ce: float = field(
-        default=0.5,
-        metadata={"help": "Cross entropy loss linear weight. Only for distillation."},
-    )
-
-    distil_alpha_teacher: float = field(
-        default=0.5,
-        metadata={"help": "Distillation loss linear weight. Only for distillation."},
-    )
-
-    distil_temperature: float = field(
-        default=2.0,
-        metadata={"help": "Distillation temperature. Only for distillation."},
-    )
 
 
 class SparseQAShortNamer(TrialShortNamer):
@@ -232,7 +123,7 @@ class QASparseXP(QAXP):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.patch_coordinator = QASparseModelPatchingCoordinator(self.sparse_args, self.training_args.device, self.model_args.cache_dir)
+        self.patch_coordinator = ModelPatchingCoordinator(self.sparse_args, self.training_args.device, self.model_args.cache_dir)
 
     def create_trainer(self, *args, **kwargs):
         super().create_trainer(*args, **kwargs)
@@ -264,7 +155,7 @@ class QASparseXP(QAXP):
         model_args.model_name_or_path = str(src_path)
 
         model = cls._model_init(model_args, model_config, trial=None)
-        patcher = QASparseModelPatcher(sparse_args)
+        patcher = ModelPatchingCoordinator(sparse_args)
         patcher.patch_model(model, trial=None)
         import torch
 

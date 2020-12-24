@@ -1,0 +1,3 @@
+style: 
+	black .
+	isort .

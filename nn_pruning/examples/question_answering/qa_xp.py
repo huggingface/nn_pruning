@@ -22,7 +22,7 @@ import os
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from datasets import load_dataset, load_metric
+from datasets import load_metric
 from transformers import (
     AutoModelForQuestionAnswering,
     DataCollatorWithPadding,
@@ -34,7 +34,7 @@ from nn_pruning.hp_naming import TrialShortNamer
 
 from .qa_train import QATrainer
 from .qa_utils import postprocess_qa_predictions
-from .xp import XP, DataTrainingArguments, ModelArguments, TrainingArguments
+from nn_pruning.examples.xp import XP, DataTrainingArguments, ModelArguments, TrainingArguments
 
 logger = logging.getLogger(__name__)
 
@@ -80,7 +80,7 @@ class QAXP(XP):
     SHORT_NAMER = TrialShortNamer
 
     @classmethod
-    def _model_init(self, model_args, model_config, trial=None):
+    def _model_init(self, model_args, model_config):
         model = AutoModelForQuestionAnswering.from_pretrained(
             model_args.model_name_or_path,
             from_tf=bool(".ckpt" in model_args.model_name_or_path),
@@ -90,7 +90,7 @@ class QAXP(XP):
         return model
 
     def model_init(self, trial=None):
-        return self._model_init(self.model_args, self.config, trial)
+        return self._model_init(self.model_args, self.config)
 
     def prepare_column_names(self):
         training_args = self.training_args
