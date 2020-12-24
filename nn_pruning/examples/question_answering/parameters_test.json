@@ -33,5 +33,9 @@
   "ampere_pruning_method": "disabled",
   "mask_init": "constant",
   "mask_scale": 0.0,
-  "regularization": "l1"
+  "regularization": "l1",
+  "regularization_final_lambda": 20.0,
+  "distil_teacher_name_or_path":"csarron/bert-base-uncased-squad-v1",
+  "distil_alpha_ce": 0.1,
+  "distil_alpha_teacher": 0.9
 }

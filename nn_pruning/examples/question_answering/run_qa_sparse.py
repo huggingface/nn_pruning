@@ -8,6 +8,8 @@ from typing import Dict
 import numpy as np
 import torch
 import torch.nn as nn
+import torch.nn.functional as nn_functional
+from transformers import AutoConfig, AutoModelForQuestionAnswering
 from transformers.optimization import AdamW, get_linear_schedule_with_warmup
 
 from nn_pruning.hp_naming import TrialShortNamer
@@ -19,9 +21,12 @@ from nn_pruning.modules.masked_nn import (
     LinearPruningModulePatcher,
     LinearPruningParameters,
     MaskedLinear,
-
 )
-from nn_pruning.training_patcher import BertLinearModelPatcher, PatcherContext, PatcherContextModule
+from nn_pruning.training_patcher import (
+    BertLinearModelPatcher,
+    PatcherContext,
+    PatcherContextModule,
+)
 
 from .run_qa import (
     ModelArguments,
@@ -49,11 +54,6 @@ class SparseTrainingArguments:
     ampere_pruning_method: str = field(
         default="disabled",
         metadata={"help": "Ampere sparse method ('disabled' for no ampere sparsity)"},
-    )
-
-    regularization: str = field(
-        default="disabled",
-        metadata={"help": "Add L0 or L1 regularization to the mask scores."},
     )
 
     mask_init: str = field(default="constant", metadata={"help": "Mask scores initialization method"})
@@ -114,9 +114,34 @@ class SparseTrainingArguments:
         metadata={"help": "Final value of the ampere temperature (for scheduling)."},
     )
 
-    final_lambda: float = field(
+    regularization: str = field(
+        default="disabled",
+        metadata={"help": "Add L0 or L1 regularization to the mask scores."},
+    )
+
+    regularization_final_lambda: float = field(
         default=0.0,
         metadata={"help": "Regularization intensity (used in conjunction with `regularization`)."},
+    )
+
+    distil_teacher_name_or_path: str = field(
+        default=None,
+        metadata={"help": "Path to the already SQuAD fine-tuned teacher model. Only for distillation."},
+    )
+
+    distil_alpha_ce: float = field(
+        default=0.5,
+        metadata={"help": "Cross entropy loss linear weight. Only for distillation."},
+    )
+
+    distil_alpha_teacher: float = field(
+        default=0.5,
+        metadata={"help": "Distillation loss linear weight. Only for distillation."},
+    )
+
+    distil_temperature: float = field(
+        default=2.0,
+        metadata={"help": "Distillation temperature. Only for distillation."},
     )
 
 
@@ -134,9 +159,28 @@ class BertLinearModelCompiler(ModelPatcher):
 class QASparseModelPatcher:
     MODEL_STRUCTURE = BertStructure
 
-    def __init__(self, sparse_args):
+    def __init__(self, sparse_args: SparseTrainingArguments, device, cache_dir):
         self.sparse_args = sparse_args
         self.patcher_context = PatcherContext()
+
+        if sparse_args.distil_teacher_name_or_path is not None:
+            assert sparse_args.distil_alpha_ce > 0.0
+            assert sparse_args.distil_alpha_ce + sparse_args.distil_alpha_teacher > 0.0
+
+            model_config = AutoConfig.from_pretrained(sparse_args.distil_teacher_name_or_path, cache_dir=cache_dir)
+
+            teacher = AutoModelForQuestionAnswering.from_pretrained(
+                sparse_args.distil_teacher_name_or_path,
+                from_tf=bool(".ckpt" in sparse_args.distil_teacher_name_or_path),
+                config=model_config,
+                cache_dir=cache_dir,
+            )
+
+            teacher.to(device)
+        else:
+            teacher = None
+
+        self.teacher = teacher
 
     def log(self):
         logs = {}
@@ -158,7 +202,7 @@ class QASparseModelPatcher:
         final_threshold = sparse_args.final_threshold
         initial_warmup = sparse_args.initial_warmup
         final_warmup = sparse_args.final_warmup
-        final_lambda = sparse_args.final_lambda
+        final_lambda = sparse_args.regularization_final_lambda
         initial_ampere_temperature = sparse_args.initial_ampere_temperature
         final_ampere_temperature = sparse_args.final_ampere_temperature
 
@@ -191,7 +235,7 @@ class QASparseModelPatcher:
 
         self.patcher_context.set_context_data_dict(context_data)
 
-    def regularization(self, model: nn.Module):
+    def regularization_loss(self, model: nn.Module):
         mode = self.sparse_args.regularization
         if mode not in ["l0", "l1"]:
             return 0
@@ -206,13 +250,55 @@ class QASparseModelPatcher:
                     regu_add = torch.sigmoid(param - 2 / 3 * np.log(0.1 / 1.1)).sum() / param.numel()
                 else:
                     ValueError("Don't know this mode.")
-                print(regu_add)
                 regu += regu_add
                 counter += 1
         if counter == 0:
             return 0
-        print(regu, counter)
+
+        regu = regu * self.patcher_context.get_context_data("regu_lambda")
+
         return regu / counter
+
+    def distil_loss_combine(self, ce_loss, model_inputs, model_outputs):
+        sparse_args = self.sparse_args
+        teacher = self.teacher
+
+        if teacher == None:
+            return ce_loss
+
+        temperature = sparse_args.distil_temperature
+
+        start_logits_stu, end_logits_stu = model_outputs["start_logits"], model_outputs["end_logits"]
+
+        with torch.no_grad():
+            teacher_out = teacher(
+                input_ids=model_inputs["input_ids"],
+                token_type_ids=model_inputs["token_type_ids"],
+                attention_mask=model_inputs["attention_mask"],
+            )
+            start_logits_tea, end_logits_tea = teacher_out["start_logits"], teacher_out["end_logits"]
+
+        loss_start = (
+            nn_functional.kl_div(
+                input=nn_functional.log_softmax(start_logits_stu / temperature, dim=-1),
+                target=nn_functional.softmax(start_logits_tea / temperature, dim=-1),
+                reduction="batchmean",
+            )
+            * (temperature ** 2)
+        )
+        loss_end = (
+            nn_functional.kl_div(
+                input=nn_functional.log_softmax(end_logits_stu / temperature, dim=-1),
+                target=nn_functional.softmax(end_logits_tea / temperature, dim=-1),
+                reduction="batchmean",
+            )
+            * (temperature ** 2)
+        )
+        loss_logits = (loss_start + loss_end) / 2.0
+
+        loss = sparse_args.distil_alpha_teacher * loss_logits + sparse_args.distil_alpha_ce * ce_loss
+
+        return loss
 
     def parse_pruning_method(self, method):
         parts = method.split(":")
@@ -285,11 +371,6 @@ class QASparseTrainer(QuestionAnsweringTrainer):
     def set_patcher(self, patcher: QASparseModelPatcher):
         self.patcher = patcher
 
-    def compute_loss(self, model, inputs):
-        loss = super().compute_loss(model, inputs)
-        loss += self.patcher.regularization(model)
-        return loss
-
     def log(self, logs: Dict[str, float]) -> None:
         add = {self.log_prefix + k: v for k, v in self.patcher.log().items()}
 
@@ -305,6 +386,27 @@ class QASparseTrainer(QuestionAnsweringTrainer):
         self.schedule_threshold(True)
         self.log_prefix = ""
         return super().training_step(*args, **kwargs)
+
+    def compute_loss(self, model, inputs):
+        """
+        How the loss is computed by Trainer. By default, all models return the loss in the first element.
+
+        Subclass and override for custom behavior.
+        """
+        outputs = model(**inputs)
+
+        # Save past state if it exists
+        # TODO: this needs to be fixed and made cleaner later.
+        if self.args.past_index >= 0:
+            self._past = outputs[self.args.past_index]
+
+        # We don't use .loss here since the model may return tuples instead of ModelOutput.
+        loss = outputs["loss"] if isinstance(outputs, dict) else outputs[0]
+
+        loss = self.patcher.distil_loss_combine(loss, inputs, outputs)
+        loss += self.patcher.regularization_loss(model)
+
+        return loss
 
     def evaluate(self, *args, **kwargs):
         self.schedule_threshold(False)
@@ -387,6 +489,10 @@ class SparseQAShortNamer(TrialShortNamer):
         "dense_block_rows": 1,
         "dense_pruning_method": "topK",
         "disable_tqdm": False,
+        "distil_alpha_ce": 0.1,
+        "distil_alpha_teacher": 0.9,
+        "distil_teacher_name_or_path": None,
+        "distil_temperature": 2.0,
         "doc_stride": 128,
         "do_eval": 1,
         "do_predict": False,
@@ -394,7 +500,6 @@ class SparseQAShortNamer(TrialShortNamer):
         "evaluation_strategy": "epoch",
         "eval_steps": 500,
         "final_ampere_temperature": 20.0,
-        "final_lambda": 0.0,
         "final_threshold": 0.1,
         "final_warmup": 2,
         "fp16": False,
@@ -431,6 +536,7 @@ class SparseQAShortNamer(TrialShortNamer):
         "per_device_train_batch_size": 16,
         "prediction_loss_only": False,
         "regularization": "disabled",
+        "regularization_final_lambda": 0.0,
         "remove_unused_columns": True,
         "run_name": "output/squad_test",
         "save_steps": 5000,
@@ -455,8 +561,7 @@ class QASparseTraining(QATraining):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-
-        self.patcher = QASparseModelPatcher(self.sparse_args)
+        self.patcher = QASparseModelPatcher(self.sparse_args, self.training_args.device, self.model_args.cache_dir)
 
     def create_trainer(self, *args, **kwargs):
         super().create_trainer(*args, **kwargs)
