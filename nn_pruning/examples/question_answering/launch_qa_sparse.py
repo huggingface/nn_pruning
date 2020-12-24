@@ -5,14 +5,14 @@ def main():
     import json
     from pathlib import Path
 
-    import nn_pruning.examples.question_answering.run_qa_sparse as run_qa_sparse
+    import nn_pruning.examples.question_answering.qa_sparse_xp as qa_sparse_xp
 
     if len(sys.argv) < 2:
         raise RuntimeError("Please specify json file")
     filename = Path(sys.argv[1]).resolve()
     param_dict = json.load(open(filename))
 
-    qa = run_qa_sparse.QASparseTraining(param_dict)
+    qa = qa_sparse_xp.QASparseXP(param_dict)
 
     def hp_space(trial):
         return {}

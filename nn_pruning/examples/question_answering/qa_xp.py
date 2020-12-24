@@ -32,14 +32,9 @@ from transformers import (
 
 from nn_pruning.hp_naming import TrialShortNamer
 
-from .run import (
-    DataTrainingArguments,
-    ModelArguments,
-    Training,
-    TrainingArguments,
-)
-from .trainer_qa import QuestionAnsweringTrainer
-from .utils_qa import postprocess_qa_predictions
+from .qa_train import QATrainer
+from .qa_utils import postprocess_qa_predictions
+from .xp import XP, DataTrainingArguments, ModelArguments, TrainingArguments
 
 logger = logging.getLogger(__name__)
 
@@ -75,13 +70,13 @@ class QADataTrainingArguments(DataTrainingArguments):
     )
 
 
-class QATraining(Training):
+class QAXP(XP):
     ARGUMENTS = {
         "model": ModelArguments,
         "data": QADataTrainingArguments,
         "training": TrainingArguments,
     }
-    QA_TRAINER_CLASS = QuestionAnsweringTrainer
+    QA_TRAINER_CLASS = QATrainer
     SHORT_NAMER = TrialShortNamer
 
     @classmethod

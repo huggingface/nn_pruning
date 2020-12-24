@@ -115,7 +115,7 @@ class DataTrainingArguments:
                 ], "`validation_file` should be a csv or a json file."
 
 
-class Training:
+class XP:
     ARGUMENTS = {
         "model": ModelArguments,
         "data": DataTrainingArguments,

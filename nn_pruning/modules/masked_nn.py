@@ -30,6 +30,8 @@ from torch.nn import functional as F
 from torch.nn import init
 
 from nn_pruning.model_structure import ModelStructure
+from nn_pruning.model_patcher import ModelPatcher
+
 from nn_pruning.training_patcher import (
     ModulePatcher,
     PatcherContext,
@@ -413,3 +415,13 @@ class ChannelPruningModulePatcher(LinearPruningModulePatcher):
             return ("mask_1d", f"{layer_number}.{position+offset}.{self.suffix}")
         else:
             raise RuntimeError(f"Unknown kind {kind}")
+
+class MaskedLinearModelCompiler(ModelPatcher):
+    def __init__(self):
+        super().__init__(all_match=True)
+
+    def is_patchable(self, module_name, module, raiseError):
+        return isinstance(module, MaskedLinear)
+
+    def new_child_module(self, child_module_name, child_module, patch_info):
+        return child_module.compile()
