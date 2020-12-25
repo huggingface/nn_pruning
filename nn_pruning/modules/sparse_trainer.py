@@ -24,6 +24,10 @@ from .patch_coordinator import ModelPatchingCoordinator
 class SparseTrainer:
     def __init__(self, sparse_args):
         self.sparse_args = sparse_args
+        self.ce_loss = 0
+        self.regu_loss = 0
+        self.distil_loss = 0
+        self.loss_counter = 0
 
     def set_patch_coordinator(self, patch_coordinator: ModelPatchingCoordinator):
         self.patch_coordinator = patch_coordinator
@@ -32,6 +36,11 @@ class SparseTrainer:
         add = {self.log_prefix + k: v for k, v in self.patch_coordinator.log().items()}
 
         logs.update(add)
+
+        logs["ce_loss"] = self.ce_loss / self.loss_counter
+        logs["distil_loss"] = self.distil_loss / self.loss_counter
+        logs["regu_loss"] = self.regu_loss / self.loss_counter
+        self.loss_counter = 0
 
         return super().log(logs)
 
@@ -60,8 +69,16 @@ class SparseTrainer:
         # We don't use .loss here since the model may return tuples instead of ModelOutput.
         loss = outputs["loss"] if isinstance(outputs, dict) else outputs[0]
 
-        loss = self.patch_coordinator.distil_loss_combine(loss, inputs, outputs)
-        loss += self.patch_coordinator.regularization_loss(model)
+        self.ce_loss += float(loss)
+        self.loss_counter += 1
+
+        loss, distil_loss = self.patch_coordinator.distil_loss_combine(loss, inputs, outputs)
+        self.distil_loss += float(distil_loss)
+        regu_loss = self.patch_coordinator.regularization_loss(model)
+        self.regu_loss += float(regu_loss)
+        self.loss_counter += 1
+
+        loss += regu_loss
 
         return loss
 

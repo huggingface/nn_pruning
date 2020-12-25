@@ -304,7 +304,7 @@ class ModelPatchingCoordinator:
 
         loss = sparse_args.distil_alpha_teacher * loss_logits + sparse_args.distil_alpha_ce * ce_loss
 
-        return loss
+        return loss, loss_logits
 
 
     def create_optimizer_groups(self, model, args, sparse_args):
