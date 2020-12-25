@@ -37,10 +37,11 @@ class SparseTrainer:
 
         logs.update(add)
 
-        logs["ce_loss"] = self.ce_loss / self.loss_counter
-        logs["distil_loss"] = self.distil_loss / self.loss_counter
-        logs["regu_loss"] = self.regu_loss / self.loss_counter
-        self.loss_counter = 0
+        if self.loss_counter != 0:
+            logs["ce_loss"] = self.ce_loss / self.loss_counter
+            logs["distil_loss"] = self.distil_loss / self.loss_counter
+            logs["regu_loss"] = self.regu_loss / self.loss_counter
+            self.loss_counter = 0
 
         return super().log(logs)
 
