@@ -375,7 +375,7 @@ class ModelPatchingCoordinator:
                 patcher_context, parameters_dense, self.MODEL_STRUCTURE, suffix="dense"
             )
         else:
-            p_dense = LinearPruningModulePatcher(patcher_context, parameters_dense, suffix="dense")
+            p_dense = LinearPruningModulePatcher(patcher_context, parameters_dense)
 
         module_patchers = dict(
             query=p_attention,
