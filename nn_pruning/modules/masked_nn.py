@@ -320,7 +320,7 @@ class LinearPruningModulePatcher(ModulePatcher):
         if method not in PRUNING_METHODS:
             raise RuntimeError(f"Unknown pruning method '{method}', should be in {PRUNING_METHODS}")
 
-        PRUNING_SUB_METHODS = ["default", "1d", "1d_alt"]
+        PRUNING_SUB_METHODS = ["default", "1d", "1d_alt", "joint"]
         if submethod not in PRUNING_SUB_METHODS:
             raise RuntimeError(f"Unknown pruning sub method '{submethod}', should be in {PRUNING_SUB_METHODS}")
 
@@ -333,7 +333,7 @@ class LinearPruningModulePatcher(ModulePatcher):
         parameters = self.parameters
         prefix = key[0]
         if prefix == "mask":
-            assert parameters.submethod == "default"
+            assert parameters.submethod in ["default", "joint"]
             return BlockLinearPruningContextModule(shape, parameters)
         elif prefix == "mask_1d":
             assert parameters.submethod.startswith("1d")

@@ -368,7 +368,10 @@ class ModelPatchingCoordinator:
 
         patcher_context = self.patcher_context
 
-        p_attention = JointPruningModulePatcher(patcher_context, parameters_attention, suffix=".attention")
+        if parameters_attention.submethod == "joint":
+            p_attention = JointPruningModulePatcher(patcher_context, parameters_attention, suffix=".attention")
+        else:
+            p_attention = LinearPruningModulePatcher(patcher_context, parameters_attention)
 
         if parameters_dense.submethod.startswith("1d"):
             p_dense = ChannelPruningModulePatcher(

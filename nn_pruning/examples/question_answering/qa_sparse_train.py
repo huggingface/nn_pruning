@@ -23,6 +23,5 @@ from .qa_train import QATrainer
 # SparseTrainer should appear first in the base classes, as its functions must override QATrainer and its base classes (Trainer)
 class QASparseTrainer(SparseTrainer, QATrainer):
     def __init__(self, sparse_args, *args, **kwargs):
-        print(QASparseTrainer.__mro__)
         QATrainer.__init__(self, *args, **kwargs)
         SparseTrainer.__init__(self, sparse_args)
