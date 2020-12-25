@@ -242,28 +242,37 @@ class ModelPatchingCoordinator:
         self.patcher_context.set_context_data_dict(context_data)
 
     def regularization_loss(self, model: nn.Module):
+        # Return regularization and lambda
         mode = self.sparse_args.regularization
         if mode not in ["l0", "l1"]:
             return 0
 
         regu, counter = 0, 0
+        nnz_w = 0
+        total_w = 0
+        threshold = self.patcher_context.get_context_data("threshold")
         for name, module in model.named_modules():
             if isinstance(module, PatcherContextModule):
                 param = module.mask_scores
                 if mode == "l1":
                     regu_add = torch.norm(torch.sigmoid(param), p=1) / param.numel()
+                    nnz_w += (torch.sigmoid(param) > threshold).sum().item()
                 elif mode == "l0":
                     regu_add = torch.sigmoid(param - 2 / 3 * np.log(0.1 / 1.1)).sum() / param.numel()
+                    assert(False)
+                    # TODO : check this code
+                    nnz_w += (torch.sigmoid(param - 2 / 3 * np.log(0.1 / 1.1)) > threshold).sum().item()
                 else:
                     ValueError("Don't know this mode.")
+                total_w += param.numel()
+
                 regu += regu_add
                 counter += 1
+
         if counter == 0:
             return 0
 
-        regu = regu * self.patcher_context.get_context_data("regu_lambda")
-
-        return regu / counter
+        return regu / counter, self.patcher_context.get_context_data("regu_lambda"), nnz_w / total_w
 
     def distil_loss_combine(self, ce_loss, model_inputs, model_outputs):
         sparse_args = self.sparse_args

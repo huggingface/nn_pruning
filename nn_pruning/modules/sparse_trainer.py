@@ -28,6 +28,7 @@ class SparseTrainer:
         self.regu_loss = 0
         self.distil_loss = 0
         self.loss_counter = 0
+        self.nnz_perc = 0
 
     def set_patch_coordinator(self, patch_coordinator: ModelPatchingCoordinator):
         self.patch_coordinator = patch_coordinator
@@ -41,10 +42,12 @@ class SparseTrainer:
             logs["ce_loss"] = self.ce_loss / self.loss_counter
             logs["distil_loss"] = self.distil_loss / self.loss_counter
             logs["regu_loss"] = self.regu_loss / self.loss_counter
+            logs["nnz_perc"] = self.nnz_perc / self.loss_counter
             self.ce_loss = 0
             self.distil_loss = 0
             self.regu_loss = 0
             self.loss_counter = 0
+            self.nnz_perc = 0
 
         return super().log(logs)
 
@@ -78,11 +81,13 @@ class SparseTrainer:
 
         loss, distil_loss = self.patch_coordinator.distil_loss_combine(loss, inputs, outputs)
         self.distil_loss += float(distil_loss)
-        regu_loss = self.patch_coordinator.regularization_loss(model)
+        regu_loss, regu_lambda, nnz_perc = self.patch_coordinator.regularization_loss(model)
         self.regu_loss += float(regu_loss)
+        self.nnz_perc += nnz_perc
         self.loss_counter += 1
 
-        loss += regu_loss
+        loss += regu_loss * regu_lambda
+
 
         return loss
 
