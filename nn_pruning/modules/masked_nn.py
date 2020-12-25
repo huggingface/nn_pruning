@@ -50,7 +50,7 @@ import torch.distributions
 
 
 @dataclass
-class RuntimeLinearPruningParameters:
+class RuntimeLinearPruningArgs:
     method: str
     submethod: str
     ampere_method: str
@@ -65,16 +65,16 @@ class InitDirective:
 
 
 @dataclass
-class LinearPruningParameters(RuntimeLinearPruningParameters):
+class LinearPruningArgs(RuntimeLinearPruningArgs):
     mask_init: InitDirective = InitDirective()
     ampere_init: InitDirective = InitDirective()
 
 
 class GenericLinearPruningContextModule(PatcherContextModule):
-    def __init__(self, shape, parameters: LinearPruningParameters):
+    def __init__(self, shape, args: LinearPruningArgs):
         super().__init__()
         self.shape = shape
-        self.parameters = parameters
+        self.args = args
 
     def init_masks(self, init_directive: InitDirective):
         mask_init = init_directive.kind
@@ -89,9 +89,9 @@ class GenericLinearPruningContextModule(PatcherContextModule):
 
 
 class LinearPruningContextModule(GenericLinearPruningContextModule):
-    def __init__(self, shape, parameters: LinearPruningParameters):
-        super().__init__(shape, parameters)
-        _p = self.parameters
+    def __init__(self, shape, args: LinearPruningArgs):
+        super().__init__(shape, args)
+        _p = self.args
 
         assert shape[0] % _p.block_rows == 0
         assert shape[1] % _p.block_cols == 0
@@ -102,22 +102,22 @@ class LinearPruningContextModule(GenericLinearPruningContextModule):
 
 
 class BlockLinearPruningContextModule(LinearPruningContextModule):
-    def __init__(self, shape, parameters: LinearPruningParameters):
-        super().__init__(shape, parameters)
-        assert parameters.submethod == "default"
+    def __init__(self, shape, args: LinearPruningArgs):
+        super().__init__(shape, args)
+        assert args.submethod == "default"
         self.mask_scores = nn.Parameter(torch.Tensor(size=self.mask_size))
-        self.init_masks(self.parameters.mask_init)
+        self.init_masks(self.args.mask_init)
 
 
 class SingleDimensionLinearPruningContextModule(LinearPruningContextModule):
-    def __init__(self, shape, is_row, parameters: LinearPruningParameters):
-        super().__init__(shape, parameters)
-        assert parameters.submethod.startswith("1d")
+    def __init__(self, shape, is_row, args: LinearPruningArgs):
+        super().__init__(shape, args)
+        assert args.submethod.startswith("1d")
 
         size = (self.mask_size[0],) if is_row else (self.mask_size[1],)
 
         self.mask_scores = nn.Parameter(torch.zeros(size=size))
-        self.init_masks(self.parameters.mask_init)
+        self.init_masks(self.args.mask_init)
 
 
 class AmpereLinearPruningContextModule(GenericLinearPruningContextModule):
@@ -125,8 +125,8 @@ class AmpereLinearPruningContextModule(GenericLinearPruningContextModule):
     AMPERE_M = 4
     SPARSE_PATTERNS_COUNT = 6  # 2 choices among 4 = 6
 
-    def __init__(self, shape, parameters: LinearPruningParameters):
-        super().__init__(shape, parameters)
+    def __init__(self, shape, args: LinearPruningArgs):
+        super().__init__(shape, args)
         # Creating the pattern in a transposed way to avoid a few ops later
         ampere_mask_size = (
             self.shape[1],
@@ -134,20 +134,20 @@ class AmpereLinearPruningContextModule(GenericLinearPruningContextModule):
             self.SPARSE_PATTERNS_COUNT,
         )
         self.mask_scores = nn.Parameter(torch.Tensor(size=ampere_mask_size))
-        self.init_masks(self.parameters.ampere_init)
+        self.init_masks(self.args.ampere_init)
 
 
 class AmpereMaskModule(nn.Module):
     def __init__(
         self,
         context_module: AmpereLinearPruningContextModule,
-        parameters: LinearPruningParameters,
+        args: LinearPruningArgs,
     ):
         super().__init__()
         self.context_module = context_module
         ampere_pattern = self.build_ampere_pattern(context_module.mask_scores.device)
         self.register_buffer("ampere_pattern", ampere_pattern)
-        self.parameters = parameters
+        self.args = args
 
     @staticmethod
     def build_ampere_pattern(device):
@@ -183,12 +183,12 @@ class MaskModule(nn.Module):
     def __init__(
         self,
         context_modules: List[LinearPruningContextModule],
-        parameters: LinearPruningParameters,
+        args: LinearPruningArgs,
     ):
         super().__init__()
         assert isinstance(context_modules, (list, tuple))
         self.context_modules = nn.ModuleList(context_modules)
-        self.parameters = parameters
+        self.args = args
 
     @staticmethod
     def expand_mask(mask, block_rows, block_cols):
@@ -200,14 +200,14 @@ class MaskModule(nn.Module):
     def mask(
         weight,
         mask_scores,
-        parameters: LinearPruningParameters,
+        args: LinearPruningArgs,
         threshold: float,
         training,
     ):
-        method = parameters.method
-        submethod = parameters.submethod
+        method = args.method
+        submethod = args.submethod
         if submethod.startswith("1d"):
-            dividers = parameters.block_rows, parameters.block_cols
+            dividers = args.block_rows, args.block_cols
             for i, m in enumerate(mask_scores):
                 if m is None:
                     assert submethod == "1d_alt"
@@ -238,18 +238,18 @@ class MaskModule(nn.Module):
             # Expand block mask to individual element mask
             mask = MaskModule.expand_mask(
                 mask,
-                block_rows=parameters.block_rows,
-                block_cols=parameters.block_cols,
+                block_rows=args.block_rows,
+                block_cols=args.block_cols,
             )
 
         return mask
 
     def forward(self, weight, threshold):
         mask_scores = None
-        if self.parameters.method != "magnitude":
+        if self.args.method != "magnitude":
             mask_scores = [(c.mask_scores if c is not None else None) for c in self.context_modules]
 
-        return self.mask(weight, mask_scores, self.parameters, threshold, self.training)
+        return self.mask(weight, mask_scores, self.args, threshold, self.training)
 
 
 class MaskedLinear(ReplacementModule):
@@ -258,7 +258,7 @@ class MaskedLinear(ReplacementModule):
         linear_module: nn.Linear,
         mask_context_modules: List[LinearPruningContextModule],
         ampere_context_module: AmpereLinearPruningContextModule,
-        parameters: LinearPruningParameters,
+        args: LinearPruningArgs,
     ):
         super().__init__()
 
@@ -266,15 +266,15 @@ class MaskedLinear(ReplacementModule):
         self.weight = linear_module.weight
         self.bias = linear_module.bias
 
-        self.mask_module = MaskModule(mask_context_modules, parameters)
+        self.mask_module = MaskModule(mask_context_modules, args)
         if ampere_context_module is not None:
-            self.ampere_module = AmpereMaskModule(ampere_context_module, parameters)
-        self.parameters = parameters
+            self.ampere_module = AmpereMaskModule(ampere_context_module, args)
+        self.args = args
 
     def get_masked_weights(self):
         threshold = self.get_context_data("threshold")
         mask = self.mask_module(self.weight, threshold)
-        if self.parameters.ampere_method != "disabled":
+        if self.args.ampere_method != "disabled":
             ampere_temperature = self.get_context_data("ampere_temperature")
             ampere_mask = self.ampere_module(ampere_temperature)
             if mask.shape != ampere_mask.shape:
@@ -305,17 +305,17 @@ class LinearPruningModulePatcher(ModulePatcher):
     def __init__(
         self,
         context: PatcherContext,
-        parameters: LinearPruningParameters,
+        args: LinearPruningArgs,
     ):
         super().__init__(context=context)
-        self.parameters = parameters
-        self.check_method(parameters)
+        self.args = args
+        self.check_method(args)
 
     @staticmethod
-    def check_method(parameters: LinearPruningParameters):
-        method = parameters.method
-        submethod = parameters.submethod
-        ampere_method = parameters.ampere_method
+    def check_method(args: LinearPruningArgs):
+        method = args.method
+        submethod = args.submethod
+        ampere_method = args.ampere_method
         PRUNING_METHODS = ["topK", "threshold", "sigmoied_threshold", "magnitude", "l0"]
         if method not in PRUNING_METHODS:
             raise RuntimeError(f"Unknown pruning method '{method}', should be in {PRUNING_METHODS}")
@@ -330,46 +330,46 @@ class LinearPruningModulePatcher(ModulePatcher):
 
     def create_context_module(self, child_module_name, child_module, key, row=None):
         shape = child_module.weight.shape
-        parameters = self.parameters
+        args = self.args
         prefix = key[0]
         if prefix == "mask":
-            assert parameters.submethod in ["default", "joint"]
-            return BlockLinearPruningContextModule(shape, parameters)
+            assert args.submethod in ["default", "joint"]
+            return BlockLinearPruningContextModule(shape, args)
         elif prefix == "mask_1d":
-            assert parameters.submethod.startswith("1d")
+            assert args.submethod.startswith("1d")
             assert row in [True, False]
-            return SingleDimensionLinearPruningContextModule(shape, row, parameters)
+            return SingleDimensionLinearPruningContextModule(shape, row, args)
         elif prefix == "ampere_mask":
-            return AmpereLinearPruningContextModule(shape, parameters)
+            return AmpereLinearPruningContextModule(shape, args)
         else:
             raise RuntimeError(f"Unknown context module kind {prefix}")
 
     def patch(self, child_module_name, child_module):
-        if self.parameters.submethod.startswith("1d"):
+        if self.args.submethod.startswith("1d"):
             mask_row = self.get_context_module(child_module_name, child_module, kind="mask_row", row=True)
             mask_col = self.get_context_module(child_module_name, child_module, kind="mask_col", row=False)
             shape = child_module.weight.shape
             if mask_row is not None:
-                assert mask_row.mask_scores.shape[0] == shape[0] // self.parameters.block_rows
+                assert mask_row.mask_scores.shape[0] == shape[0] // self.args.block_rows
             if mask_col is not None:
-                assert mask_col.mask_scores.shape[0] == shape[1] // self.parameters.block_cols
+                assert mask_col.mask_scores.shape[0] == shape[1] // self.args.block_cols
             mask_context_modules = [mask_row, mask_col]
         else:
             mask_context_module = self.get_context_module(child_module_name, child_module, kind="mask")
             mask_context_modules = [mask_context_module]
 
-        if self.parameters.ampere_method != "disabled":
+        if self.args.ampere_method != "disabled":
             ampere_context_module = self.get_context_module(child_module_name, child_module, kind="ampere_mask")
         else:
             ampere_context_module = None
 
-        return MaskedLinear(child_module, mask_context_modules, ampere_context_module, self.parameters)
+        return MaskedLinear(child_module, mask_context_modules, ampere_context_module, self.args)
 
 
 class JointPruningModulePatcher(LinearPruningModulePatcher):
-    def __init__(self, context: PatcherContext, parameters: LinearPruningParameters, suffix: str):
+    def __init__(self, context: PatcherContext, args: LinearPruningArgs, suffix: str):
 
-        super().__init__(context, parameters)
+        super().__init__(context, args)
         self.suffix = suffix
 
     def get_context_key(self, child_module_name, kind="default"):
@@ -386,11 +386,11 @@ class ChannelPruningModulePatcher(LinearPruningModulePatcher):
     def __init__(
         self,
         context: PatcherContext,
-        parameters: LinearPruningParameters,
+        args: LinearPruningArgs,
         model_structure: ModelStructure,
         suffix: str,
     ):
-        super().__init__(context, parameters)
+        super().__init__(context, args)
         self.model_structure = model_structure
         self.suffix = suffix
 
@@ -404,7 +404,7 @@ class ChannelPruningModulePatcher(LinearPruningModulePatcher):
 
             position, name = self.model_structure.get_module_intra_layer_position(child_module_name)
 
-            if self.parameters.submethod == "1d_alt":
+            if self.args.submethod == "1d_alt":
                 if (position % 2) == 1:
                     if kind == "mask_row":
                         return None

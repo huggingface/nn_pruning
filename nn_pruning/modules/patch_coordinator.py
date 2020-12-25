@@ -29,8 +29,7 @@ from .masked_nn import (
     ChannelPruningModulePatcher,
     JointPruningModulePatcher,
     LinearPruningModulePatcher,
-    LinearPruningParameters,
-    MaskedLinear,
+    LinearPruningArgs,
     MaskedLinearModelCompiler
 )
 from nn_pruning.training_patcher import (
@@ -266,7 +265,7 @@ class ModelPatchingCoordinator:
                     ValueError("Don't know this mode.")
                 total_w += param.numel()
 
-                regu += regu_add
+                regu = regu + regu_add
                 counter += 1
 
         if counter == 0:
@@ -342,6 +341,11 @@ class ModelPatchingCoordinator:
             {
                 "params": no_decay_params,
                 "lr": args.learning_rate,
+                "weight_decay": 0.0,
+            },
+            {
+                "params": decay_params,
+                "lr": args.learning_rate,
                 "weight_decay": args.weight_decay,
             },
         ]
@@ -357,7 +361,7 @@ class ModelPatchingCoordinator:
         assert trial is None or len(trial.params) == 0
         attention_pruning_method_parts = self.parse_pruning_method(self.sparse_args.attention_pruning_method)
 
-        parameters_attention = LinearPruningParameters(
+        args_attention = LinearPruningArgs(
             method=attention_pruning_method_parts[0],
             submethod=attention_pruning_method_parts[1],
             ampere_method=self.sparse_args.ampere_pruning_method,
@@ -367,7 +371,7 @@ class ModelPatchingCoordinator:
 
         dense_pruning_method_parts = self.parse_pruning_method(self.sparse_args.dense_pruning_method)
 
-        parameters_dense = LinearPruningParameters(
+        args_dense = LinearPruningArgs(
             method=dense_pruning_method_parts[0],
             submethod=dense_pruning_method_parts[1],
             ampere_method=self.sparse_args.ampere_pruning_method,
@@ -377,17 +381,17 @@ class ModelPatchingCoordinator:
 
         patcher_context = self.patcher_context
 
-        if parameters_attention.submethod == "joint":
-            p_attention = JointPruningModulePatcher(patcher_context, parameters_attention, suffix=".attention")
+        if args_attention.submethod == "joint":
+            p_attention = JointPruningModulePatcher(patcher_context, args_attention, suffix=".attention")
         else:
-            p_attention = LinearPruningModulePatcher(patcher_context, parameters_attention)
+            p_attention = LinearPruningModulePatcher(patcher_context, args_attention)
 
-        if parameters_dense.submethod.startswith("1d"):
+        if args_dense.submethod.startswith("1d"):
             p_dense = ChannelPruningModulePatcher(
-                patcher_context, parameters_dense, self.MODEL_STRUCTURE, suffix="dense"
+                patcher_context, args_dense, self.MODEL_STRUCTURE, suffix="dense"
             )
         else:
-            p_dense = LinearPruningModulePatcher(patcher_context, parameters_dense)
+            p_dense = LinearPruningModulePatcher(patcher_context, args_dense)
 
         module_patchers = dict(
             query=p_attention,

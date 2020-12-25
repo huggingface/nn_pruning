@@ -84,7 +84,7 @@ class SparseTrainer:
         self.nnz_perc += nnz_perc
         self.loss_counter += 1
 
-        loss += regu_loss * regu_lambda
+        loss = loss + regu_loss * regu_lambda
 
 
         return loss
