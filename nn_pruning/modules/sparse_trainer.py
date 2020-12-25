@@ -77,8 +77,6 @@ class SparseTrainer:
         loss = outputs["loss"] if isinstance(outputs, dict) else outputs[0]
 
         self.ce_loss += float(loss)
-        self.loss_counter += 1
-
         loss, distil_loss = self.patch_coordinator.distil_loss_combine(loss, inputs, outputs)
         self.distil_loss += float(distil_loss)
         regu_loss, regu_lambda, nnz_perc = self.patch_coordinator.regularization_loss(model)
