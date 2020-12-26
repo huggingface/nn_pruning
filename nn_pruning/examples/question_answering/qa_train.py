@@ -97,7 +97,7 @@ class QATrainer(Trainer):
             )
 
         if self.post_process_function is not None and self.compute_metrics is not None:
-            eval_preds = self.post_process_function(eval_examples, eval_dataset, output.predictions)
+            eval_preds = self.post_process_function(eval_examples, eval_dataset, output.predictions, self.checkpoint_dir())
             metrics = self.compute_metrics(eval_preds)
 
             log_metrics = {"eval_" + k: v for k, v in metrics.items()}
