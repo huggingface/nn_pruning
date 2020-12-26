@@ -95,9 +95,11 @@ class QATrainer(Trainer):
                 type=eval_dataset.format["type"],
                 columns=list(eval_dataset.features.keys()),
             )
-
+        checkpoint_dir = self.checkpoint_dir()
+        if not checkpoint_dir.exists():
+            checkpoint_dir.mkdir()
         if self.post_process_function is not None and self.compute_metrics is not None:
-            eval_preds = self.post_process_function(eval_examples, eval_dataset, output.predictions, self.checkpoint_dir())
+            eval_preds = self.post_process_function(eval_examples, eval_dataset, output.predictions, checkpoint_dir)
             metrics = self.compute_metrics(eval_preds)
 
             log_metrics = {"eval_" + k: v for k, v in metrics.items()}
