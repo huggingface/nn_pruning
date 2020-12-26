@@ -112,7 +112,7 @@ class TrialShortNamer:
             e = f"{key}{sep}{v}"
             name.append(e)
 
-        return "_".join(name)
+        return "_".join(name).replace("/", "__")
 
     @classmethod
     def parse_repr(cls, repr):

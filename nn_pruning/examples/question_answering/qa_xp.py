@@ -260,7 +260,7 @@ class QAXP(XP):
             )
 
     # Post-processing:
-    def _post_processing_function(self, examples, features, predictions):
+    def _post_processing_function(self, examples, features, predictions, output_dir):
         # Post-processing: we match the start logits and end logits to answers in the original context.
         data_args = self.data_args
         training_args = self.training_args
@@ -272,7 +272,7 @@ class QAXP(XP):
             n_best_size=data_args.n_best_size,
             max_answer_length=data_args.max_answer_length,
             null_score_diff_threshold=data_args.null_score_diff_threshold,
-            output_dir=training_args.output_dir,
+            output_dir=output_dir,
             is_world_process_zero=self.trainer.is_world_process_zero(),
         )
         # Format the result to the format the metric expects.

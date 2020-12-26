@@ -50,19 +50,23 @@ class QATrainer(Trainer):
         self.eval_examples = eval_examples
         self.post_process_function = post_process_function
 
-    def checkpoint_dir(self):
+    def run_dir(self):
         # Save model checkpoint
-        checkpoint_folder = f"{PREFIX_CHECKPOINT_DIR}-{self.state.global_step}"
-
         trial = self._trial
         if self.hp_search_backend is not None and trial is not None:
             run_id = trial.number if self.hp_search_backend == HPSearchBackend.OPTUNA else tune.get_trial_id()
             run_name = self.hp_name(trial) if self.hp_name is not None else f"run-{run_id}"
-            checkpoint_dir = Path(self.args.output_dir) / run_name / checkpoint_folder
+            run_dir = Path(self.args.output_dir) / run_name
         else:
-            checkpoint_dir = Path(self.args.output_dir) / checkpoint_folder
+            run_dir = Path(self.args.output_dir)
 
-        return checkpoint_dir
+        return run_dir
+
+    def checkpoint_dir(self):
+        # Save model checkpoint
+        checkpoint_folder = f"{PREFIX_CHECKPOINT_DIR}-{self.state.global_step}"
+
+        return self.run_dir() / checkpoint_folder
 
     def evaluate(self, eval_dataset=None, eval_examples=None, ignore_keys=None):
         eval_dataset = self.eval_dataset if eval_dataset is None else eval_dataset
@@ -83,6 +87,7 @@ class QATrainer(Trainer):
             )
         finally:
             self.compute_metrics = compute_metrics
+
 
         # We might have removed columns from the dataset so we put them back.
         if isinstance(eval_dataset, datasets.Dataset):
@@ -157,7 +162,9 @@ class QATrainer(Trainer):
                 columns=list(test_dataset.features.keys()),
             )
 
-        eval_preds = self.post_process_function(test_examples, test_dataset, output.predictions)
+        checkpoint_dir = self.checkpoint_dir()
+
+        eval_preds = self.post_process_function(test_examples, test_dataset, output.predictions, checkpoint_dir)
         metrics = self.compute_metrics(eval_preds)
 
         return PredictionOutput(
