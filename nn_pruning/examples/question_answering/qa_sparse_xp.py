@@ -22,6 +22,7 @@ import json
 import shutil
 from pathlib import Path
 from types import SimpleNamespace
+import torch
 
 from nn_pruning.hp_naming import TrialShortNamer
 from nn_pruning.modules.patch_coordinator import SparseTrainingArguments, ModelPatchingCoordinator
@@ -30,7 +31,7 @@ from .qa_xp import (
     QAXP,
     ModelArguments,
     QADataTrainingArguments,
-    TrainingArguments,
+    XPTrainingArguments,
 )
 
 
@@ -115,7 +116,7 @@ class QASparseXP(QAXP):
     ARGUMENTS = {
         "model": ModelArguments,
         "data": QADataTrainingArguments,
-        "training": TrainingArguments,
+        "training": XPTrainingArguments,
         "sparse": SparseTrainingArguments,
     }
     QA_TRAINER_CLASS = QASparseTrainer
@@ -135,11 +136,10 @@ class QASparseXP(QAXP):
         return model
 
     @classmethod
-    def compile_model(cls, src_path, dest_path):
-        shutil.copytree(src_path, dest_path)
-
+    def compile_model(cls, src_path, dest_path = None):
         src_path = Path(src_path)
-        dest_path = Path(dest_path)
+        if dest_path is not None:
+            dest_path = Path(dest_path)
         model_bin_name = "pytorch_model.bin"
 
         def load_json_to_obj(name):
@@ -157,14 +157,19 @@ class QASparseXP(QAXP):
         model = cls._model_init(model_args, model_config)
         patcher = ModelPatchingCoordinator(sparse_args, "cuda", None)
         patcher.patch_model(model, trial=None)
-        import torch
+
 
         state_dict = torch.load(src_path / model_bin_name)
         model.load_state_dict(state_dict, strict=True)
 
         patcher.compile_model(model)
 
-        state_dict = model.state_dict()
-        torch.save(state_dict, dest_path / model_bin_name)
+        if dest_path is not None:
+            shutil.copytree(src_path, dest_path, dirs_exist_ok=True)
+            state_dict = model.state_dict()
+            torch.save(state_dict, dest_path / model_bin_name)
 
         return model
+
+
+

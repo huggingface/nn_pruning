@@ -34,7 +34,8 @@ from nn_pruning.hp_naming import TrialShortNamer
 
 from .qa_train import QATrainer
 from .qa_utils import postprocess_qa_predictions
-from nn_pruning.examples.xp import XP, DataTrainingArguments, ModelArguments, TrainingArguments
+from nn_pruning.examples.xp import XP, DataTrainingArguments, ModelArguments, XPTrainingArguments
+import json
 
 logger = logging.getLogger(__name__)
 
@@ -69,12 +70,11 @@ class QADataTrainingArguments(DataTrainingArguments):
         },
     )
 
-
 class QAXP(XP):
     ARGUMENTS = {
         "model": ModelArguments,
         "data": QADataTrainingArguments,
-        "training": TrainingArguments,
+        "training": XPTrainingArguments,
     }
     QA_TRAINER_CLASS = QATrainer
     SHORT_NAMER = TrialShortNamer
@@ -159,9 +159,6 @@ class QAXP(XP):
         context_column_name = self.context_column_name
         answer_column_name = self.answer_column_name
 
-        # Padding side determines if we do (question|context) or (context|question).
-        pad_on_right = self.tokenizer.padding_side == "right"
-        self.pad_on_right = pad_on_right
         # Tokenize our examples with truncation and maybe padding, but keep the overflows using a stride. This results
         # in one example possible giving several features when a context is long, each of those features having a
         # context that overlaps a bit the context of the previous feature.
@@ -238,6 +235,10 @@ class QAXP(XP):
 
         if not dataset_cache_dir.exists():
             dataset_cache_dir.mkdir()
+
+        # Padding side determines if we do (question|context) or (context|question).
+        pad_on_right = self.tokenizer.padding_side == "right"
+        self.pad_on_right = pad_on_right
 
         if self.training_args.do_train:
             self.train_dataset = self.datasets["train"].map(
@@ -333,6 +334,34 @@ class QAXP(XP):
         self.prepare_column_names()
         self.prepare_datasets()
         self.create_trainer()
+
+    @classmethod
+    def evaluate_model(cls, src_path, optimize_mode="dense"):
+        src_path = Path(src_path).resolve()
+        src_path_str = str(src_path)
+
+        parameters = {
+            "model_name_or_path": src_path_str,
+            "dataset_name": "squad",
+            "do_train": 0,
+            "do_eval": 1,
+            "per_device_train_batch_size": 16,
+            "max_seq_length": 384,
+            "doc_stride": 128,
+            "output_dir": src_path_str,
+            "logging_dir": src_path_str,
+            "overwrite_cache": 0,
+            "overwrite_output_dir": 0,
+            "per_device_eval_batch_size":32,
+            "optimize_model_before_eval":optimize_mode
+        }
+
+        cls.run_from_dict(parameters)
+
+        with open(src_path / "checkpoint-0" / "evaluate_timing.json") as f:
+            j = json.load(f)
+
+        return j
 
 
 def main():

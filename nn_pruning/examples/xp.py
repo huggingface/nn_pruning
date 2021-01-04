@@ -114,12 +114,22 @@ class DataTrainingArguments:
                     "json",
                 ], "`validation_file` should be a csv or a json file."
 
+@dataclass
+class XPTrainingArguments(TrainingArguments):
+    optimize_model_before_eval: str = field(
+        default="disabled",
+        metadata={
+            "help": "Apply some optimization to model before evaluation (use pytorch_block_sparse.BlockSparseModelPatcher)."
+                    "Valid values: disabled, block_sparse, dense"
+        },
+    )
+
 
 class XP:
     ARGUMENTS = {
         "model": ModelArguments,
         "data": DataTrainingArguments,
-        "training": TrainingArguments,
+        "training": XPTrainingArguments,
     }
 
     def __init__(self, param_dict):
@@ -155,15 +165,16 @@ class XP:
             all_args[name] = getattr(self, name)
         return all_args
 
-
+    @classmethod
+    def run_from_dict(cls, param_dict):
+        r = cls(param_dict)
+        return r.run()
 
     @classmethod
     def run_from_json_file(cls, filename):
         json_file_name = Path(filename).resolve()
         param_dict = json.load(open(json_file_name))
-
-        r = cls(param_dict)
-        r.run()
+        return cls.run_from_dict(param_dict)
 
     @classmethod
     def run_from_command_line(cls):

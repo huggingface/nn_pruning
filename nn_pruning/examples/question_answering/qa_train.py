@@ -20,6 +20,7 @@ import json
 import os
 from pathlib import Path
 
+from nn_pruning.model_patcher import optimize_model
 from transformers import Trainer, is_datasets_available, is_torch_tpu_available
 from transformers.integrations import is_ray_available
 from transformers.trainer_utils import (
@@ -52,7 +53,10 @@ class QATrainer(Trainer):
 
     def run_dir(self):
         # Save model checkpoint
-        trial = self._trial
+        if hasattr(self, "_trial"):
+            trial = self._trial
+        else:
+            trial = None
         if self.hp_search_backend is not None and trial is not None:
             run_id = trial.number if self.hp_search_backend == HPSearchBackend.OPTUNA else tune.get_trial_id()
             run_name = self.hp_name(trial) if self.hp_name is not None else f"run-{run_id}"
@@ -76,6 +80,15 @@ class QATrainer(Trainer):
         # Temporarily disable metric computation, we will do it in the loop here.
         compute_metrics = self.compute_metrics
         self.compute_metrics = None
+
+        import timeit
+
+        start_time = timeit.default_timer()
+
+        if self.args.optimize_model_before_eval != "disabled":
+            model_save = self.model
+            self.model = optimize_model(self.model, self.args.optimize_model_before_eval)
+
         try:
             output = self.prediction_loop(
                 eval_dataloader,
@@ -86,9 +99,11 @@ class QATrainer(Trainer):
                 ignore_keys=ignore_keys,
             )
         finally:
+            self.model = model_save
             self.compute_metrics = compute_metrics
 
-
+        evalTime = timeit.default_timer() - start_time
+        logger.info("  Evaluation done in total %f secs (%f sec per example)", evalTime, evalTime / len(eval_dataset))
         # We might have removed columns from the dataset so we put them back.
         if isinstance(eval_dataset, datasets.Dataset):
             eval_dataset.set_format(
@@ -96,8 +111,14 @@ class QATrainer(Trainer):
                 columns=list(eval_dataset.features.keys()),
             )
         checkpoint_dir = self.checkpoint_dir()
+
         if not checkpoint_dir.exists():
             checkpoint_dir.mkdir()
+
+        timing_file = os.path.join(checkpoint_dir, "evaluate_timing.json")
+        with open(timing_file, "w") as f:
+            f.write(json.dumps({"eval_elapsed_time": evalTime}))
+
         if self.post_process_function is not None and self.compute_metrics is not None:
             eval_preds = self.post_process_function(eval_examples, eval_dataset, output.predictions, checkpoint_dir)
             metrics = self.compute_metrics(eval_preds)
