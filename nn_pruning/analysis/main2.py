@@ -88,7 +88,10 @@ class ModelStatsExtract(ModelStatsExtractBase):
                 is_attention = False
             self.add_parameter(name, parameter, is_linear_layer_weight, is_attention)
 
+        total_sparsity = (1.0 - self.stats["nnz"] / self.stats["total"]) * 100
+        self.stats["total_sparsity"] = total_sparsity
         sparsity = (1.0 - self.stats["linear_nnz"] / self.stats["linear_total"]) * 100
+        self.stats["linear_sparsity"] = sparsity
         print(f"{self.path}, sparsity={sparsity}")
 
         return self.stats
@@ -140,21 +143,15 @@ class ModelAnalysis:
             print("Processing", self.total_checkpoints)
             self.total_checkpoints += 1
             mse = ModelStatsExtract(checkpoint_path)
-            #mse.run()
+            mse.run(force = True)
             mse2 = ModelSpeedEvaluate(checkpoint_path)
             mse2.run(force = True)
-            break
-
-
-
 
     def run(self):
-
         for root, dirs, files in os.walk(self.path, followlinks=True):
             for name in dirs:
                 if name.startswith("hp_"):
                     self.analyze_run((Path(root) / name).resolve())
-                    return
 
 if __name__ == "__main__":
     import sys
