@@ -101,3 +101,22 @@ class BertHeadsPruner:
 
         model.prune_heads(to_prune)
         return sum([len(p) for p in to_prune.values()]), heads_count
+
+def optimize_model(model, mode, clone = True):
+    from pytorch_block_sparse import BlockSparseModelPatcher
+    import copy
+
+    if clone == True:
+        model = copy.deepcopy(model)
+
+    # Create a model patcher
+    mp = BlockSparseModelPatcher(prune_heads=True, mode = mode)
+    #    for l in mp.get_patchable_layers(model):
+    #        print(l)
+    mp.add_pattern("bert\\.encoder\\.layer\\.[0-9+]\\.attention\\.self\\.(query|key|value)", {})
+    mp.add_pattern("bert\\.encoder\\.layer\\.[0-9]+\\.attention\\.output\\.dense", {})
+    mp.add_pattern("bert\\.encoder\\.layer\\.[0-9]+\\.intermediate\\.dense", {})
+    mp.add_pattern("bert\\.encoder\\.layer\\.[0-9]+\\.output\\.dense", {})
+
+    mp.patch_model(model)
+    return model
