@@ -154,8 +154,8 @@ class QASparseXP(QAXP):
 
         model_args.model_name_or_path = str(src_path)
 
-        model = cls._model_init(model_args, model_config, trial=None)
-        patcher = ModelPatchingCoordinator(sparse_args)
+        model = cls._model_init(model_args, model_config)
+        patcher = ModelPatchingCoordinator(sparse_args, "cuda", None)
         patcher.patch_model(model, trial=None)
         import torch
 

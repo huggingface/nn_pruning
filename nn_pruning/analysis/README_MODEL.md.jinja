@@ -1,0 +1,93 @@
+---
+language: en
+thumbnail: 
+license: mit
+tags:
+- question-answering
+- bert
+- bert-base
+datasets:
+- squad
+metrics:
+- squad
+widget:
+- text: "Where is the Eiffel Tower located?"
+  context: "The Eiffel Tower is a wrought-iron lattice tower on the Champ de Mars in Paris, France. It is named after the engineer Gustave Eiffel, whose company designed and built the tower."
+- text: "Who is Frederic Chopin?"
+  context: "Frédéric François Chopin, born Fryderyk Franciszek Chopin (1 March 1810 – 17 October 1849), was a Polish composer and virtuoso pianist of the Romantic era who wrote primarily for solo piano."
+---
+
+## BERT-base uncased model fine-tuned on SQuAD v1
+
+This model is block sparse: the **linear** layers contains **{{"%.1f"|format(sparsity.block_sparse_density * 100)}}%** of the original weights.
+{% if sparsity.ampere %}
+Moreover, this model is Ampere sparse. That means that the non-zero blocks are themselves Ampere sparse, reducing the number of parameters, increasing speed, with a limited impact on precision.
+{% endif %}
+
+The model contains **{{"%.1f"|format(sparsity.global_density * 100)}}%** of the original weights **overall**.
+
+The training use a modified version of Victor Sanh [Movement Pruning](https://arxiv.org/abs/2005.07683) method.
+
+That means that with the [block-sparse](https://github.com/huggingface/pytorch_block_sparse) runtime it ran **{{"%.2f"|format(performance.speedup)}}x** faster than an dense networks on the evaluation, at the price of some impact on the accuracy (see below).
+
+
+
+This model was fine-tuned from the HuggingFace [BERT](https://www.aclweb.org/anthology/N19-1423/) base uncased checkpoint on [SQuAD1.1](https://rajpurkar.github.io/SQuAD-explorer), and distilled from the equivalent model [csarron/bert-base-uncased-squad-v1](https://huggingface.co/csarron/bert-base-uncased-squad-v1).
+This model is case-insensitive: it does not make a difference between english and English.
+
+## Pruning details
+A side-effect of the block pruning is that some of the attention heads are completely removed: {{sparsity.total_pruned_attention_heads}} heads were removed on a total of {{sparsity.total_attention_heads}} ({{"%.1f"|format(sparsity.total_pruned_attention_heads / sparsity.total_attention_heads * 100)}}%).
+
+Here is a detailed view on how the remaining heads are distributed in the network after pruning.
+
+![Pruning details]({{burl}}/{{images.pruning_image}})
+
+## Density plot
+{{density_html}}
+
+## Details
+
+| Dataset  | Split | # samples |
+| -------- | ----- | --------- |
+| SQuAD1.1 | train | 90.6K      |
+| SQuAD1.1 | eval  | 11.1k     |
+
+### Fine-tuning
+- Python: `3.8.5`
+
+- Machine specs: 
+
+```CPU: Intel(R) Core(TM) i7-6700K CPU
+Memory: 64 GiB
+GPUs: 1 GeForce GTX 3090, with 24GiB memory
+GPU driver: 455.23.05, CUDA: 11.1
+```
+
+
+### Results
+
+**Pytorch model file size**: `{{packaging.pytorch_final_file_size // 1024//1024}}M` (original BERT: `438M`)
+
+| Metric | # Value   | # Original ([Table 2](https://www.aclweb.org/anthology/N19-1423.pdf))|
+| ------ | --------- | --------- |
+| **EM** | **{{"%.2f"|format(precision.exact)}}** | **80.8** |
+| **F1** | **{{"%.2f"|format(precision.f1)}}** | **88.5** |
+
+## Example Usage
+
+```python
+from transformers import pipeline
+
+qa_pipeline = pipeline(
+    "question-answering",
+    model="{{packaging.model_name}}",
+    tokenizer="{{packaging.model_name}}"
+)
+
+predictions = qa_pipeline({
+    'context': "Frédéric François Chopin, born Fryderyk Franciszek Chopin (1 March 1810 – 17 October 1849), was a Polish composer and virtuoso pianist of the Romantic era who wrote primarily for solo piano.",
+    'question': "Who is Frederic Chopin?",
+})
+
+print(predictions)
+```
