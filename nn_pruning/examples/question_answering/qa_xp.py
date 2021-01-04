@@ -159,6 +159,7 @@ class QAXP(XP):
         context_column_name = self.context_column_name
         answer_column_name = self.answer_column_name
 
+        pad_on_right = self.pad_on_right
         # Tokenize our examples with truncation and maybe padding, but keep the overflows using a stride. This results
         # in one example possible giving several features when a context is long, each of those features having a
         # context that overlaps a bit the context of the previous feature.
@@ -352,7 +353,7 @@ class QAXP(XP):
             "logging_dir": src_path_str,
             "overwrite_cache": 0,
             "overwrite_output_dir": 0,
-            "per_device_eval_batch_size":32,
+            "per_device_eval_batch_size":128,
             "optimize_model_before_eval":optimize_mode
         }
 

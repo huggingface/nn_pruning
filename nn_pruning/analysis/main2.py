@@ -26,14 +26,13 @@ class ModelStatsExtractBase:
     def run_(self, model):
         pass
 
-    def run(self, force = False):
+    def run(self, force = False, **kwargs):
         output_report_path = self.path / self.output_name
         if output_report_path.exists() and not force:
             return
         model = self.open_model()
-        ret = self.run_(model)
+        ret = self.run_(model, **kwargs)
 
-        print(output_report_path)
         with open(output_report_path, "w") as f:
             json.dump(ret, f)
 
@@ -92,7 +91,8 @@ class ModelStatsExtract(ModelStatsExtractBase):
         self.stats["total_sparsity"] = total_sparsity
         sparsity = (1.0 - self.stats["linear_nnz"] / self.stats["linear_total"]) * 100
         self.stats["linear_sparsity"] = sparsity
-        print(f"{self.path}, sparsity={sparsity}")
+        print(f"################# sparsity={sparsity}")
+        print(self.path)
 
         return self.stats
 
@@ -101,8 +101,8 @@ class ModelSpeedEvaluate(ModelStatsExtractBase):
     def __init__(self, path):
         super().__init__(path, "speed_report.json", copy_to_tmp_path=True)
 
-    def run_(self, model):
-        return qa_xp.QAXP.evaluate_model(src_path=self.dest_path)
+    def run_(self, model, mode):
+        return qa_xp.QAXP.evaluate_model(src_path=self.dest_path, optimize_mode=mode)
 
 class ModelAnalysis:
     def __init__(self, path):
@@ -143,9 +143,15 @@ class ModelAnalysis:
             print("Processing", self.total_checkpoints)
             self.total_checkpoints += 1
             mse = ModelStatsExtract(checkpoint_path)
-            mse.run(force = True)
-            mse2 = ModelSpeedEvaluate(checkpoint_path)
-            mse2.run(force = True)
+            mse.run(force = False)
+            for mode in "dense", "block_sparse":
+                try:
+                    mse2 = ModelSpeedEvaluate(checkpoint_path)
+                    mse2.run(force = False, mode = mode)
+                    break
+                except Exception as e:
+                    print(e)
+                    assert(mode == "dense")
 
     def run(self):
         for root, dirs, files in os.walk(self.path, followlinks=True):
