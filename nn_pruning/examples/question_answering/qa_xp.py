@@ -362,7 +362,11 @@ class QAXP(XP):
         with open(src_path / "checkpoint-0" / "evaluate_timing.json") as f:
             j = json.load(f)
 
-        return j
+        with open(src_path / "checkpoint-0" / "eval_metrics.json") as f:
+            j2 = json.load(f)
+
+
+        return j, j2
 
 
 def main():

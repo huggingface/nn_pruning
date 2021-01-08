@@ -102,7 +102,9 @@ class ModelSpeedEvaluate(ModelStatsExtractBase):
         super().__init__(path, "speed_report.json", copy_to_tmp_path=True)
 
     def run_(self, model, mode):
-        return qa_xp.QAXP.evaluate_model(src_path=self.dest_path, optimize_mode=mode)
+        ret = qa_xp.QAXP.evaluate_model(src_path=self.dest_path, optimize_mode=mode)
+        print(ret)
+        return ret
 
 class ModelAnalysis:
     def __init__(self, path):
@@ -143,8 +145,8 @@ class ModelAnalysis:
             print("Processing", self.total_checkpoints)
             self.total_checkpoints += 1
             mse = ModelStatsExtract(checkpoint_path)
-            mse.run(force = False)
-            for mode in "dense", "block_sparse":
+            mse.run(force = True)
+            for mode in "dense",:
                 try:
                     mse2 = ModelSpeedEvaluate(checkpoint_path)
                     mse2.run(force = False, mode = mode)
