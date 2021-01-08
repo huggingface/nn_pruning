@@ -20,15 +20,13 @@ Sparse Fine-tuning the library models for question answering.
 from typing import Dict
 from transformers.optimization import AdamW, get_linear_schedule_with_warmup
 from .patch_coordinator import ModelPatchingCoordinator
+from collections import defaultdict
 
 class SparseTrainer:
     def __init__(self, sparse_args):
         self.sparse_args = sparse_args
-        self.ce_loss = 0
-        self.regu_loss = 0
-        self.distil_loss = 0
         self.loss_counter = 0
-        self.nnz_perc = 0
+        self.metrics = defaultdict(float)
 
     def set_patch_coordinator(self, patch_coordinator: ModelPatchingCoordinator):
         self.patch_coordinator = patch_coordinator
@@ -39,15 +37,11 @@ class SparseTrainer:
         logs.update(add)
 
         if self.loss_counter != 0:
-            logs["ce_loss"] = self.ce_loss / self.loss_counter
-            logs["distil_loss"] = self.distil_loss / self.loss_counter
-            logs["regu_loss"] = self.regu_loss / self.loss_counter
-            logs["nnz_perc"] = self.nnz_perc / self.loss_counter
-            self.ce_loss = 0
-            self.distil_loss = 0
-            self.regu_loss = 0
+            for k, v in self.metrics.items():
+                logs[k] = float(v) / self.loss_counter
+
             self.loss_counter = 0
-            self.nnz_perc = 0
+            self.metrics = defaultdict(float)
 
         return super().log(logs)
 
@@ -76,16 +70,23 @@ class SparseTrainer:
         # We don't use .loss here since the model may return tuples instead of ModelOutput.
         loss = outputs["loss"] if isinstance(outputs, dict) else outputs[0]
 
-        self.ce_loss += float(loss)
+        self.metrics["ce_loss"] += float(loss)
         loss, distil_loss = self.patch_coordinator.distil_loss_combine(loss, inputs, outputs)
-        self.distil_loss += float(distil_loss)
-        regu_loss, regu_lambda, nnz_perc = self.patch_coordinator.regularization_loss(model)
-        self.regu_loss += float(regu_loss)
-        self.nnz_perc += nnz_perc
+        self.metrics["distil_loss"] += float(distil_loss)
+        regu_loss, info = self.patch_coordinator.regularization_loss(model)
+
+        for kind, values in info.items():
+            if kind == "total":
+                suffix = ""
+            else:
+                suffix = "_" + kind
+
+            for k, v in values.items():
+                self.metrics[k + suffix] += float(v)
+
         self.loss_counter += 1
 
-        loss = loss + regu_loss * regu_lambda
-
+        loss = loss + regu_loss
 
         return loss
 

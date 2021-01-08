@@ -23,6 +23,7 @@ import torch.nn as nn
 import torch.nn.functional as nn_functional
 from transformers import AutoConfig, AutoModelForQuestionAnswering
 from dataclasses import dataclass, field
+from collections import defaultdict
 
 from nn_pruning.model_structure import BertStructure
 from .masked_nn import (
@@ -55,6 +56,11 @@ class SparseTrainingArguments:
     ampere_pruning_method: str = field(
         default="disabled",
         metadata={"help": "Ampere sparse method ('disabled' for no ampere sparsity)"},
+    )
+
+    attention_output_with_dense: bool = field(
+        default=True,
+        metadata={"help": "share the same pruning parameters for attention output and other dense matrices"},
     )
 
     mask_init: str = field(default="constant", metadata={"help": "Mask scores initialization method"})
@@ -123,6 +129,17 @@ class SparseTrainingArguments:
     regularization_final_lambda: float = field(
         default=0.0,
         metadata={"help": "Regularization intensity (used in conjunction with `regularization`)."},
+    )
+
+    attention_lambda: float = field(
+        default=1.0,
+        metadata={"help": "Regularization intensity for attention (attention lambda will be regularization_lambda * attention_lambda)."},
+    )
+
+    dense_lambda: float = field(
+        default=1.0,
+        metadata={
+            "help": "Regularization intensity for dense (attention lambda will be regularization_lambda * dense_lambda)."},
     )
 
     distil_teacher_name_or_path: str = field(
@@ -244,34 +261,73 @@ class ModelPatchingCoordinator:
         # Return regularization and lambda
         mode = self.sparse_args.regularization
         if mode not in ["l0", "l1"]:
+            # No regularization
             return 0
 
-        regu, counter = 0, 0
-        nnz_w = 0
-        total_w = 0
+        info = {}
         threshold = self.patcher_context.get_context_data("threshold")
         for name, module in model.named_modules():
             if isinstance(module, PatcherContextModule):
                 param = module.mask_scores
+                numel = param.numel()
+
                 if mode == "l1":
-                    regu_add = torch.norm(torch.sigmoid(param), p=1) / param.numel()
-                    nnz_w += (torch.sigmoid(param) > threshold).sum().item()
+                    module_regu = torch.norm(torch.sigmoid(param), p=1) / numel
+                    module_nnz = (torch.sigmoid(param) > threshold).sum().item()
                 elif mode == "l0":
-                    regu_add = torch.sigmoid(param - 2 / 3 * np.log(0.1 / 1.1)).sum() / param.numel()
                     assert(False)
-                    # TODO : check this code
-                    nnz_w += (torch.sigmoid(param - 2 / 3 * np.log(0.1 / 1.1)) > threshold).sum().item()
+                    module_regu = torch.sigmoid(param - 2 / 3 * np.log(0.1 / 1.1)).sum() / numel
+                    module_nnz = (torch.sigmoid(param - 2 / 3 * np.log(0.1 / 1.1)) > threshold).sum().item()
                 else:
-                    ValueError("Don't know this mode.")
-                total_w += param.numel()
+                    raise ValueError("Don't know this mode.")
 
-                regu = regu + regu_add
-                counter += 1
 
-        if counter == 0:
-            return 0
+                # TEMPORARY : use model info to perform this dispatch
+                if self.sparse_args.attention_output_with_dense:
+                    layer_names = ["key", "query", "value"]
+                    key = "dense"
+                    for ln in layer_names:
+                        if ln in name:
+                            key = "attention"
+                else:
+                    key = "attention" if "attention" in name else "dense"
 
-        return regu / counter, self.patcher_context.get_context_data("regu_lambda"), nnz_w / total_w
+                if key not in info:
+                    info[key] = defaultdict(float)
+
+                key_info = info[key]
+
+                key_info["regu"] += module_regu
+                key_info["nnz"] += float(module_nnz)
+                key_info["numel"] += numel
+                key_info["nummod"] += 1
+
+        lamb = self.patcher_context.get_context_data("regu_lambda")
+
+        lambdas = dict(attention=self.sparse_args.attention_lambda * lamb,
+                       dense=self.sparse_args.dense_lambda * lamb)
+
+        info["total"] = defaultdict(float)
+
+        for key, value in info.items():
+            if key == "total":
+                continue
+            for k, v in value.items():
+                if k in ["numel", "nnz"]:
+                    info["total"][k] += v
+
+        for key, value in info.items():
+            value["nnz_perc"] = value["nnz"] / value["numel"]
+            del value["nnz"]
+            del value["numel"]
+            if key == "total":
+                continue
+            value["regu_loss"] = value["regu"] * lambdas[key] / value["nummod"]
+            info["total"]["regu_loss"] += value["regu_loss"]
+            del value["regu"]
+            del value["nummod"]
+
+        return info["total"]["regu"], info
 
     def distil_loss_combine(self, ce_loss, model_inputs, model_outputs):
         sparse_args = self.sparse_args
@@ -369,6 +425,14 @@ class ModelPatchingCoordinator:
             block_cols=self.sparse_args.attention_block_cols,
         )
 
+        args_attention_t = LinearPruningArgs(
+            method=attention_pruning_method_parts[0],
+            submethod=attention_pruning_method_parts[1],
+            ampere_method=self.sparse_args.ampere_pruning_method,
+            block_rows=self.sparse_args.attention_block_cols,
+            block_cols=self.sparse_args.attention_block_rows,
+        )
+
         dense_pruning_method_parts = self.parse_pruning_method(self.sparse_args.dense_pruning_method)
 
         args_dense = LinearPruningArgs(
@@ -383,8 +447,10 @@ class ModelPatchingCoordinator:
 
         if args_attention.submethod == "joint":
             p_attention = JointPruningModulePatcher(patcher_context, args_attention, suffix=".attention")
+            p_attention_t = JointPruningModulePatcher(patcher_context, args_attention_t, suffix=".attention")
         else:
             p_attention = LinearPruningModulePatcher(patcher_context, args_attention)
+            p_attention_t = LinearPruningModulePatcher(patcher_context, args_attention_t)
 
         if args_dense.submethod.startswith("1d"):
             p_dense = ChannelPruningModulePatcher(
@@ -393,11 +459,16 @@ class ModelPatchingCoordinator:
         else:
             p_dense = LinearPruningModulePatcher(patcher_context, args_dense)
 
+        if self.sparse_args.attention_output_with_dense:
+            p_att_dense = p_dense
+        else:
+            p_att_dense = p_attention_t
+
         module_patchers = dict(
             query=p_attention,
             key=p_attention,
             value=p_attention,
-            att_dense=p_dense,
+            att_dense=p_att_dense,
             interm_dense=p_dense,
             output_dense=p_dense,
         )

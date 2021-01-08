@@ -26,15 +26,17 @@ class ModelStatsExtractBase:
     def run_(self, model):
         pass
 
-    def run(self, force = False, **kwargs):
+    def run(self, force = False, write=True, **kwargs):
         output_report_path = self.path / self.output_name
         if output_report_path.exists() and not force:
-            return
+            return json.load(output_report_path.open())
+
         model = self.open_model()
         ret = self.run_(model, **kwargs)
 
-        with open(output_report_path, "w") as f:
-            json.dump(ret, f)
+        if write:
+            with open(output_report_path, "w") as f:
+                json.dump(ret, f)
 
         return ret
 
@@ -101,9 +103,8 @@ class ModelSpeedEvaluate(ModelStatsExtractBase):
     def __init__(self, path):
         super().__init__(path, "speed_report.json", copy_to_tmp_path=True)
 
-    def run_(self, model, mode):
-        ret = qa_xp.QAXP.evaluate_model(src_path=self.dest_path, optimize_mode=mode)
-        print(ret)
+    def run_(self, model, optimize_mode):
+        ret = qa_xp.QAXP.evaluate_model(src_path=self.dest_path, optimize_mode=optimize_mode)
         return ret
 
 class ModelAnalysis:
@@ -140,26 +141,56 @@ class ModelAnalysis:
                 filtered.insert(0, checkpoint)
                 max_f1 = max(max_f1, checkpoints[i][1]["f1"])
 
+        ret = {}
+        base_speed_report = None
         for i, k in enumerate(filtered):
-            checkpoint_path = path / k[0]
             print("Processing", self.total_checkpoints)
+            checkpoint_path = path / k[0]
+            checkpoint_info = {}
+
+            base_speed_report_file = Path("base_speed_report_file.json")
+            if base_speed_report_file.exists():
+                base_speed_report = json.load(base_speed_report_file.open())
+            else:
+                mse2 = ModelSpeedEvaluate(checkpoint_path)
+                base_speed_report = mse2.run(force=True, write=False, optimize_mode="disabled")["timings"]
+                with base_speed_report_file.open("w") as f:
+                    json.dump(base_speed_report, f)
+
             self.total_checkpoints += 1
             mse = ModelStatsExtract(checkpoint_path)
-            mse.run(force = True)
-            for mode in "dense",:
+            stats_report = mse.run(force = ":1d_alt" in k)
+            checkpoint_info["stats"] = stats_report
+
+            for mode in "dense", :
                 try:
                     mse2 = ModelSpeedEvaluate(checkpoint_path)
-                    mse2.run(force = False, mode = mode)
+                    eval_report = mse2.run(force = True, optimize_mode = mode)
+                    checkpoint_info["speed"] = eval_report["timings"]
+                    checkpoint_info["opt_eval_metrics"] = eval_report["metrics"]
+                    print(eval_report["metrics"])
                     break
                 except Exception as e:
                     print(e)
                     assert(mode == "dense")
 
+            ret[str(checkpoint_path)] = checkpoint_info
+        return ret, base_speed_report
+
+
     def run(self):
+        info = {}
         for root, dirs, files in os.walk(self.path, followlinks=True):
             for name in dirs:
                 if name.startswith("hp_"):
-                    self.analyze_run((Path(root) / name).resolve())
+                    new_info, base_speed_report = self.analyze_run((Path(root) / name).resolve())
+                    info.update(new_info)
+
+        info = {"checkpoints":info, "base_speed_report":base_speed_report}
+
+        with open("results3.json", "w") as f:
+            json.dump(info, f)
+
 
 if __name__ == "__main__":
     import sys

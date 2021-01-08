@@ -84,9 +84,9 @@ class QATrainer(Trainer):
         import timeit
 
         start_time = timeit.default_timer()
+        model_save = self.model
 
         if self.args.optimize_model_before_eval != "disabled":
-            model_save = self.model
             self.model = optimize_model(self.model, self.args.optimize_model_before_eval)
 
         try:

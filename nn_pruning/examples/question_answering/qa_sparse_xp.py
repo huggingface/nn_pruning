@@ -43,6 +43,8 @@ class SparseQAShortNamer(TrialShortNamer):
         "ampere_pruning_method": "disabled",
         "attention_block_cols": 768,
         "attention_block_rows": 64,
+        'attention_lambda': 1.0,
+        'attention_output_with_dense': True,
         "attention_pruning_method": "topK",
         "dataloader_drop_last": False,
         "dataloader_num_workers": 0,
@@ -51,6 +53,7 @@ class SparseQAShortNamer(TrialShortNamer):
         "debug": False,
         "dense_block_cols": 1,
         "dense_block_rows": 1,
+        'dense_lambda': 1.0,
         "dense_pruning_method": "topK",
         "disable_tqdm": False,
         "distil_alpha_ce": 0.1,
@@ -112,6 +115,8 @@ class SparseQAShortNamer(TrialShortNamer):
         "warmup_steps": 5400,
         "weight_decay": 0.0,
     }
+
+
 
 class QASparseXP(QAXP):
     ARGUMENTS = {
