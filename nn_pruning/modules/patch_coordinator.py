@@ -304,8 +304,8 @@ class ModelPatchingCoordinator:
 
         lamb = self.patcher_context.get_context_data("regu_lambda")
 
-        lambdas = dict(attention=self.sparse_args.attention_lambda * lamb,
-                       dense=self.sparse_args.dense_lambda * lamb)
+        lambdas = dict(attention=self.sparse_args.attention_lambda * 0.5,
+                       dense=self.sparse_args.dense_lambda * 0.5)
 
         info["total"] = defaultdict(float)
 
@@ -327,7 +327,7 @@ class ModelPatchingCoordinator:
             del value["regu"]
             del value["nummod"]
 
-        return info["total"]["regu"], info
+        return info["total"]["regu"], lamb, info
 
     def distil_loss_combine(self, ce_loss, model_inputs, model_outputs):
         sparse_args = self.sparse_args

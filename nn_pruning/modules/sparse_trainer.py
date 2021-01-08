@@ -73,7 +73,7 @@ class SparseTrainer:
         self.metrics["ce_loss"] += float(loss)
         loss, distil_loss = self.patch_coordinator.distil_loss_combine(loss, inputs, outputs)
         self.metrics["distil_loss"] += float(distil_loss)
-        regu_loss, info = self.patch_coordinator.regularization_loss(model)
+        regu_loss, lamb, info = self.patch_coordinator.regularization_loss(model)
 
         for kind, values in info.items():
             if kind == "total":
@@ -86,7 +86,7 @@ class SparseTrainer:
 
         self.loss_counter += 1
 
-        loss = loss + regu_loss
+        loss = loss + regu_loss * lamb
 
         return loss
 
