@@ -63,6 +63,11 @@ class SparseTrainingArguments:
         metadata={"help": "share the same pruning parameters for attention output and other dense matrices"},
     )
 
+    bias_mask: bool = field(
+        default=True,
+        metadata={"help": "Apply the mask built on weight to the bias too (not doing so will impact somewhat ability to prune complete heads, as bias is then pruned while being nonzero)"},
+    )
+
     mask_init: str = field(default="constant", metadata={"help": "Mask scores initialization method"})
 
     mask_scale: float = field(
@@ -283,7 +288,7 @@ class ModelPatchingCoordinator:
 
 
                 # TEMPORARY : use model info to perform this dispatch
-                if self.sparse_args.attention_output_with_dense:
+                if not hasattr(self.sparse_args, "attention_output_with_dense") or self.sparse_args.attention_output_with_dense:
                     layer_names = ["key", "query", "value"]
                     key = "dense"
                     for ln in layer_names:
@@ -327,7 +332,7 @@ class ModelPatchingCoordinator:
             del value["regu"]
             del value["nummod"]
 
-        return info["total"]["regu"], lamb, info
+        return info["total"]["regu_loss"], lamb, info
 
     def distil_loss_combine(self, ce_loss, model_inputs, model_outputs):
         sparse_args = self.sparse_args
@@ -417,12 +422,18 @@ class ModelPatchingCoordinator:
         assert trial is None or len(trial.params) == 0
         attention_pruning_method_parts = self.parse_pruning_method(self.sparse_args.attention_pruning_method)
 
+        if hasattr(self.sparse_args, "bias_mask"):
+            bias_mask = self.sparse_args.bias_mask
+        else:
+            bias_mask = False
+
         args_attention = LinearPruningArgs(
             method=attention_pruning_method_parts[0],
             submethod=attention_pruning_method_parts[1],
             ampere_method=self.sparse_args.ampere_pruning_method,
             block_rows=self.sparse_args.attention_block_rows,
             block_cols=self.sparse_args.attention_block_cols,
+            bias_mask=bias_mask
         )
 
         args_attention_t = LinearPruningArgs(
@@ -431,6 +442,7 @@ class ModelPatchingCoordinator:
             ampere_method=self.sparse_args.ampere_pruning_method,
             block_rows=self.sparse_args.attention_block_cols,
             block_cols=self.sparse_args.attention_block_rows,
+            bias_mask=bias_mask
         )
 
         dense_pruning_method_parts = self.parse_pruning_method(self.sparse_args.dense_pruning_method)
@@ -441,6 +453,7 @@ class ModelPatchingCoordinator:
             ampere_method=self.sparse_args.ampere_pruning_method,
             block_rows=self.sparse_args.dense_block_rows,
             block_cols=self.sparse_args.dense_block_cols,
+            bias_mask=bias_mask
         )
 
         patcher_context = self.patcher_context
@@ -459,7 +472,7 @@ class ModelPatchingCoordinator:
         else:
             p_dense = LinearPruningModulePatcher(patcher_context, args_dense)
 
-        if self.sparse_args.attention_output_with_dense:
+        if not hasattr(self.sparse_args, "attention_output_with_dense") or self.sparse_args.attention_output_with_dense:
             p_att_dense = p_dense
         else:
             p_att_dense = p_attention_t

@@ -28,6 +28,7 @@ class ModelStatsExtractBase:
 
     def run(self, force = False, write=True, **kwargs):
         output_report_path = self.path / self.output_name
+        print(output_report_path)
         if output_report_path.exists() and not force:
             return json.load(output_report_path.open())
 
@@ -100,11 +101,17 @@ class ModelStatsExtract(ModelStatsExtractBase):
 
 
 class ModelSpeedEvaluate(ModelStatsExtractBase):
-    def __init__(self, path):
-        super().__init__(path, "speed_report.json", copy_to_tmp_path=True)
+    def __init__(self, path, optimize_mode = "dense"):
+        if optimize_mode == "disabled":
+            filename = "speed_report_no_optimize.json"
+        else:
+            assert(optimize_mode=="dense")
+            filename = "speed_report.json"
+        self.optimize_mode = optimize_mode
+        super().__init__(path, filename, copy_to_tmp_path=True)
 
-    def run_(self, model, optimize_mode):
-        ret = qa_xp.QAXP.evaluate_model(src_path=self.dest_path, optimize_mode=optimize_mode)
+    def run_(self, model):
+        ret = qa_xp.QAXP.evaluate_model(src_path=self.dest_path, optimize_mode=self.optimize_mode)
         return ret
 
 class ModelAnalysis:
@@ -146,6 +153,12 @@ class ModelAnalysis:
         for i, k in enumerate(filtered):
             print("Processing", self.total_checkpoints)
             checkpoint_path = path / k[0]
+
+            #if "hp_od-output__squad_test3_es-steps_nte20_ls250_est5000_rn-output__squad_test3_dpm-sigmoied_threshold:1d_alt_apme-sigmoied_threshold_aowd0_it0_fw10_r-l1_rfl10.0_al0.00156_dtnop-csarron__bert-base-uncased-squad-v1/checkpoint-90000" not in str(checkpoint_path):
+            #    self.total_checkpoints += 1
+            #    continue
+            #print(checkpoint_path)
+
             checkpoint_info = {}
 
             base_speed_report_file = Path("base_speed_report_file.json")
@@ -158,21 +171,20 @@ class ModelAnalysis:
                     json.dump(base_speed_report, f)
 
             self.total_checkpoints += 1
-            mse = ModelStatsExtract(checkpoint_path)
-            stats_report = mse.run(force = ":1d_alt" in k)
+            mse_stats = ModelStatsExtract(checkpoint_path)
+            stats_report = mse_stats.run(force = False)
             checkpoint_info["stats"] = stats_report
 
-            for mode in "dense", :
-                try:
-                    mse2 = ModelSpeedEvaluate(checkpoint_path)
-                    eval_report = mse2.run(force = True, optimize_mode = mode)
-                    checkpoint_info["speed"] = eval_report["timings"]
-                    checkpoint_info["opt_eval_metrics"] = eval_report["metrics"]
-                    print(eval_report["metrics"])
-                    break
-                except Exception as e:
-                    print(e)
-                    assert(mode == "dense")
+            mse_speed = ModelSpeedEvaluate(checkpoint_path, optimize_mode = "dense")
+            eval_report = mse_speed.run(force = False)
+            if "timings" in eval_report:
+                checkpoint_info["speed"] = eval_report["timings"]
+                checkpoint_info["opt_eval_metrics"] = eval_report["metrics"]
+                print(eval_report["metrics"])
+            else:
+                assert("eval_elapsed_time" in eval_report)
+                checkpoint_info["speed"] = eval_report
+                checkpoint_info["opt_eval_metrics"] = None
 
             ret[str(checkpoint_path)] = checkpoint_info
         return ret, base_speed_report
@@ -188,7 +200,7 @@ class ModelAnalysis:
 
         info = {"checkpoints":info, "base_speed_report":base_speed_report}
 
-        with open("results3.json", "w") as f:
+        with open("results4.json", "w") as f:
             json.dump(info, f)
 
 

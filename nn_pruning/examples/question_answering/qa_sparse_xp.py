@@ -46,6 +46,7 @@ class SparseQAShortNamer(TrialShortNamer):
         'attention_lambda': 1.0,
         'attention_output_with_dense': True,
         "attention_pruning_method": "topK",
+        "bias_mask": False,
         "dataloader_drop_last": False,
         "dataloader_num_workers": 0,
         "dataset_cache_dir": "dataset_cache",

@@ -56,7 +56,7 @@ class RuntimeLinearPruningArgs:
     ampere_method: str
     block_rows: int
     block_cols: int
-
+    bias_mask:bool = False
 
 @dataclass
 class InitDirective:
@@ -100,9 +100,6 @@ class LinearPruningContextModule(GenericLinearPruningContextModule):
             shape[1] // _p.block_cols,
         )
 
-
-
-
 class BlockLinearPruningContextModule(LinearPruningContextModule):
     def __init__(self, shape, args: LinearPruningArgs):
         super().__init__(shape, args)
@@ -128,12 +125,18 @@ class AmpereLinearPruningContextModule(GenericLinearPruningContextModule):
 
     def __init__(self, shape, args: LinearPruningArgs):
         super().__init__(shape, args)
-        # Creating the pattern in a transposed way to avoid a few ops later
-        ampere_mask_size = (
-            self.shape[1],
-            self.shape[0] // self.AMPERE_M,
-            self.SPARSE_PATTERNS_COUNT,
-        )
+        if args.ampere_method == "sigmoied_threshold":
+            ampere_mask_size = self.shape
+        elif args.ampere_method == "annealing":
+            # Creating the pattern in a transposed way to avoid a few ops later
+            ampere_mask_size = (
+                self.shape[1],
+                self.shape[0] // self.AMPERE_M,
+                self.SPARSE_PATTERNS_COUNT,
+            )
+        else:
+            raise Exception(f"Unknown ampere method {args.ampere_method}")
+
         self.mask_scores = nn.Parameter(torch.Tensor(size=ampere_mask_size))
         self.init_masks(self.args.ampere_init)
 
@@ -149,6 +152,7 @@ class AmpereMaskModule(nn.Module):
         ampere_pattern = self.build_ampere_pattern(context_module.mask_scores.device)
         self.register_buffer("ampere_pattern", ampere_pattern)
         self.args = args
+        self.method = args.ampere_method
 
     @staticmethod
     def build_ampere_pattern(device):
@@ -158,7 +162,25 @@ class AmpereMaskModule(nn.Module):
         return sparse_patterns
 
     @staticmethod
-    def mask(ampere_permut_scores, ampere_pattern, ampere_temperature: float, training: bool):
+    def sigmoied_threshold_mask(mask_scores, threshold, sigmoid, train):
+        assert ((mask_scores.shape[1] % 4) == 0)
+
+        mask_scores_4 = mask_scores.reshape(mask_scores.shape[0], mask_scores.shape[1] // 4, 4)
+        top = torch.topk(mask_scores_4, 2, dim=2, largest=True)
+        top_mask = torch.zeros_like(mask_scores_4, device=mask_scores.device)
+        top_mask = top_mask.scatter(2, top.indices, True)
+        top_mask = top_mask.reshape_as(mask_scores)
+
+        if train:
+            mask = ThresholdBinarizer.apply(mask_scores, threshold, sigmoid)
+            ret = torch.max(mask, top_mask)
+        else:
+            ret = top_mask
+
+        return ret
+
+    @staticmethod
+    def annealing_mask(ampere_permut_scores, ampere_pattern, ampere_temperature: float, training: bool):
         if training:
             s = F.softmax(ampere_permut_scores * ampere_temperature, dim=-1)
         else:
@@ -172,12 +194,21 @@ class AmpereMaskModule(nn.Module):
         return s
 
     def forward(self, ampere_temperature):
-        return self.mask(
-            self.context_module.mask_scores,
-            self.ampere_pattern,
-            ampere_temperature,
-            self.training,
-        )
+        if self.ampere_method == "sigmoied_threshold":
+            return self.sigmoied_threshold_mask(
+                self.context_module.mask_scores,
+                ampere_temperature,
+                self.training,
+            )
+        elif self.ampere_method == "annealing":
+            return self.annealing_mask(
+                self.context_module.mask_scores,
+                self.ampere_pattern,
+                ampere_temperature,
+                self.training,
+            )
+        else:
+            raise Exception(f"Unknown ampere method {self.ampere_method}")
 
 
 class MaskModule(nn.Module):
@@ -272,7 +303,7 @@ class MaskedLinear(ReplacementModule):
             self.ampere_module = AmpereMaskModule(ampere_context_module, args)
         self.args = args
 
-    def get_masked_weights(self):
+    def get_masked_weights_bias(self):
         threshold = self.get_context_data("threshold")
         mask = self.mask_module(self.weight, threshold)
         if self.args.ampere_method != "disabled":
@@ -284,21 +315,26 @@ class MaskedLinear(ReplacementModule):
 
         masked_weights = mask * self.weight
 
-        return masked_weights
+        bias = self.bias
+        if bias is not None:
+            if self.args.bias_mask:
+                bias = bias * (mask != 0).any(1)
+
+        return masked_weights, bias
 
     def forward(self, input):
-        masked_weights = self.get_masked_weights()
+        masked_weights, bias = self.get_masked_weights_bias()
         # Compute output (linear layer) with masked weights
-        return F.linear(input, masked_weights, self.bias)
+        return F.linear(input, masked_weights, bias)
 
     def compile(self):
-        masked_weights = self.get_masked_weights()
+        masked_weights, bias = self.get_masked_weights_bias()
 
         ret = nn.Linear(self.weight.shape[1], self.weight.shape[0], bias=self.bias is not None)
         with torch.no_grad():
             ret.weight.copy_(masked_weights)
             if ret.bias is not None:
-                ret.bias.copy_(self.bias)
+                ret.bias.copy_(bias)
         return ret
 
 
@@ -325,7 +361,7 @@ class LinearPruningModulePatcher(ModulePatcher):
         if submethod not in PRUNING_SUB_METHODS:
             raise RuntimeError(f"Unknown pruning sub method '{submethod}', should be in {PRUNING_SUB_METHODS}")
 
-        AMPERE_METHODS = ["disabled", "annealing"]
+        AMPERE_METHODS = ["disabled", "annealing", "sigmoied_threshold"]
         if ampere_method not in AMPERE_METHODS:
             raise RuntimeError(f"Unknown ampere pruning method '{ampere_method}', should be in {AMPERE_METHODS}")
 
