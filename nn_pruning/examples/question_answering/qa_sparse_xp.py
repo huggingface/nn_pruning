@@ -72,6 +72,7 @@ class SparseQAShortNamer(TrialShortNamer):
         "final_warmup": 2,
         "fp16": False,
         "fp16_opt_level": "O1",
+        'fp16_backend': 'auto',
         "gradient_accumulation_steps": 1,
         "ignore_data_skip": False,
         "initial_ampere_temperature": 0.0,
@@ -111,13 +112,12 @@ class SparseQAShortNamer(TrialShortNamer):
         "save_steps": 5000,
         "save_total_limit": 5,
         "seed": 17,
+        'sharded_ddp': False,
         "tpu_metrics_debug": False,
         "version_2_with_negative": False,
         "warmup_steps": 5400,
         "weight_decay": 0.0,
     }
-
-
 
 class QASparseXP(QAXP):
     ARGUMENTS = {
