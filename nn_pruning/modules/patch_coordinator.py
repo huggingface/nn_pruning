@@ -167,6 +167,13 @@ class SparseTrainingArguments:
         metadata={"help": "Distillation temperature. Only for distillation."},
     )
 
+    final_finetune: bool = field(
+        default=False,
+        metadata={
+            "help": "Run a final fine tune pass on the network"
+        },
+    )
+
 class ModelPatchingCoordinator:
     MODEL_STRUCTURE = BertStructure
 

@@ -68,6 +68,7 @@ class SparseQAShortNamer(TrialShortNamer):
         "evaluation_strategy": "epoch",
         "eval_steps": 500,
         "final_ampere_temperature": 20.0,
+        "final_finetune":0,
         "final_threshold": 0.1,
         "final_warmup": 2,
         "fp16": False,

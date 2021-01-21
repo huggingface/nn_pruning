@@ -241,8 +241,6 @@ TinyBERT6 (ours) 67.0M 11.3B 2.0x 84.6/83.2 71.6 90.4 93.1 51.1 83.7 87.3 70.0 7
 
     def categorize(self, xp):
         print("STARTING")
-        if xp["sparse_args"]['attention_block_cols'] == 4:
-            print("coucou")
         for fun_name in self.cat_fun_names:
             print(f"fun_name={fun_name}")
             fun_name = "is_" + fun_name
@@ -309,7 +307,23 @@ TinyBERT6 (ours) 67.0M 11.3B 2.0x 84.6/83.2 71.6 90.4 93.1 51.1 83.7 87.3 70.0 7
 #                print(f"NOT MATCHING, {key}, {r}")
         return False
 
-    def plot(self, key, dest_file_name):
+    def log_plot(self, dest_file_name, x, y, data, x_key, y_key):
+
+        with dest_file_name.open("w") as f:
+            for i in range(len(x)):
+                s = {x_key:x[i], y_key:y[i], "meta":data[i]}
+                s = f"{s}\n"
+                f.write(s)
+
+    @staticmethod
+    def label_cleanup(label):
+        for s in " _,/=":
+            label = label.replace(s, "_")
+        return label
+
+    def plot(self, key, dest_dir, dest_file_name):
+        dest_dir = Path(dest_dir)
+        dest_dir.mkdir(exist_ok=True)
 
         checkpoints = self.read_checkpoint_info()
         reference_entries = self.read_reference_entries()
@@ -349,8 +363,10 @@ TinyBERT6 (ours) 67.0M 11.3B 2.0x 84.6/83.2 71.6 90.4 93.1 51.1 83.7 87.3 70.0 7
         ax1 = fig.add_subplot(111)
         max_x = 0
 
+
         for i, data in enumerate(parts):
             label = labels[i]
+
             x0 = [e.get(key, 1.0) for e in data]
 
             if self.convex_envelop: # and len(set(x0)) > 1:
@@ -359,6 +375,11 @@ TinyBERT6 (ours) 67.0M 11.3B 2.0x 84.6/83.2 71.6 90.4 93.1 51.1 83.7 87.3 70.0 7
             x = [e.get(key, 1.0) for e in data]
             max_x = max(max_x, max(x))
             y = [e["f1"] for e in data]
+
+            label = self.label_cleanup(label)
+            log_dir = dest_dir / "logs"
+            log_dir.mkdir(exist_ok=True)
+            self.log_plot(log_dir / f"{dest_file_name}_{label}.txt", x, y, data, key, "f1")
 
             if len(x) == 1 or self.only_dots:
                 pyplot.scatter(x, y, cmap="viridis", alpha=1.0, label=label)  # , marker=markers[i]) # cool
@@ -394,7 +415,7 @@ TinyBERT6 (ours) 67.0M 11.3B 2.0x 84.6/83.2 71.6 90.4 93.1 51.1 83.7 87.3 70.0 7
         pyplot.title(title, fontsize=self.fontsize)
 
         pyplot.savefig(
-            dest_file_name,
+            dest_dir / (dest_file_name + ".png"),
             dpi=None,
             facecolor="w",
             edgecolor="w",
@@ -652,8 +673,10 @@ if __name__ == "__main__":
     input_file_name = "results8.json"
 
     def multiplot(p, name):
-        p.plot("speedup", f"graphs/{name}_speedup.png")
-        p.plot("fill_rate", f"graphs/{name}_fill_rate.png")
+        name = PlotterBase.label_cleanup(name)
+        dest = Path("graphs") / name
+        p.plot("speedup", dest, f"{name}_speedup")
+        p.plot("fill_rate", dest, f"{name}_fill_rate")
 
     white_list = ["Block/struct method, bs= [0-9]+x[0-9]+, v=1",
                   "Block/unstruct method, bs= [0-9]+x[0-9]+",
@@ -669,11 +692,11 @@ if __name__ == "__main__":
 
     # For debug purpose : black_list is the kept white list
     p = GeneralPlotter(input_file_name, white_list=False, black_list=raw_black_list, reference_black_list=None)
-    multiplot(p, "raw_global")
+    #multiplot(p, "raw_global")
 #    sys.exit(0)
     reference_black_list = ["local_movement_pruning"]
     p = GeneralPlotter(input_file_name, white_list=white_list, black_list=black_list, reference_black_list=reference_black_list)
-    multiplot(p, "global")
+    #multiplot(p, "global")
 
     CAT_FUN_NAMES = {
     #    "new_xp_v0": dict(fun_name="new_xp", draw_labels=False, white_list=["Block/struct method, bs= [0-9]+x.[0-9]+, v=0"]),
@@ -703,4 +726,4 @@ if __name__ == "__main__":
             cluster=True,
             white_list=configuration.get("white_list", False),
         )
-        multiplot(p, name + configuration.get("suffix", ""))
+        multiplot(p, name)
