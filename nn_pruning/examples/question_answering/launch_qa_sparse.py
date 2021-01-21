@@ -1,5 +1,5 @@
 import sys
-
+import copy
 
 def main():
     import json
@@ -12,12 +12,18 @@ def main():
     filename = Path(sys.argv[1]).resolve()
     param_dict = json.load(open(filename))
 
-    qa = qa_sparse_xp.QASparseXP(param_dict)
+    variants = [{"dense_lambda":0.25, "regularization_final_lambda": 10},
+                {"dense_lambda":0.25, "regularization_final_lambda": 20},
+                {"dense_lambda":0.25, "regularization_final_lambda": 5} ]
+    for variant in variants:
+        param_dict_ = copy.deepcopy(param_dict)
+        param_dict_.update(variant)
+        qa = qa_sparse_xp.QASparseXP(param_dict_)
 
-    def hp_space(trial):
-        return {}
+        def hp_space(trial):
+            return {}
 
-    qa.hyperparameter_search(direction="minimize", hp_space=hp_space, n_trials=1)
+        qa.hyperparameter_search(direction="minimize", hp_space=hp_space, n_trials=1)
 
 
 def _mp_fn(index):

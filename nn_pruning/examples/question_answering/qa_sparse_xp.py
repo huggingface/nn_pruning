@@ -153,7 +153,13 @@ class QASparseXP(QAXP):
             with (src_path / name).open() as f:
                 return json.load(f, object_hook=lambda d: SimpleNamespace(**d))
 
-        with (src_path / "config.json").open() as f:
+        current_config = src_path / "config.json"
+        up_config = (src_path.parent) / "config.json"
+
+        if not current_config.exists():
+            shutil.copy(up_config, current_config)
+
+        with current_config.open() as f:
             model_config = json.load(f)
 
         model_args = load_json_to_obj("model_args.json")

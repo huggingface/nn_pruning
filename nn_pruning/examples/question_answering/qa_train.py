@@ -42,7 +42,6 @@ if is_torch_tpu_available():
 
 logger = logging.get_logger(__name__)
 
-
 class QATrainer(Trainer):
     def __init__(self, *args, eval_examples=None, post_process_function=None, **kwargs):
         self.model_args = kwargs.pop("model_args")

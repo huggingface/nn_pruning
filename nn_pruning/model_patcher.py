@@ -67,41 +67,6 @@ class ModelPatcher:
                 " Check patchable layers with `mp.get_patchable_layers(model)`"
             )
 
-
-class BertHeadsPruner:
-    def __init__(self, model):
-        self.model = model
-
-    def analyze_head(self, p, head_size):
-        p0 = (p != 0).reshape(p.shape[0] // head_size, head_size, p.shape[1]).any(-1).any(-1)
-        return p0
-
-    def get_pruned_heads(self):
-        heads_count = 0
-        to_prune = {}
-        for name, module in self.model.named_modules():
-            if name.endswith("attention.self"):
-                layer_number = int(name.split(".")[3])
-                parts = []
-                for a in ["query", "key", "value"]:
-                    p = self.analyze_head(getattr(module, a).weight, module.attention_head_size)
-                    parts.append(p)
-                parts = list(torch.stack(parts, 0).all(0).cpu().detach().numpy())
-                heads_count += len(parts)
-
-                heads_to_prune = [i for i, p in enumerate(parts) if not p]
-
-                to_prune[layer_number] = heads_to_prune
-        return to_prune, heads_count
-
-    def run(self):
-        model = self.model
-
-        to_prune, heads_count = self.get_pruned_heads()
-
-        model.prune_heads(to_prune)
-        return sum([len(p) for p in to_prune.values()]), heads_count
-
 def optimize_model(model, mode, clone = True):
     from pytorch_block_sparse import BlockSparseModelPatcher
     import copy
@@ -109,14 +74,30 @@ def optimize_model(model, mode, clone = True):
     if clone == True:
         model = copy.deepcopy(model)
 
+    params = {}
+    for name, parameter in model.named_parameters():
+        params[name] = parameter
+
+    # Further prune
+    for layer_number in range(12):
+        n0 = f"bert.encoder.layer.{layer_number}.intermediate.dense.weight"
+        n1 = f"bert.encoder.layer.{layer_number}.output.dense.weight"
+
+        output_mask = (params[n0].abs().sum(1) == 0)
+        input_mask = (params[n1].abs().sum(0) == 0)
+
+        with torch.no_grad():
+            params[n0][input_mask] = 0
+            params[n1][:,output_mask] = 0
+
     # Create a model patcher
     mp = BlockSparseModelPatcher(prune_heads=True, mode = mode)
     #    for l in mp.get_patchable_layers(model):
     #        print(l)
-    mp.add_pattern("bert\\.encoder\\.layer\\.[0-9+]\\.attention\\.self\\.(query|key|value)", {})
-    mp.add_pattern("bert\\.encoder\\.layer\\.[0-9]+\\.attention\\.output\\.dense", {})
-    mp.add_pattern("bert\\.encoder\\.layer\\.[0-9]+\\.intermediate\\.dense", {})
-    mp.add_pattern("bert\\.encoder\\.layer\\.[0-9]+\\.output\\.dense", {})
+    #mp.add_pattern("bert\\.encoder\\.layer\\.[0-9+]\\.attention\\.self\\.(query|key|value)", {})
+    #mp.add_pattern("bert\\.encoder\\.layer\\.[0-9]+\\.attention\\.output\\.dense", {})
+    mp.add_pattern("bert\\.encoder\\.layer\\.[0-9]+\\.intermediate\\.dense", {"input_keep_dimension":True, "output_keep_dimension":False})
+    mp.add_pattern("bert\\.encoder\\.layer\\.[0-9]+\\.output\\.dense", {"output_keep_dimension":True, "input_keep_dimension":False})
 
     mp.patch_model(model)
     return model
