@@ -143,6 +143,12 @@ class QASparseXP(QAXP):
         if self.sparse_args.final_finetune:
             model = self.compile_model(self.model_args.model_name_or_path)
             model = optimize_model(model, "dense")
+
+            # Make sure some parts are not completely zero
+            for k, v in model.named_parameters():
+                zero_mask = (v == 0)
+                with torch.no_grad():
+                    v.copy_(v + zero_mask * torch.randn_like(v) / 100.0)
         else:
             model = super().model_init(trial)
             self.patch_coordinator.patch_model(model, trial)
