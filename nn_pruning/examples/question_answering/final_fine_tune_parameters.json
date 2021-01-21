@@ -27,7 +27,8 @@
   "distil_teacher_name_or_path":"csarron/bert-base-uncased-squad-v1",
   "distil_alpha_ce": 0.1,
   "distil_alpha_teacher": 0.9,
-  "final_finetune": 1
+  "final_finetune": 1,
+  "attention_output_with_dense":0
 }
 
 

@@ -23,6 +23,7 @@ import shutil
 from pathlib import Path
 from types import SimpleNamespace
 import torch
+from nn_pruning.model_patcher import optimize_model
 
 from nn_pruning.hp_naming import TrialShortNamer
 from nn_pruning.modules.patch_coordinator import SparseTrainingArguments, ModelPatchingCoordinator
@@ -139,8 +140,12 @@ class QASparseXP(QAXP):
         self.trainer.set_patch_coordinator(self.patch_coordinator)
 
     def model_init(self, trial=None):
-        model = super().model_init(trial)
-        self.patch_coordinator.patch_model(model, trial)
+        if self.sparse_args.final_finetune:
+            model = self.compile_model(self.model_args.model_name_or_path)
+            model = optimize_model(model, "dense")
+        else:
+            model = super().model_init(trial)
+            self.patch_coordinator.patch_model(model, trial)
         return model
 
     @classmethod
