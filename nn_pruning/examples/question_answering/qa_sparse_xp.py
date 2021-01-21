@@ -139,16 +139,24 @@ class QASparseXP(QAXP):
         super().create_trainer(*args, **kwargs)
         self.trainer.set_patch_coordinator(self.patch_coordinator)
 
+    def unzero_parameters(self, model, epsilon = 0.01):
+        # Used to avoid zero gradients when doing final finetune on sparse networks that we want to extend
+        # Make sure some parts are not completely zero
+        for k, v in model.named_parameters():
+            zero_mask = (v == 0)
+            with torch.no_grad():
+                new_values = torch.randn_like(v)
+                new_values *= v.std() * epsilon
+                new_values += v.mean()
+                new_values *= zero_mask
+                v.copy_(v + new_values)
+        return model
+
     def model_init(self, trial=None):
         if self.sparse_args.final_finetune:
             model = self.compile_model(self.model_args.model_name_or_path)
             model = optimize_model(model, "dense")
-
-            # Make sure some parts are not completely zero
-            for k, v in model.named_parameters():
-                zero_mask = (v == 0)
-                with torch.no_grad():
-                    v.copy_(v + zero_mask * torch.randn_like(v) / 100.0)
+            model = self.unzero_parameters(model)
         else:
             model = super().model_init(trial)
             self.patch_coordinator.patch_model(model, trial)
