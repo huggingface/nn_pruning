@@ -49,9 +49,9 @@ class SparseTrainingArguments:
         default=1e-2, metadata={"help": "The initial learning rate for mask_scores."}
     )
 
-    dense_pruning_method: str = field(default="topk", metadata={"help": "Dense Layers pruning method."})
+    dense_pruning_method: str = field(default="topK", metadata={"help": "Dense Layers pruning method."})
 
-    attention_pruning_method: str = field(default="topk", metadata={"help": "Dense Layers pruning method."})
+    attention_pruning_method: str = field(default="topK", metadata={"help": "Dense Layers pruning method."})
 
     ampere_pruning_method: str = field(
         default="disabled",
@@ -270,16 +270,25 @@ class ModelPatchingCoordinator:
         self.patcher_context.set_context_data_dict(context_data)
 
     def regularization_loss(self, model: nn.Module):
-        # Return regularization and lambda
+        # Return regularization, lambda, and information on the network sparsity
         mode = self.sparse_args.regularization
-        if mode not in ["l0", "l1"]:
-            # No regularization
-            return 0
 
         info = {}
-        threshold = self.patcher_context.get_context_data("threshold")
+
+        regul_modes = ["l1", "l0"]
+        if mode in regul_modes:
+            threshold = self.patcher_context.get_context_data("threshold")
+
         for name, module in model.named_modules():
-            if isinstance(module, PatcherContextModule):
+            if mode not in regul_modes:
+                if isinstance(module, nn.Linear):
+                    weight = module.weight
+                    module_regu = 0
+                    module_nnz = (weight != 0).sum()
+                    numel = weight.numel()
+                else:
+                    continue
+            elif isinstance(module, PatcherContextModule):
                 param = module.mask_scores
                 numel = param.numel()
 
@@ -291,33 +300,37 @@ class ModelPatchingCoordinator:
                     module_regu = torch.sigmoid(param - 2 / 3 * np.log(0.1 / 1.1)).sum() / numel
                     module_nnz = (torch.sigmoid(param - 2 / 3 * np.log(0.1 / 1.1)) > threshold).sum().item()
                 else:
-                    raise ValueError("Don't know this mode.")
+                    assert(False)
 
+            # TEMPORARY : use model info to perform this dispatch
+            if not hasattr(self.sparse_args, "attention_output_with_dense") or self.sparse_args.attention_output_with_dense:
+                layer_names = ["key", "query", "value"]
+                key = "dense"
+                for ln in layer_names:
+                    if ln in name:
+                        key = "attention"
+            else:
+                key = "attention" if "attention" in name else "dense"
 
-                # TEMPORARY : use model info to perform this dispatch
-                if not hasattr(self.sparse_args, "attention_output_with_dense") or self.sparse_args.attention_output_with_dense:
-                    layer_names = ["key", "query", "value"]
-                    key = "dense"
-                    for ln in layer_names:
-                        if ln in name:
-                            key = "attention"
-                else:
-                    key = "attention" if "attention" in name else "dense"
+            if key not in info:
+                info[key] = defaultdict(float)
 
-                if key not in info:
-                    info[key] = defaultdict(float)
+            key_info = info[key]
 
-                key_info = info[key]
+            key_info["regu"] += module_regu
+            key_info["nnz"] += float(module_nnz)
+            key_info["numel"] += numel
+            key_info["nummod"] += 1
 
-                key_info["regu"] += module_regu
-                key_info["nnz"] += float(module_nnz)
-                key_info["numel"] += numel
-                key_info["nummod"] += 1
+        if mode not in regul_modes:
+            lamb = 0
+            lambdas = dict(attention=0,
+                           dense=0)
+        else:
+            lamb = self.patcher_context.get_context_data("regu_lambda")
 
-        lamb = self.patcher_context.get_context_data("regu_lambda")
-
-        lambdas = dict(attention=self.sparse_args.attention_lambda * 0.5,
-                       dense=self.sparse_args.dense_lambda * 0.5)
+            lambdas = dict(attention=self.sparse_args.attention_lambda * 0.5,
+                           dense=self.sparse_args.dense_lambda * 0.5)
 
         info["total"] = defaultdict(float)
 
