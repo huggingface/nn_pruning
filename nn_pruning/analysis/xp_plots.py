@@ -222,9 +222,9 @@ TinyBERT6 (ours) 67.0M 11.3B 2.0x 84.6/83.2 71.6 90.4 93.1 51.1 83.7 87.3 70.0 7
 
     def check(self, d, equals, not_equals):
         for k, v in equals.items():
-            if d[k] != v:
+            if d.get(k) != v:
                 print(d)
-                print(f"WL: d[{k}]=={d[k]} !={v}")
+                print(f"WL: d[{k}]=={d.get(k)} !={v}")
                 return False
         for k, v in not_equals.items():
             if d[k] == v:
@@ -438,7 +438,7 @@ class GeneralPlotter(PlotterBase):
         "longer_final_warmup",
         "attention_rows",
         "short_final_warmup",
-        "block_unstructured"
+        "block_unstructured",
     ]
     BLACK_LIST = ["misc"]  # "small_epoch", "new method, attention pruned with rows",
     WHITE_LIST = [
@@ -497,6 +497,19 @@ class GeneralPlotter(PlotterBase):
         return annotate
 
     def is_new_xp(self, xp):
+        compare = dict(
+            final_finetune=1
+        )
+        compare_different = {}
+        sparse_args = xp["sparse_args"]
+        if self.check(sparse_args, compare, compare_different):
+            ret = f"Block/struct method, final fine tuned"
+            # annotate += ", fw=" + str(sparse_args["final_warmup"])
+
+            # annotate += ", ver=" + str(0 if sparse_args.get('attention_output_with_dense', True) else 1)
+            annotate = ""
+            return ret, annotate
+
         compare = dict(
             attention_pruning_method="sigmoied_threshold",
             dense_block_cols=1,
@@ -668,9 +681,11 @@ class GeneralPlotter(PlotterBase):
         if sparse_args.get("final_warmup") != 10:
             return "short final warmup"
 
+
+
 if __name__ == "__main__":
     import sys
-    input_file_name = "results9.json"
+    input_file_name = "results10.json"
 
     def multiplot(p, name):
         name = PlotterBase.label_cleanup(name)
@@ -692,15 +707,15 @@ if __name__ == "__main__":
 
     # For debug purpose : black_list is the kept white list
     p = GeneralPlotter(input_file_name, white_list=False, black_list=raw_black_list, reference_black_list=None)
-    #multiplot(p, "raw_global")
+    multiplot(p, "raw_global")
 #    sys.exit(0)
     reference_black_list = ["local_movement_pruning"]
     p = GeneralPlotter(input_file_name, white_list=white_list, black_list=black_list, reference_black_list=reference_black_list)
-    #multiplot(p, "global")
+    multiplot(p, "global")
 
     CAT_FUN_NAMES = {
     #    "new_xp_v0": dict(fun_name="new_xp", draw_labels=False, white_list=["Block/struct method, bs= [0-9]+x.[0-9]+, v=0"]),
-        "new_xp_v1": dict(fun_name="new_xp", draw_labels=True, white_list=["Block/struct method, bs= [0-9]+x.[0-9]+, v=1"], convex_envelop=True),
+        "new_xp_v1": dict(fun_name="new_xp", draw_labels=True, white_list=["(Block/struct method, bs= [0-9]+x.[0-9]+, v=1)|(Block/struct method, final fine tuned)"], convex_envelop=True),
         "structured": dict(fun_name="new_xp", draw_labels=False, white_list=["Structured pruning"]),
         #        "new_xp_16": dict(fun_name="new_xp", draw_labels=False, white_list=["Block/struct method, bs= 16x16, v=[0-9]+"]),
 #        "new_xp_32": dict(fun_name="new_xp", draw_labels=False, white_list=["Block/struct method, bs= 32x32, v=[0-9]+"]),

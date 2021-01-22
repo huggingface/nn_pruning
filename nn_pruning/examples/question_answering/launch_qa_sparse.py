@@ -12,9 +12,7 @@ def main():
     filename = Path(sys.argv[1]).resolve()
     param_dict = json.load(open(filename))
 
-    variants = [{"dense_lambda":0.25, "regularization_final_lambda": 10},
-                {"dense_lambda":0.25, "regularization_final_lambda": 20},
-                {"dense_lambda":0.25, "regularization_final_lambda": 5} ]
+    variants = [{"dense_lambda":1.0, "regularization_final_lambda": 10}]
     for variant in variants:
         param_dict_ = copy.deepcopy(param_dict)
         param_dict_.update(variant)

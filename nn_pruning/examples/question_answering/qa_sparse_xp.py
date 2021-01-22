@@ -168,9 +168,25 @@ class QASparseXP(QAXP):
         return model
 
     @classmethod
+    def fix_last_checkpoint_bug(cls, run_path):
+        run_path = Path(run_path)
+        for src_path in run_path.iterdir():
+            if src_path.name.startswith("checkpoint-"):
+                # Special stuff : add link to compensate for bug
+                for link_name in ["pytorch_model.bin", "training_args.bin", "vocab.txt", "tokenizer_config.json",
+                                  "special_tokens_map.json"]:
+                    filename = src_path / link_name
+                    filename_parent = Path("..") / link_name
+                    filename_absolute_parent = src_path.parent / link_name
+                    if not filename.exists() and filename_absolute_parent.exists():
+                        print(filename, filename_parent)
+                        filename.symlink_to(filename_parent)
+
+    @classmethod
     def final_fine_tune_bertarize(cls, src_path, dest_path):
         src_path = Path(src_path)
         assert(dest_path is not None)
+        dest_path = Path(dest_path)
 
         config = json.load((src_path / "config.json").open())
         hidden_size = config["hidden_size"]
@@ -205,10 +221,7 @@ class QASparseXP(QAXP):
 
             new_m[k] = v
 
-        if dest_path.exists():
-            shutil.rmtree(dest_path)
-
-        shutil.copytree(src_path, dest_path)
+        shutil.copytree(src_path, dest_path, dirs_exist_ok=True)
 
         torch.save(new_m, dest_path / "pytorch_model.bin")
 
@@ -241,7 +254,7 @@ class QASparseXP(QAXP):
         model_args = load_json_to_obj("model_args.json")
         sparse_args = load_json_to_obj("sparse_args.json")
 
-        if sparse_args.get("final_finetune", 0):
+        if hasattr(sparse_args, "final_finetune") and sparse_args.final_finetune:
             if dest_path is None:
                 with tempfile.TemporaryDirectory() as dest_path:
                     return cls.final_fine_tune_bertarize(src_path, dest_path)
@@ -274,7 +287,8 @@ class QASparseXP(QAXP):
             "dataset_name": "squad",
             "do_train": 1,
             "do_eval": 1,
-            "per_device_train_batch_size": 1,
+            "per_device_train_batch_size": 16,
+            "per_device_eval_batch_size": 128,
             "max_seq_length": 384,
             "doc_stride": 128,
             "num_train_epochs": 4,
@@ -303,5 +317,9 @@ class QASparseXP(QAXP):
 
         qa = cls(param_dict)
         qa.run()
+
+        cls.fix_last_checkpoint_bug(dest_path)
+
+
 
 

@@ -1,0 +1,1 @@
+{'fill_rate': 0.2542155425219941, 'f1': 86.69392512957342, 'meta': {'fill_rate': 0.2542155425219941, 'f1': 86.69392512957342, 'speedup': 2.75214442301829, 'annotate': '', 'path': '/data_2to/devel_data/nn_pruning/output/squad_test_final_fine_tune/fine_tuned_test5/checkpoint-22132'}}

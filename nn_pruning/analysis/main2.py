@@ -124,10 +124,11 @@ class ModelSpeedEvaluate(ModelStatsExtractBase):
         return ret
 
 class ModelAnalysis:
-    def __init__(self, path, output_file_name):
+    def __init__(self, path, output_file_name, min_f1 = 85):
         self.path = Path(path).resolve()
         self.total_checkpoints = 0
         self.output_file_name = output_file_name
+        self.min_f1 = min_f1
 
     def checkpoint_index(self, name):
         return int(name[0][len("checkpoint-"):])
@@ -170,7 +171,6 @@ class ModelAnalysis:
     def analyze_run(self, path):
         checkpoints = []
         for d in os.listdir(path):
-            # Blacklist these
             if "checkpoint-" in d:
                 with open(Path(path) / d/ "eval_metrics.json") as f:
                     j = json.load(f)
@@ -179,20 +179,20 @@ class ModelAnalysis:
         # Sort checkpoints by training step
         checkpoints.sort(key = lambda x : self.checkpoint_index(x))
 
+        # Only keep the last 10 checkpoints
+        checkpoints = checkpoints[-10:]
+
         # Filter checkpoints: remove all checkpoints such as f1 has improved afterwards, as that means that they are both
         # less sparse and less precise, so not interesting
         filtered = []
         max_f1 = 0
-        for i in range(len(checkpoints) - 1, -1, -1):
-            checkpoint = checkpoints[i]
+        for checkpoint in reversed(checkpoints):
             index = self.checkpoint_index(checkpoint)
-            if index < 25000:
-                continue
-
             f1 = checkpoint[1]["f1"]
-            if f1 >= max_f1:
+            if f1 > self.min_f1 and f1 >= max_f1:
                 filtered.insert(0, checkpoint)
-                max_f1 = max(max_f1, checkpoints[i][1]["f1"])
+
+            max_f1 = max(max_f1, f1)
 
         ret = {}
         base_speed_report = None
@@ -215,10 +215,9 @@ class ModelAnalysis:
         for root, dirs, files in os.walk(self.path, followlinks=True):
             for name in dirs:
                 if name.startswith("hp_") or name.startswith("aws_") or name.startswith("fine_tuned_"):
-                    print(name)
+                #if name.startswith("fine_tuned_"):
                     #try:
                     new_info, base_speed_report = self.analyze_run((Path(root) / name).resolve())
-                    print(base_speed_report)
                     info.update(new_info)
                     #except:
                     #    print("ERROR with", os.path.join(root, name))
