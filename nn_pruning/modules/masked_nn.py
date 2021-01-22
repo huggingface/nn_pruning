@@ -194,13 +194,14 @@ class AmpereMaskModule(nn.Module):
         return s
 
     def forward(self, ampere_temperature):
-        if self.ampere_method == "sigmoied_threshold":
+        if self.method in ["threshold", "sigmoied_threshold"]:
             return self.sigmoied_threshold_mask(
                 self.context_module.mask_scores,
                 ampere_temperature,
+                "sigmoied" in self.method,
                 self.training,
             )
-        elif self.ampere_method == "annealing":
+        elif self.method == "annealing":
             return self.annealing_mask(
                 self.context_module.mask_scores,
                 self.ampere_pattern,
@@ -208,7 +209,7 @@ class AmpereMaskModule(nn.Module):
                 self.training,
             )
         else:
-            raise Exception(f"Unknown ampere method {self.ampere_method}")
+            raise Exception(f"Unknown ampere method {self.method}")
 
 
 class MaskModule(nn.Module):
