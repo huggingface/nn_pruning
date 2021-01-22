@@ -34,6 +34,8 @@ from .qa_xp import (
     QADataTrainingArguments,
     XPTrainingArguments,
 )
+from transformers import AutoModelForQuestionAnswering
+import tempfile
 
 
 class SparseQAShortNamer(TrialShortNamer):
@@ -44,8 +46,8 @@ class SparseQAShortNamer(TrialShortNamer):
         "ampere_pruning_method": "disabled",
         "attention_block_cols": 768,
         "attention_block_rows": 64,
-        'attention_lambda': 1.0,
-        'attention_output_with_dense': True,
+        "attention_lambda": 1.0,
+        "attention_output_with_dense": True,
         "attention_pruning_method": "topK",
         "bias_mask": False,
         "dataloader_drop_last": False,
@@ -55,7 +57,7 @@ class SparseQAShortNamer(TrialShortNamer):
         "debug": False,
         "dense_block_cols": 1,
         "dense_block_rows": 1,
-        'dense_lambda': 1.0,
+        "dense_lambda": 1.0,
         "dense_pruning_method": "topK",
         "disable_tqdm": False,
         "distil_alpha_ce": 0.1,
@@ -69,12 +71,12 @@ class SparseQAShortNamer(TrialShortNamer):
         "evaluation_strategy": "epoch",
         "eval_steps": 500,
         "final_ampere_temperature": 20.0,
-        "final_finetune":0,
+        "final_finetune": 0,
         "final_threshold": 0.1,
         "final_warmup": 2,
         "fp16": False,
         "fp16_opt_level": "O1",
-        'fp16_backend': 'auto',
+        "fp16_backend": "auto",
         "gradient_accumulation_steps": 1,
         "ignore_data_skip": False,
         "initial_ampere_temperature": 0.0,
@@ -99,7 +101,7 @@ class SparseQAShortNamer(TrialShortNamer):
         "null_score_diff_threshold": 0.0,
         "num_train_epochs": 10,
         "output_dir": "output/squad_test",
-        'optimize_model_before_eval': 'disabled',
+        "optimize_model_before_eval": "disabled",
         "overwrite_cache": 0,
         "overwrite_output_dir": 1,
         "pad_to_max_length": True,
@@ -114,12 +116,13 @@ class SparseQAShortNamer(TrialShortNamer):
         "save_steps": 5000,
         "save_total_limit": 5,
         "seed": 17,
-        'sharded_ddp': False,
+        "sharded_ddp": False,
         "tpu_metrics_debug": False,
         "version_2_with_negative": False,
         "warmup_steps": 5400,
         "weight_decay": 0.0,
     }
+
 
 class QASparseXP(QAXP):
     ARGUMENTS = {
@@ -133,17 +136,19 @@ class QASparseXP(QAXP):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.patch_coordinator = ModelPatchingCoordinator(self.sparse_args, self.training_args.device, self.model_args.cache_dir)
+        self.patch_coordinator = ModelPatchingCoordinator(
+            self.sparse_args, self.training_args.device, self.model_args.cache_dir
+        )
 
     def create_trainer(self, *args, **kwargs):
         super().create_trainer(*args, **kwargs)
         self.trainer.set_patch_coordinator(self.patch_coordinator)
 
-    def unzero_parameters(self, model, epsilon = 0.01):
+    def unzero_parameters(self, model, epsilon=0.01):
         # Used to avoid zero gradients when doing final finetune on sparse networks that we want to extend
         # Make sure some parts are not completely zero
         for k, v in model.named_parameters():
-            zero_mask = (v == 0)
+            zero_mask = v == 0
             with torch.no_grad():
                 new_values = torch.randn_like(v)
                 new_values *= v.std() * epsilon
@@ -163,7 +168,58 @@ class QASparseXP(QAXP):
         return model
 
     @classmethod
-    def compile_model(cls, src_path, dest_path = None):
+    def final_fine_tune_bertarize(cls, src_path, dest_path):
+        src_path = Path(src_path)
+        assert(dest_path is not None)
+
+        config = json.load((src_path / "config.json").open())
+        hidden_size = config["hidden_size"]
+
+        m = torch.load(src_path / "pytorch_model.bin")
+
+        new_m = {}
+        # TODO : depends on the network
+        ffn_multiplier = 4
+
+        for k, v in m.items():
+            correct_shape = None
+            if k.endswith("intermediate.dense.linear.weight"):
+                correct_shape = (hidden_size * ffn_multiplier, hidden_size)
+            elif k.endswith("intermediate.dense.linear.bias"):
+                correct_shape = (hidden_size * ffn_multiplier,)
+            elif k.endswith("output.dense.linear.weight"):
+                correct_shape = (hidden_size, hidden_size * ffn_multiplier)
+            elif k.endswith("output.dense.linear.bias"):
+                correct_shape = (hidden_size,)
+
+            if correct_shape is not None:
+                k = k.replace("linear.", "")
+
+            if correct_shape is not None and v.shape != correct_shape:
+                z = torch.zeros(correct_shape, device=v.device)
+                if len(correct_shape) == 1:
+                    z[:v.shape[0]] = v
+                else:
+                    z[:v.shape[0], :v.shape[1]] = v
+                v = z
+
+            new_m[k] = v
+
+        if dest_path.exists():
+            shutil.rmtree(dest_path)
+
+        shutil.copytree(src_path, dest_path)
+
+        torch.save(new_m, dest_path / "pytorch_model.bin")
+
+        # Final check : try to load the network
+        model = AutoModelForQuestionAnswering.from_pretrained(dest_path, from_tf=False)
+
+        return model
+
+
+    @classmethod
+    def compile_model(cls, src_path, dest_path=None):
         src_path = Path(src_path)
         if dest_path is not None:
             dest_path = Path(dest_path)
@@ -185,12 +241,18 @@ class QASparseXP(QAXP):
         model_args = load_json_to_obj("model_args.json")
         sparse_args = load_json_to_obj("sparse_args.json")
 
+        if sparse_args.get("final_finetune", 0):
+            if dest_path is None:
+                with tempfile.TemporaryDirectory() as dest_path:
+                    return cls.final_fine_tune_bertarize(src_path, dest_path)
+            else:
+                return cls.final_fine_tune_bertarize(src_path, dest_path)
+
         model_args.model_name_or_path = str(src_path)
 
         model = cls._model_init(model_args, model_config)
         patcher = ModelPatchingCoordinator(sparse_args, "cuda", None)
         patcher.patch_model(model, trial=None)
-
 
         state_dict = torch.load(src_path / model_bin_name)
         model.load_state_dict(state_dict, strict=True)
@@ -204,5 +266,42 @@ class QASparseXP(QAXP):
 
         return model
 
+
+    @classmethod
+    def final_finetune(cls, src_path, dest_path):
+        param_dict = {
+            "model_name_or_path": src_path,
+            "dataset_name": "squad",
+            "do_train": 1,
+            "do_eval": 1,
+            "per_device_train_batch_size": 1,
+            "max_seq_length": 384,
+            "doc_stride": 128,
+            "num_train_epochs": 4,
+            "logging_steps": 250,
+            "save_steps": 2500,
+            "eval_steps": 2500,
+            "save_total_limit": 50,
+            "seed": 17,
+            "evaluation_strategy": "steps",
+            "learning_rate": 3e-5,
+            "output_dir": dest_path,
+            "logging_dir": dest_path,
+            "overwrite_cache": 0,
+            "overwrite_output_dir": 1,
+            "warmup_steps": 10,
+            "initial_warmup": 0,
+            "final_warmup": 0,
+            "regularization": "",
+            "regularization_final_lambda": 0,
+            "distil_teacher_name_or_path": "csarron/bert-base-uncased-squad-v1",
+            "distil_alpha_ce": 0.1,
+            "distil_alpha_teacher": 0.9,
+            "final_finetune": 1,
+            "attention_output_with_dense": 0,
+        }
+
+        qa = cls(param_dict)
+        qa.run()
 
 

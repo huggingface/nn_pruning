@@ -214,7 +214,7 @@ class ModelAnalysis:
         info = {}
         for root, dirs, files in os.walk(self.path, followlinks=True):
             for name in dirs:
-                if name.startswith("hp_") or name.startswith("aws_"):
+                if name.startswith("hp_") or name.startswith("aws_") or name.startswith("fine_tuned_"):
                     print(name)
                     #try:
                     new_info, base_speed_report = self.analyze_run((Path(root) / name).resolve())
