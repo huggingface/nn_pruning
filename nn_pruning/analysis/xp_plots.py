@@ -670,7 +670,7 @@ class GeneralPlotter(PlotterBase):
 
 if __name__ == "__main__":
     import sys
-    input_file_name = "results8.json"
+    input_file_name = "results9.json"
 
     def multiplot(p, name):
         name = PlotterBase.label_cleanup(name)
