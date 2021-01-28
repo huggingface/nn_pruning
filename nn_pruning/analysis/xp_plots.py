@@ -15,7 +15,7 @@ import copy
 class PlotterBase:
     LIMITS = {
         "speedup": dict(legend="upper right", x_min=0.95, x_max=4.0, y_min=84, y_max=90),
-        "fill_rate": dict(legend="lower right", x_min=0.0, x_max=0.55, y_min=84, y_max=90),
+        "fill_rate": dict(legend="lower right", x_min=0.0, x_max=0.75, y_min=84, y_max=90),
     }
 
     def __init__(
@@ -52,14 +52,14 @@ class PlotterBase:
             return copy.deepcopy(self.CHECKPOINTS)
 
         j = json.load(open(self.input_filename))
-
-        base_time = j["base_speed_report"]["eval_elapsed_time"]
+        speed_key = "eval_elapsed_time"
+        base_time = j["base_speed_report"][speed_key]
 
         points = []
         max_speedup = 1.0
         for name, checkpoint in j["checkpoints"].items():
             try:
-                speedup = base_time / checkpoint["speed"]["eval_elapsed_time"]
+                speedup = base_time / checkpoint["speed"][speed_key]
                 speedup = max(1.0, speedup)
             except:
                 speedup = 1.0
@@ -414,18 +414,22 @@ TinyBERT6 (ours) 67.0M 11.3B 2.0x 84.6/83.2 71.6 90.4 93.1 51.1 83.7 87.3 70.0 7
         title = "%s against %s\n" % (YLabel, XLabel)
         pyplot.title(title, fontsize=self.fontsize)
 
-        pyplot.savefig(
-            dest_dir / (dest_file_name + ".png"),
-            dpi=None,
-            facecolor="w",
-            edgecolor="w",
-            orientation="portrait",
-            format=None,
-            transparent=False,
-            bbox_inches=None,
-            pad_inches=0.1,
-            metadata=None,
-        )
+        def save_fig(extension):
+            pyplot.savefig(
+                dest_dir / (dest_file_name + "." + extension),
+                dpi=None,
+                facecolor="w",
+                edgecolor="w",
+                orientation="portrait",
+                format=None,
+                transparent=False,
+                bbox_inches=None,
+                pad_inches=0.1,
+                metadata=None,
+            )
+
+        save_fig("png")
+        save_fig("eps")
 
 
 class GeneralPlotter(PlotterBase):
@@ -516,7 +520,7 @@ class GeneralPlotter(PlotterBase):
             dense_block_rows=1,
             dense_pruning_method="sigmoied_threshold:1d_alt",
             initial_warmup=1,
-            final_warmup=10,
+            #final_warmup=10,
             regularization="l1",
         )
 
@@ -685,7 +689,7 @@ class GeneralPlotter(PlotterBase):
 
 if __name__ == "__main__":
     import sys
-    input_file_name = "results10.json"
+    input_file_name = "results12.json"
 
     def multiplot(p, name):
         name = PlotterBase.label_cleanup(name)
@@ -693,12 +697,15 @@ if __name__ == "__main__":
         p.plot("speedup", dest, f"{name}_speedup")
         p.plot("fill_rate", dest, f"{name}_fill_rate")
 
-    white_list = ["Block/struct method, bs= [0-9]+x[0-9]+, v=1",
+    white_list = [#"Block/struct method, bs= [0-9]+x[0-9]+, v=1",
+                  "Block/struct method, bs= 32x32, v=1",
+                  "Block/struct method, final fine tuned",
                   "Block/unstruct method, bs= [0-9]+x[0-9]+",
                   "improved soft movement with distillation",
                   "soft_movement_with_distillation",
-                  "Full block method, bs= 32x32",
+                  "Full block method, bs= [0-9]+x[0-9]+",
                   "Structured pruning",
+                  "Block/struct method, final fine tuned",
                   ]
     black_list = ["new method, attention pruned with rows"] #"Block/struct method, bs= [0-9]+x.[0-9]+, v=0"]
     raw_black_list = copy.deepcopy(white_list)
@@ -715,7 +722,7 @@ if __name__ == "__main__":
 
     CAT_FUN_NAMES = {
     #    "new_xp_v0": dict(fun_name="new_xp", draw_labels=False, white_list=["Block/struct method, bs= [0-9]+x.[0-9]+, v=0"]),
-        "new_xp_v1": dict(fun_name="new_xp", draw_labels=True, white_list=["(Block/struct method, bs= [0-9]+x.[0-9]+, v=1)|(Block/struct method, final fine tuned)"], convex_envelop=True),
+        "new_xp_v1": dict(fun_name="new_xp", draw_labels=True, white_list=["Block/struct method, bs= [0-9]+x.[0-9]+, v=1","Block/struct method, final fine tuned"], convex_envelop=True),
         "structured": dict(fun_name="new_xp", draw_labels=False, white_list=["Structured pruning"]),
         #        "new_xp_16": dict(fun_name="new_xp", draw_labels=False, white_list=["Block/struct method, bs= 16x16, v=[0-9]+"]),
 #        "new_xp_32": dict(fun_name="new_xp", draw_labels=False, white_list=["Block/struct method, bs= 32x32, v=[0-9]+"]),
@@ -727,7 +734,7 @@ if __name__ == "__main__":
     for name, configuration in CAT_FUN_NAMES.items():
         limits = {
             "speedup": dict(legend="upper right", x_min=0.95, x_max=4.0, y_min=None, y_max=None),
-            "fill_rate": dict(legend="lower right", x_min=0.0, x_max=0.55, y_min=None, y_max=None),
+            "fill_rate": dict(legend="lower right", x_min=0.0, x_max=0.65, y_min=None, y_max=None),
         }
         draw_labels = configuration.get("draw_labels", True)
         cat_fun_name = configuration.get("fun_name", name)

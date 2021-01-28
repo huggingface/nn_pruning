@@ -21,6 +21,37 @@ from typing import Dict
 from transformers.optimization import AdamW, get_linear_schedule_with_warmup
 from .patch_coordinator import ModelPatchingCoordinator
 from collections import defaultdict
+import torch.cuda
+import torch.nn as nn
+
+class TimingModule(nn.Module):
+    def __init__(self, model, repeat = 1):
+        super().__init__()
+        self.model = model
+        self.reset()
+        self.repeat = repeat
+
+    def reset(self):
+        self.elapsed = 0
+        self.elapsed_count = 0
+
+    def get_results(self):
+        return self.elapsed, self.elapsed_count
+
+    def forward(self, *args, **kwargs):
+        start = torch.cuda.Event(enable_timing=True)
+        end = torch.cuda.Event(enable_timing=True)
+
+        start.record()
+        for r in range(self.repeat):
+            ret = self.model(*args, **kwargs)
+        end.record()
+        torch.cuda.synchronize()
+
+        self.elapsed += start.elapsed_time(end)
+        self.elapsed_count += 1
+
+        return ret
 
 class SparseTrainer:
     def __init__(self, sparse_args):

@@ -41,6 +41,7 @@ class ModelStatsExtractBase:
             else:
                 return ret
 
+        qa_sparse_xp.QASparseXP.fix_last_checkpoint_bug_checkpoint(self.path)
         model = self.open_model()
         ret = self.run_(model, **kwargs)
 
@@ -133,7 +134,7 @@ class ModelAnalysis:
     def checkpoint_index(self, name):
         return int(name[0][len("checkpoint-"):])
 
-    def process_checkpoint(self, checkpoint_path):
+    def process_checkpoint(self, checkpoint_path, force_speed = False):
         # if "hp_od-output__squad_test3_es-steps_nte20_ls250_est5000_rn-output__squad_test3_dpm-sigmoied_threshold:1d_alt_apme-sigmoied_threshold_aowd0_it0_fw10_r-l1_rfl10.0_al0.00156_dtnop-csarron__bert-base-uncased-squad-v1/checkpoint-90000" not in str(checkpoint_path):
         #    self.total_checkpoints += 1
         #    continue
@@ -145,8 +146,8 @@ class ModelAnalysis:
         if base_speed_report_file.exists():
             base_speed_report = json.load(base_speed_report_file.open())
         else:
-            mse2 = ModelSpeedEvaluate(checkpoint_path)
-            base_speed_report = mse2.run(force=True, write=False, optimize_mode="disabled")["timings"]
+            mse2 = ModelSpeedEvaluate(checkpoint_path, optimize_mode="disabled")
+            base_speed_report = mse2.run(force=True, write=False)["timings"]
             with base_speed_report_file.open("w") as f:
                 json.dump(base_speed_report, f)
 
@@ -156,7 +157,7 @@ class ModelAnalysis:
         checkpoint_info["stats"] = stats_report
 
         mse_speed = ModelSpeedEvaluate(checkpoint_path, optimize_mode="dense")
-        eval_report = mse_speed.run(force=False)
+        eval_report = mse_speed.run(force=force_speed)
         if "timings" in eval_report:
             checkpoint_info["speed"] = eval_report["timings"]
             checkpoint_info["opt_eval_metrics"] = eval_report["metrics"]
@@ -168,7 +169,7 @@ class ModelAnalysis:
 
         return checkpoint_info, base_speed_report
 
-    def analyze_run(self, path):
+    def analyze_run(self, path, force_speed= False):
         checkpoints = []
         for d in os.listdir(path):
             if "checkpoint-" in d:
@@ -203,21 +204,28 @@ class ModelAnalysis:
             print(checkpoint_path)
 
 #            try:
-            ret[str(checkpoint_path)], base_speed_report = self.process_checkpoint(checkpoint_path)
+            ret[str(checkpoint_path)], base_speed_report = self.process_checkpoint(checkpoint_path, force_speed=force_speed)
 #            except Exception as e:
 #                print(f"ERROR with {checkpoint_path}: {e}")
 
         return ret, base_speed_report
 
+    #PREFIXES = ["fine_tuned_"]
+    FORCE_SPEED=False
+    PREFIXES = ["hp_", "fine_tuned_"] #, "large_"] # "hp_", , "aws_",
+    def check_prefix(self, name):
+        for prefix in self.PREFIXES:
+            if name.startswith(prefix):
+                return True
+        return False
 
     def run(self):
         info = {}
         for root, dirs, files in os.walk(self.path, followlinks=True):
             for name in dirs:
-                if name.startswith("hp_") or name.startswith("aws_") or name.startswith("fine_tuned_"):
-                #if name.startswith("fine_tuned_"):
+                if self.check_prefix(name):
                     #try:
-                    new_info, base_speed_report = self.analyze_run((Path(root) / name).resolve())
+                    new_info, base_speed_report = self.analyze_run((Path(root) / name).resolve(), force_speed=self.FORCE_SPEED)
                     info.update(new_info)
                     #except:
                     #    print("ERROR with", os.path.join(root, name))

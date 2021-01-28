@@ -8,7 +8,6 @@ from pathlib import Path
 from typing import Optional
 
 import transformers
-from datasets import load_dataset
 from transformers import (
     AutoConfig,
     AutoTokenizer,
@@ -42,6 +41,11 @@ class ModelArguments:
     cache_dir: Optional[str] = field(
         default=None,
         metadata={"help": "Path to directory to store the pretrained models downloaded from huggingface.co"},
+    )
+
+    use_fast_tokenizer: bool = field(
+        default=True,
+        metadata={"help": "Whether to use one of the fast tokenizer (backed by the tokenizers library) or not."},
     )
 
 
@@ -227,27 +231,7 @@ class XP:
         set_seed(training_args.seed)
 
     def create_dataset(self):
-        # Get the datasets: you can either provide your own CSV/JSON/TXT training and evaluation files (see below)
-        # or just provide the name of one of the public datasets available on the hub at https://huggingface.co/datasets/
-        # (the dataset will be downloaded automatically from the datasets Hub).
-        #
-        # For CSV/JSON files, this script will use the column called 'text' or the first column if no column called
-        # 'text' is found. You can easily tweak this behavior (see below).
-        #
-        # In distributed training, the load_dataset function guarantee that only one local process can concurrently
-        # download the dataset.
-        data_args = self.data_args
-        if data_args.dataset_name is not None:
-            # Downloading and loading a dataset from the hub.
-            self.datasets = load_dataset(data_args.dataset_name, data_args.dataset_config_name)
-        else:
-            data_files = {}
-            if data_args.train_file is not None:
-                data_files["train"] = data_args.train_file
-            if data_args.validation_file is not None:
-                data_files["validation"] = data_args.validation_file
-            extension = data_args.train_file.split(".")[-1]
-            self.datasets = load_dataset(extension, data_files=data_files, field="data")
+        raise NotImplementedError("Implement in subclass")
 
     def create_config(self):
         # Load pretrained model and tokenizer
@@ -284,14 +268,15 @@ class XP:
         self.trainer = None
         raise RuntimeError("Implement in subclass")
 
+
     def prepare(self):
         self.create_directories()
         self.setup_logging()
         self.initial_message()
         self.setup_random()
+        self.create_tokenizer()
         self.create_dataset()
         self.create_config()
-        self.create_tokenizer()
         self.create_trainer()
 
     def train(self):

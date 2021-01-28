@@ -22,7 +22,7 @@ import os
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from datasets import load_metric
+from datasets import load_metric, load_dataset
 from transformers import (
     AutoModelForQuestionAnswering,
     DataCollatorWithPadding,
@@ -62,6 +62,7 @@ class QADataTrainingArguments(DataTrainingArguments):
         default=20,
         metadata={"help": "The total number of n-best predictions to generate when looking for an answer."},
     )
+
     max_answer_length: int = field(
         default=30,
         metadata={
@@ -91,18 +92,6 @@ class QAXP(XP):
 
     def model_init(self, trial=None):
         return self._model_init(self.model_args, self.config)
-
-    def prepare_column_names(self):
-        training_args = self.training_args
-
-        if training_args.do_train:
-            column_names = self.datasets["train"].column_names
-        else:
-            column_names = self.datasets["validation"].column_names
-        self.column_names = column_names
-        self.question_column_name = "question" if "question" in column_names else column_names[0]
-        self.context_column_name = "context" if "context" in column_names else column_names[1]
-        self.answer_column_name = "answers" if "answers" in column_names else column_names[2]
 
     # Validation preprocessing
     def _prepare_validation_features(self, examples):
@@ -231,6 +220,20 @@ class QAXP(XP):
 
         return tokenized_examples
 
+
+    def prepare_column_names(self):
+        training_args = self.training_args
+
+        if training_args.do_train:
+            column_names = self.datasets["train"].column_names
+        else:
+            column_names = self.datasets["validation"].column_names
+        self.column_names = column_names
+        self.question_column_name = "question" if "question" in column_names else column_names[0]
+        self.context_column_name = "context" if "context" in column_names else column_names[1]
+        self.answer_column_name = "answers" if "answers" in column_names else column_names[2]
+
+
     def prepare_datasets(self):
         dataset_cache_dir = Path(self.data_args.dataset_cache_dir).resolve()
 
@@ -260,6 +263,34 @@ class QAXP(XP):
                 load_from_cache_file=not self.data_args.overwrite_cache,
                 cache_file_name=str(dataset_cache_dir / "eval_dataset"),
             )
+
+
+    def create_dataset(self):
+        # Get the datasets: you can either provide your own CSV/JSON/TXT training and evaluation files (see below)
+        # or just provide the name of one of the public datasets available on the hub at https://huggingface.co/datasets/
+        # (the dataset will be downloaded automatically from the datasets Hub).
+        #
+        # For CSV/JSON files, this script will use the column called 'text' or the first column if no column called
+        # 'text' is found. You can easily tweak this behavior (see below).
+        #
+        # In distributed training, the load_dataset function guarantee that only one local process can concurrently
+        # download the dataset.
+        data_args = self.data_args
+        if data_args.dataset_name is not None:
+            # Downloading and loading a dataset from the hub.
+            self.datasets = load_dataset(data_args.dataset_name, data_args.dataset_config_name)
+        else:
+            data_files = {}
+            if data_args.train_file is not None:
+                data_files["train"] = data_args.train_file
+            if data_args.validation_file is not None:
+                data_files["validation"] = data_args.validation_file
+            extension = data_args.train_file.split(".")[-1]
+            self.datasets = load_dataset(extension, data_files=data_files, field="data")
+
+        self.prepare_column_names()
+        self.prepare_datasets()
+
 
     # Post-processing:
     def _post_processing_function(self, examples, features, predictions, output_dir):
@@ -324,18 +355,6 @@ class QAXP(XP):
             **all_args,
         )
 
-    def prepare(self):
-        self.create_directories()
-        self.setup_logging()
-        self.initial_message()
-        self.setup_random()
-        self.create_dataset()
-        self.create_config()
-        self.create_tokenizer()
-        self.prepare_column_names()
-        self.prepare_datasets()
-        self.create_trainer()
-
     @classmethod
     def evaluate_model(cls, src_path, optimize_mode="dense"):
         src_path = Path(src_path).resolve()
@@ -368,15 +387,3 @@ class QAXP(XP):
         ret = {"timings":j, "metrics":j2}
         return ret
 
-
-def main():
-    QATraining.run_from_command_line()
-
-
-def _mp_fn(index):
-    # For xla_spawn (TPUs)
-    main()
-
-
-if __name__ == "__main__":
-    main()

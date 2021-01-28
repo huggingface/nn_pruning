@@ -71,6 +71,7 @@ def optimize_model(model, mode, clone = True):
     from pytorch_block_sparse import BlockSparseModelPatcher
     import copy
 
+    assert(mode != "disabled")
     if clone == True:
         model = copy.deepcopy(model)
 

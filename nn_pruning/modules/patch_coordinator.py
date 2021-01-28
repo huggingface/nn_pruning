@@ -301,7 +301,8 @@ class ModelPatchingCoordinator:
                     module_nnz = (torch.sigmoid(param - 2 / 3 * np.log(0.1 / 1.1)) > threshold).sum().item()
                 else:
                     assert(False)
-
+            else:
+                continue
             # TEMPORARY : use model info to perform this dispatch
             if not hasattr(self.sparse_args, "attention_output_with_dense") or self.sparse_args.attention_output_with_dense:
                 layer_names = ["key", "query", "value"]
@@ -316,7 +317,6 @@ class ModelPatchingCoordinator:
                 info[key] = defaultdict(float)
 
             key_info = info[key]
-
             key_info["regu"] += module_regu
             key_info["nnz"] += float(module_nnz)
             key_info["numel"] += numel
@@ -508,7 +508,7 @@ class ModelPatchingCoordinator:
 
         patcher = BertLinearModelPatcher(module_patchers)
         patcher.patch(model)
-        assert (patcher.stats["patched"] == 72)
+        #assert (patcher.stats["patched"] == 72 * 2)
 
         return patcher
 

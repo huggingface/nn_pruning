@@ -76,11 +76,15 @@ class AWSExperienceDownloader:
             sh.tar("-zxvf", dest_file_name.name)
 
             to_remove = []
+            to_remove_local = []
+
             for root, dirs, files in os.walk(".", topdown=False):
                 for name in files:
                     # Mark optimizer files for deletion
                     if name == "optimizer.pt":
                         to_remove += [Path(root) / name]
+                    if name == "pytorch_model.bin":
+                        to_remove_local += [Path(root) / name]
 
         print("Cleaning up")
         # Remove the unwanted files
@@ -90,6 +94,12 @@ class AWSExperienceDownloader:
 
         # Remove the tar.gz
         dest_file_name.unlink()
+
+        sh.aws("s3", "sync", str(dest_dir),  "s3://lagunas-sparsity-experiments/backup/nn_pruning/output/squad_test_aws/" + xp_name)
+
+        for f in to_remove_local:
+            print("remove local", f)
+            (dest_dir / f).unlink()
 
         print("Copying to final destination")
         shutil.copytree(dest_dir, final_dest_file)

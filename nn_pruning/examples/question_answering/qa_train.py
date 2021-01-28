@@ -20,6 +20,7 @@ import json
 import os
 from pathlib import Path
 
+from nn_pruning.modules.sparse_trainer import TimingModule
 from nn_pruning.model_patcher import optimize_model
 from transformers import Trainer, is_datasets_available, is_torch_tpu_available
 from transformers.integrations import is_ray_available
@@ -41,6 +42,7 @@ if is_torch_tpu_available():
     import torch_xla.debug.metrics as met
 
 logger = logging.get_logger(__name__)
+
 
 class QATrainer(Trainer):
     def __init__(self, *args, eval_examples=None, post_process_function=None, **kwargs):
@@ -88,6 +90,8 @@ class QATrainer(Trainer):
         if self.args.optimize_model_before_eval != "disabled":
             self.model = optimize_model(self.model, self.args.optimize_model_before_eval)
 
+        self.model = TimingModule(self.model)
+
         try:
             output = self.prediction_loop(
                 eval_dataloader,
@@ -98,11 +102,16 @@ class QATrainer(Trainer):
                 ignore_keys=ignore_keys,
             )
         finally:
+            cudaEvalTime, cudaEvalCount = self.model.get_results()
+            cudaEvalTime = 1e-3 * cudaEvalTime
             self.model = model_save
             self.compute_metrics = compute_metrics
 
         evalTime = timeit.default_timer() - start_time
         logger.info("  Evaluation done in total %f secs (%f sec per example)", evalTime, evalTime / len(eval_dataset))
+
+        logger.info("  Cuda time %f secs (%f sec per example)", cudaEvalTime, cudaEvalTime / len(eval_dataset))
+
         # We might have removed columns from the dataset so we put them back.
         if isinstance(eval_dataset, datasets.Dataset):
             eval_dataset.set_format(
@@ -116,7 +125,7 @@ class QATrainer(Trainer):
 
         timing_file = os.path.join(checkpoint_dir, "evaluate_timing.json")
         with open(timing_file, "w") as f:
-            f.write(json.dumps({"eval_elapsed_time": evalTime}))
+            f.write(json.dumps({"eval_elapsed_time": evalTime, "cuda_eval_elapsed_time":cudaEvalTime}))
 
         if self.post_process_function is not None and self.compute_metrics is not None:
             eval_preds = self.post_process_function(eval_examples, eval_dataset, output.predictions, checkpoint_dir)

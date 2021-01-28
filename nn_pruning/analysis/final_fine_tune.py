@@ -21,7 +21,7 @@ def main(checkpoint_list_file):
     new_source_points = []
     for s in source_points:
         speedup = s["speedup"]
-        if speedup > last_speedup * 1.15:
+        if speedup > last_speedup * 1.00:
             new_source_points.append(s)
             last_speedup = speedup
 
@@ -34,15 +34,17 @@ def main(checkpoint_list_file):
     for source_point in source_points:
         src_path = Path(source_point["meta"]["path"])
         key = src_path.parent.name
-        assert(key.startswith("hp_"))
+        assert(key.startswith("hp_") or key.startswith("aws_") or key.startswith("large_"))
         dest_key = "fine_tuned_" + key
         dest_path = src_path.parent.parent.parent / "squad_test_final_fine_tune" / dest_key
+        dest_path = dest_path.resolve()
         if dest_path.exists():
             print("SKIPPING", dest_path.name)
+            continue
         else:
             print("PROCESSING", dest_path.name)
 
-        tmp_path = Path("tmp_finetune/")
+        tmp_path = Path("tmp_finetune/").resolve()
         if tmp_path.exists():
             shutil.rmtree(tmp_path)
         shutil.copytree(src_path, tmp_path)
@@ -53,7 +55,10 @@ def main(checkpoint_list_file):
             if file_to_remove_.exists():
                 file_to_remove_.unlink()
 
-        qa_sparse_xp.QASparseXP.final_finetune(str(tmp_path.resolve()), str(dest_path.resolve()))
+        dest_path.mkdir(exist_ok=True)
+        with (dest_path / "source.txt").open("w") as f:
+            f.write(str(src_path))
+        qa_sparse_xp.QASparseXP.final_finetune(str(tmp_path), str(dest_path))
 
 if __name__ == "__main__":
     #checkpoint_list_file = sys.argv[1]
