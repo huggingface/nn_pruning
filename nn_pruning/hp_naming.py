@@ -20,6 +20,7 @@ class TrialShortNamer:
     PREFIX = "hp"
     DEFAULTS = {}
     NAMING_INFO = None
+    MAX_LENGTH = 200
 
     @classmethod
     def set_defaults(cls, prefix, defaults):
@@ -112,7 +113,14 @@ class TrialShortNamer:
             e = f"{key}{sep}{v}"
             name.append(e)
 
-        return "_".join(name).replace("/", "__")
+        ret = "_".join(name).replace("/", "__")
+
+        if len(ret) > cls.MAX_LENGTH:
+            h = hex(abs(hash(ret)))[2:]
+            ret = ret[:cls.MAX_LENGTH]
+            ret = ret[:-len(h) - 2]
+            ret = ret + "--" + h
+        return ret
 
     @classmethod
     def parse_repr(cls, repr):

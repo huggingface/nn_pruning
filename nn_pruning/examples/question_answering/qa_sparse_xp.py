@@ -137,7 +137,11 @@ class QASparseXP(QAXP):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.patch_coordinator = ModelPatchingCoordinator(
-            self.sparse_args, self.training_args.device, self.model_args.cache_dir
+            self.sparse_args,
+            self.training_args.device,
+            self.model_args.cache_dir,
+            logit_names=["start_logits", "end_logits"],
+            teacher_constructor = AutoModelForQuestionAnswering
         )
 
     def create_trainer(self, *args, **kwargs):

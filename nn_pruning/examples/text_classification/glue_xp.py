@@ -115,10 +115,27 @@ class GlueXP(XP):
         )
         return model
 
+    def create_config(self):
+        # Load pretrained model and tokenizer
+        #
+        # Distributed training:
+        # The .from_pretrained methods guarantee that only one local process can concurrently
+        # download model & vocab.
+        model_args = self.model_args
+
+        self.config = AutoConfig.from_pretrained(
+            model_args.config_name if model_args.config_name else model_args.model_name_or_path,
+            num_labels=self.num_labels,
+            finetuning_task=self.data_args.task_name,
+            cache_dir=model_args.cache_dir,
+        )
+
+        return self.config
+
     def model_init(self, trial=None):
         return self._model_init(self.model_args, self.config)
 
-    def create_datasets(self):
+    def create_dataset(self):
         # Get the datasets: you can either provide your own CSV/JSON training and evaluation files (see below)
         # or specify a GLUE benchmark task (the dataset will be downloaded automatically from the datasets Hub).
         #
@@ -132,7 +149,6 @@ class GlueXP(XP):
         # In distributed training, the load_dataset function guarantee that only one local process can concurrently
         # download the dataset.
         data_args = self.data_args
-        model_args = self.model_args
 
         if data_args.task_name is not None:
             # Downloading and loading a dataset from the hub.
@@ -249,20 +265,32 @@ class GlueXP(XP):
                 result["label"] = [label_to_id[l] for l in examples["label"]]
             return result
 
+        cache_file_names = {}
+        cache_dir = (Path(data_args.dataset_cache_dir) / data_args.task_name).resolve()
+        cache_dir.mkdir(exist_ok=True, parents=True)
+        for key in ["train"]:
+            cache_file_names[key] =  str(cache_dir / key)
+
+        for key in ["validation", "test"]:
+            for matched in ["matched", "mismatched"]:
+                key_matched = "_".join([key, matched])
+                cache_file_names[key_matched] = str(cache_dir / key_matched)
+
         datasets = datasets.map(
             preprocess_function,
             batched=True,
             load_from_cache_file=not data_args.overwrite_cache,
+            cache_file_names = cache_file_names
         )
 
-        train_dataset = datasets["train"]
-        eval_dataset = datasets["validation_matched" if data_args.task_name == "mnli" else "validation"]
+        self.train_dataset = datasets["train"]
+        self.eval_dataset = datasets["validation_matched" if data_args.task_name == "mnli" else "validation"]
         if data_args.task_name is not None:
-            test_dataset = datasets["test_matched" if data_args.task_name == "mnli" else "test"]
+            self.test_dataset = datasets["test_matched" if data_args.task_name == "mnli" else "test"]
 
         # Log a few random samples from the training set:
-        for index in random.sample(range(len(train_dataset)), 3):
-            logger.info(f"Sample {index} of the training set: {train_dataset[index]}.")
+        for index in random.sample(range(len(self.train_dataset)), 3):
+            logger.info(f"Sample {index} of the training set: {self.train_dataset[index]}.")
 
 
     def create_trainer(self):
@@ -302,7 +330,7 @@ class GlueXP(XP):
             model=None,
             args=training_args,
             train_dataset=self.train_dataset if training_args.do_train else None,
-            eval_dataset=self.validation_dataset if training_args.do_eval else None,
+            eval_dataset=self.eval_dataset if training_args.do_eval else None,
             compute_metrics=compute_metrics,
             tokenizer=self.tokenizer,
             # Data collator will default to DataCollatorWithPadding, so we change it if we already did the padding.
@@ -310,16 +338,6 @@ class GlueXP(XP):
             model_init=self.model_init,
             **all_args,
         )
-
-    def prepare(self):
-        self.create_directories()
-        self.setup_logging()
-        self.initial_message()
-        self.setup_random()
-        self.create_dataset()
-        self.create_config()
-        self.create_tokenizer()
-        self.create_trainer()
 
     @classmethod
     def evaluate_model(cls, src_path, optimize_mode="dense"):

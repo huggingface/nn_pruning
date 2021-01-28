@@ -12,8 +12,11 @@ def main():
 
     import nn_pruning.examples.text_classification.glue_sparse_xp as glue_sparse_xp
 
-    qa = glue_sparse_xp.GlueSparseXP(param_dict)
-    qa.run()
+    glue = glue_sparse_xp.GlueSparseXP(param_dict)
+    def hp_space(trial):
+        return {}
+
+    glue.hyperparameter_search(direction="minimize", hp_space=hp_space, n_trials=1)
 
 
 def _mp_fn(index):

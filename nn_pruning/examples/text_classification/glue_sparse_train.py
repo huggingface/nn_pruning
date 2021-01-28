@@ -21,7 +21,7 @@ from nn_pruning.modules.sparse_trainer import SparseTrainer
 from .glue_train import GlueTrainer
 
 # SparseTrainer should appear first in the base classes, as its functions must override QATrainer and its base classes (Trainer)
-class QASparseTrainer(SparseTrainer, GlueTrainer):
+class GlueSparseTrainer(SparseTrainer, GlueTrainer):
     def __init__(self, sparse_args, *args, **kwargs):
         GlueTrainer.__init__(self, *args, **kwargs)
         SparseTrainer.__init__(self, sparse_args)

@@ -27,117 +27,116 @@ from nn_pruning.model_patcher import optimize_model
 
 from nn_pruning.hp_naming import TrialShortNamer
 from nn_pruning.modules.patch_coordinator import SparseTrainingArguments, ModelPatchingCoordinator
-from .qa_sparse_train import QASparseTrainer
-from .qa_xp import (
-    QAXP,
+from .glue_sparse_train import GlueSparseTrainer
+from .glue_xp import (
+    GlueXP,
     ModelArguments,
-    QADataTrainingArguments,
+    GlueDataTrainingArguments,
     XPTrainingArguments,
 )
-from transformers import AutoModelForQuestionAnswering
+from transformers import AutoModelForSequenceClassification
 import tempfile
 
 
-class SparseQAShortNamer(TrialShortNamer):
+class SparseGlueShortNamer(TrialShortNamer):
     DEFAULTS = {
         "adam_beta1": 0.9,
         "adam_beta2": 0.999,
         "adam_epsilon": 1e-08,
         "ampere_pruning_method": "disabled",
-        "attention_block_cols": 768,
-        "attention_block_rows": 64,
+        "attention_block_cols": 32,
+        "attention_block_rows": 32,
         "attention_lambda": 1.0,
-        "attention_output_with_dense": True,
-        "attention_pruning_method": "topK",
-        "bias_mask": False,
+        "attention_output_with_dense": 0,
+        "attention_pruning_method": "sigmoied_threshold",
+        "bias_mask": True,
         "dataloader_drop_last": False,
         "dataloader_num_workers": 0,
-        "dataset_cache_dir": "dataset_cache",
-        "dataset_name": "squad",
+        "dataset_cache_dir": "dataset_cache_dir",
         "debug": False,
         "dense_block_cols": 1,
         "dense_block_rows": 1,
         "dense_lambda": 1.0,
-        "dense_pruning_method": "topK",
+        "dense_pruning_method": "sigmoied_threshold:1d_alt",
         "disable_tqdm": False,
         "distil_alpha_ce": 0.1,
         "distil_alpha_teacher": 0.9,
-        "distil_teacher_name_or_path": None,
+        "distil_teacher_name_or_path": "aloxatel/bert-base-mnli",
         "distil_temperature": 2.0,
-        "doc_stride": 128,
         "do_eval": 1,
         "do_predict": False,
         "do_train": 1,
-        "evaluation_strategy": "epoch",
-        "eval_steps": 500,
+        "doc_stride": 128,
+        "eval_steps": 5000,
+        "evaluation_strategy": "steps",
         "final_ampere_temperature": 20.0,
-        "final_finetune": 0,
+        "final_finetune": False,
         "final_threshold": 0.1,
-        "final_warmup": 2,
+        "final_warmup": 5,
         "fp16": False,
         "fp16_opt_level": "O1",
-        "fp16_backend": "auto",
         "gradient_accumulation_steps": 1,
         "ignore_data_skip": False,
         "initial_ampere_temperature": 0.0,
-        "initial_threshold": 1,
+        "initial_threshold": 0,
         "initial_warmup": 1,
         "learning_rate": 3e-05,
         "load_best_model_at_end": False,
         "local_rank": -1,
         "logging_first_step": False,
-        "logging_steps": 500,
+        "logging_steps": 250,
         "mask_init": "constant",
         "mask_scale": 0.0,
         "mask_scores_learning_rate": 0.01,
-        "max_answer_length": 30,
         "max_grad_norm": 1.0,
-        "max_seq_length": 384,
+        "max_seq_length": 128,
         "max_steps": -1,
         "model_name_or_path": "bert-base-uncased",
         "model_parallel": False,
-        "n_best_size": 20,
         "no_cuda": False,
-        "null_score_diff_threshold": 0.0,
         "num_train_epochs": 10,
-        "output_dir": "output/squad_test",
         "optimize_model_before_eval": "disabled",
+        "output_dir": "output/mnli_test/",
         "overwrite_cache": 0,
         "overwrite_output_dir": 1,
         "pad_to_max_length": True,
         "past_index": -1,
         "per_device_eval_batch_size": 8,
-        "per_device_train_batch_size": 16,
+        "per_device_train_batch_size": 1,
         "prediction_loss_only": False,
-        "regularization": "disabled",
-        "regularization_final_lambda": 0.0,
+        "regularization": "l1",
+        "regularization_final_lambda": 10,
         "remove_unused_columns": True,
-        "run_name": "output/squad_test",
+        "run_name": "output/mnli_test/",
         "save_steps": 5000,
-        "save_total_limit": 5,
+        "save_total_limit": 50,
         "seed": 17,
-        "sharded_ddp": False,
+        "task_name": "mnli",
         "tpu_metrics_debug": False,
-        "version_2_with_negative": False,
+        "use_fast_tokenizer": True,
         "warmup_steps": 5400,
         "weight_decay": 0.0,
     }
 
 
-class QASparseXP(QAXP):
+class GlueSparseXP(GlueXP):
     ARGUMENTS = {
         "model": ModelArguments,
-        "data": QADataTrainingArguments,
+        "data": GlueDataTrainingArguments,
         "training": XPTrainingArguments,
         "sparse": SparseTrainingArguments,
     }
-    QA_TRAINER_CLASS = QASparseTrainer
-    SHORT_NAMER = SparseQAShortNamer
+    GLUE_TRAINER_CLASS = GlueSparseTrainer
+    SHORT_NAMER = SparseGlueShortNamer
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.patch_coordinator = ModelPatchingCoordinator(
-            self.sparse_args, self.training_args.device, self.model_args.cache_dir
+            self.sparse_args,
+            self.training_args.device,
+            self.model_args.cache_dir,
+            logit_names=["logits"],
+            teacher_constructor=AutoModelForSequenceClassification,
         )
 
     def create_trainer(self, *args, **kwargs):
@@ -167,12 +166,16 @@ class QASparseXP(QAXP):
             self.patch_coordinator.patch_model(model, trial)
         return model
 
-
     @classmethod
     def fix_last_checkpoint_bug_checkpoint(cls, checkpoint_path):
         # Special stuff : add link to compensate for bug
-        for link_name in ["pytorch_model.bin", "training_args.bin", "vocab.txt", "tokenizer_config.json",
-                          "special_tokens_map.json"]:
+        for link_name in [
+            "pytorch_model.bin",
+            "training_args.bin",
+            "vocab.txt",
+            "tokenizer_config.json",
+            "special_tokens_map.json",
+        ]:
             filename = checkpoint_path / link_name
             print(filename)
             filename_parent = Path("..") / link_name
@@ -191,7 +194,7 @@ class QASparseXP(QAXP):
     @classmethod
     def final_fine_tune_bertarize(cls, src_path, dest_path):
         src_path = Path(src_path)
-        assert(dest_path is not None)
+        assert dest_path is not None
         dest_path = Path(dest_path)
 
         config = json.load((src_path / "config.json").open())
@@ -220,9 +223,9 @@ class QASparseXP(QAXP):
             if correct_shape is not None and v.shape != correct_shape:
                 z = torch.zeros(correct_shape, device=v.device)
                 if len(correct_shape) == 1:
-                    z[:v.shape[0]] = v
+                    z[: v.shape[0]] = v
                 else:
-                    z[:v.shape[0], :v.shape[1]] = v
+                    z[: v.shape[0], : v.shape[1]] = v
                 v = z
 
             new_m[k] = v
@@ -235,7 +238,6 @@ class QASparseXP(QAXP):
         model = AutoModelForQuestionAnswering.from_pretrained(dest_path, from_tf=False)
 
         return model
-
 
     @classmethod
     def compile_model(cls, src_path, dest_path=None):
@@ -285,7 +287,6 @@ class QASparseXP(QAXP):
 
         return model
 
-
     @classmethod
     def final_finetune(cls, src_path, dest_path):
         param_dict = {
@@ -321,11 +322,7 @@ class QASparseXP(QAXP):
             "attention_output_with_dense": 0,
         }
 
-        qa = cls(param_dict)
-        qa.run()
+        glue = cls(param_dict)
+        glue.run()
 
         cls.fix_last_checkpoint_bug(dest_path)
-
-
-
-

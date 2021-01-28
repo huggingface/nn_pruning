@@ -177,10 +177,14 @@ class SparseTrainingArguments:
 class ModelPatchingCoordinator:
     MODEL_STRUCTURE = BertStructure
 
-    def __init__(self, sparse_args, device, cache_dir):
+    def __init__(self, sparse_args, device, cache_dir, logit_names, teacher_constructor):
+        # logit_names is ["start_logits", "end_logits"] for qa, ["logits"] for glue etc
+        # teacher modle is AutoModelForQuestionAnswering for qa, AutoModelForSequenceClassification for glue etc
         self.sparse_args = sparse_args
         self.patcher_context = PatcherContext()
+        self.teacher_constructor = teacher_constructor
         self.teacher = self.create_teacher(device, cache_dir)
+        self.logit_names = logit_names
 
     def parse_pruning_method(self, method):
         parts = method.split(":")
@@ -210,7 +214,7 @@ class ModelPatchingCoordinator:
 
             model_config = AutoConfig.from_pretrained(sparse_args.distil_teacher_name_or_path, cache_dir=cache_dir)
 
-            teacher = AutoModelForQuestionAnswering.from_pretrained(
+            teacher = self.teacher_constructor.from_pretrained(
                 sparse_args.distil_teacher_name_or_path,
                 from_tf=bool(".ckpt" in sparse_args.distil_teacher_name_or_path),
                 config=model_config,
@@ -363,33 +367,27 @@ class ModelPatchingCoordinator:
 
         temperature = sparse_args.distil_temperature
 
-        start_logits_stu, end_logits_stu = model_outputs["start_logits"], model_outputs["end_logits"]
-
         with torch.no_grad():
-            teacher_out = teacher(
+            teacher_outputs = teacher(
                 input_ids=model_inputs["input_ids"],
                 token_type_ids=model_inputs["token_type_ids"],
                 attention_mask=model_inputs["attention_mask"],
             )
-            start_logits_tea, end_logits_tea = teacher_out["start_logits"], teacher_out["end_logits"]
 
-        loss_start = (
-            nn_functional.kl_div(
-                input=nn_functional.log_softmax(start_logits_stu / temperature, dim=-1),
-                target=nn_functional.softmax(start_logits_tea / temperature, dim=-1),
+        loss_logits = 0
+        for logit_name in self.logit_names:
+            logits_stu = model_outputs[logit_name]
+            logits_tea = teacher_outputs[logit_name]
+
+            loss_logits_part = nn_functional.kl_div(
+                input=nn_functional.log_softmax(logits_stu / temperature, dim=-1),
+                target=nn_functional.softmax(logits_tea / temperature, dim=-1),
                 reduction="batchmean",
-            )
-            * (temperature ** 2)
-        )
-        loss_end = (
-            nn_functional.kl_div(
-                input=nn_functional.log_softmax(end_logits_stu / temperature, dim=-1),
-                target=nn_functional.softmax(end_logits_tea / temperature, dim=-1),
-                reduction="batchmean",
-            )
-            * (temperature ** 2)
-        )
-        loss_logits = (loss_start + loss_end) / 2.0
+            ) * (temperature ** 2)
+
+            loss_logits += loss_logits_part
+
+        loss_logits /= len(self.logit_names)
 
         loss = sparse_args.distil_alpha_teacher * loss_logits + sparse_args.distil_alpha_ce * ce_loss
 

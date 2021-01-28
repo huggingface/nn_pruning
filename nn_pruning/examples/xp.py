@@ -245,6 +245,7 @@ class XP:
             model_args.config_name if model_args.config_name else model_args.model_name_or_path,
             cache_dir=model_args.cache_dir,
         )
+        return self.config
 
     def create_tokenizer(self):
         # See more about loading any type of standard or custom dataset (from files, python dict, pandas DataFrame, etc) at
