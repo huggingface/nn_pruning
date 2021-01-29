@@ -125,11 +125,14 @@ class ModelSpeedEvaluate(ModelStatsExtractBase):
         return ret
 
 class ModelAnalysis:
-    def __init__(self, path, output_file_name, min_f1 = 85):
+    def __init__(self, path, output_file_name, min_f1 = 85, only_names = False, force_speed = False, prefixes = None):
         self.path = Path(path).resolve()
         self.total_checkpoints = 0
         self.output_file_name = output_file_name
         self.min_f1 = min_f1
+        self.only_names = only_names
+        self.force_speed = force_speed
+        self.prefixes = prefixes
 
     def checkpoint_index(self, name):
         return int(name[0][len("checkpoint-"):])
@@ -198,12 +201,15 @@ class ModelAnalysis:
         ret = {}
         base_speed_report = None
         for i, k in enumerate(filtered):
-            print("Processing", self.total_checkpoints)
             checkpoint_path = path / k[0]
 
-            print(checkpoint_path)
+            if self.only_names:
+                print(checkpoint_path)
+                continue
+            else:
+                print("Processing", self.total_checkpoints)
 
-#            try:
+            #            try:
             ret[str(checkpoint_path)], base_speed_report = self.process_checkpoint(checkpoint_path, force_speed=force_speed)
 #            except Exception as e:
 #                print(f"ERROR with {checkpoint_path}: {e}")
@@ -211,10 +217,9 @@ class ModelAnalysis:
         return ret, base_speed_report
 
     #PREFIXES = ["fine_tuned_"]
-    FORCE_SPEED=False
-    PREFIXES = ["hp_", "fine_tuned_"] #, "large_"] # "hp_", , "aws_",
+
     def check_prefix(self, name):
-        for prefix in self.PREFIXES:
+        for prefix in self.prefixes:
             if name.startswith(prefix):
                 return True
         return False
@@ -225,18 +230,23 @@ class ModelAnalysis:
             for name in dirs:
                 if self.check_prefix(name):
                     #try:
-                    new_info, base_speed_report = self.analyze_run((Path(root) / name).resolve(), force_speed=self.FORCE_SPEED)
+                    new_info, base_speed_report = self.analyze_run((Path(root) / name).resolve(), force_speed=self.force_speed)
                     info.update(new_info)
                     #except:
                     #    print("ERROR with", os.path.join(root, name))
 
         info = {"checkpoints":info, "base_speed_report":base_speed_report}
 
-        with open(self.output_file_name, "w") as f:
-            json.dump(info, f)
+        if not self.only_names:
+            with open(self.output_file_name, "w") as f:
+                json.dump(info, f)
 
 
 if __name__ == "__main__":
     import sys
-    ma = ModelAnalysis(sys.argv[1], sys.argv[2])
+    ma = ModelAnalysis(sys.argv[1],
+                       sys.argv[2],
+                       only_names = False,
+                       force_speed=False,
+                       prefixes = ["fine_tuned_", "hp_", "large_", "aws_"])
     ma.run()

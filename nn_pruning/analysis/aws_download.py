@@ -5,6 +5,7 @@ import time
 from pathlib import Path
 import sh
 import shutil
+import sys
 
 def s3_get_meta_data(conn, bucket, key):
     meta_data = conn.head_object(Bucket=bucket, Key=key)
@@ -83,8 +84,6 @@ class AWSExperienceDownloader:
                     # Mark optimizer files for deletion
                     if name == "optimizer.pt":
                         to_remove += [Path(root) / name]
-                    if name == "pytorch_model.bin":
-                        to_remove_local += [Path(root) / name]
 
         print("Cleaning up")
         # Remove the unwanted files
@@ -95,14 +94,14 @@ class AWSExperienceDownloader:
         # Remove the tar.gz
         dest_file_name.unlink()
 
-        sh.aws("s3", "sync", str(dest_dir),  "s3://lagunas-sparsity-experiments/backup/nn_pruning/output/squad_test_aws/" + xp_name)
+        sh.aws("s3", "sync", str(dest_dir),  "s3://lagunas-sparsity-experiments/backup/nn_pruning/output/squad_test_aws/" + xp_name, _out=sys.stdout, _err = sys.stderr)
 
         for f in to_remove_local:
             print("remove local", f)
             (dest_dir / f).unlink()
 
         print("Copying to final destination")
-        shutil.copytree(dest_dir, final_dest_file)
+        shutil.copytree(dest_dir, final_dest_file, dirs_exist_ok=True)
 
         print("Removing temporary dir")
         shutil.rmtree(self.tmp_dir)
@@ -110,7 +109,9 @@ class AWSExperienceDownloader:
         # Special stuff : add link to compensate for bug
         for link_name in ["pytorch_model.bin", "training_args.bin", "vocab.txt", "tokenizer_config.json",
                           "special_tokens_map.json"]:
-            (final_dest_file / "checkpoint-110660" / link_name).symlink_to(final_dest_file / link_name)
+            link = final_dest_file / "checkpoint-110660" / link_name
+            if not link.exists():
+                link.symlink_to(final_dest_file / link_name)
 
     def load(self, version):
         dirs = self.s3client.list_objects_v2(Bucket=self.sagemaker_bucket, Delimiter='/')
@@ -126,4 +127,5 @@ downloader = AWSExperienceDownloader(sagemaker_bucket,
                                      Path("__file__").parent / "tmp",
                                      "/data_2to/devel_data/nn_pruning/output/squad_test_aws/")
 
-downloader.load(version="v9")
+for version in ["v10", "v11"]:
+    downloader.load(version=version)

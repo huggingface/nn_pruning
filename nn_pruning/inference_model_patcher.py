@@ -2,6 +2,7 @@ from .model_patcher import ModelPatcher
 import torch
 import torch.nn as nn
 
+
 class BertHeadsPruner:
     def __init__(self, model):
         self.model = model
@@ -41,49 +42,14 @@ class BertHeadsPruner:
 
 
 class SparseDimensionsLinear(nn.Module):
-    def __init__(
-        self,
-        linear,
-        prune_input=True,
-        prune_output=True,
-        input_keep_dimension=True,
-        output_keep_dimension=True,
-        name=None,
-    ):
+    def __init__(self, in_features, out_features, weight, bias, input_extract, output_expand, name=None):
         super().__init__()
         self.name = name
-        weight = linear.weight.detach()
-        c_sparsity, c = self.get_sparsity(weight, 0, prune_input)
-        r_sparsity, r = self.get_sparsity(weight, 1, prune_output)
-        self.in_features = linear.in_features
-        self.out_features = linear.out_features
+        self.in_features = in_features
+        self.out_features = out_features
 
-        print("SparseDimensionsLinear", name, c_sparsity, r_sparsity)
-        if c_sparsity != 0 and input_keep_dimension:
-            assert False
-            self.register_buffer("input_extract", c)
-        else:
-            self.register_buffer("input_extract", None)
-
-        if r_sparsity != 0 and output_keep_dimension:
-            assert False
-            self.register_buffer("output_expand", r)
-        else:
-            self.register_buffer("output_expand", None)
-
-        if r is not None:
-            weight = weight[r, :]
-        if c is not None:
-            weight = weight[:, c]
-        # print(weight.shape)
-
-        # print(f"c_sparsity={c_sparsity}, r_sparsity={r_sparsity}")
-        # print(self.input_extract, self.output_expand)
-        # print("remaining %0.2f %% " % (100 * weight.numel()  / weight0.numel()))
-
-        bias = linear.bias.detach()
-        if r is not None:
-            bias = bias[r]
+        self.register_buffer("input_extract", input_extract)
+        self.register_buffer("output_expand", output_expand)
 
         new_linear = torch.nn.Linear(weight.shape[1], weight.shape[0], bias=True).to(weight.device)
         with torch.no_grad():
@@ -91,7 +57,8 @@ class SparseDimensionsLinear(nn.Module):
             new_linear.bias.copy_(bias)
         self.linear = new_linear
 
-    def get_sparsity(self, w, dim, prune):
+    @classmethod
+    def get_sparsity(cls, w, dim, prune):
         if prune:
             l = (w != 0).sum(dim)
             nnz = (l != 0).sum()
@@ -104,6 +71,55 @@ class SparseDimensionsLinear(nn.Module):
             return 1.0 - (float(nnz) / l.numel()), idx
         else:
             return 0.0, None
+
+    @classmethod
+    def create(
+        cls,
+        linear,
+        prune_input=True,
+        prune_output=True,
+        input_keep_dimension=True,
+        output_keep_dimension=True,
+        name=None,
+    ):
+        weight = linear.weight.detach()
+        c_sparsity, c = cls.get_sparsity(weight, 0, prune_input)
+        r_sparsity, r = cls.get_sparsity(weight, 1, prune_output)
+        in_features = linear.in_features
+        out_features = linear.out_features
+
+        if c_sparsity != 0 and input_keep_dimension:
+            input_extract = c
+        else:
+            input_extract = None
+
+        if r_sparsity != 0 and output_keep_dimension:
+            output_expand = r
+        else:
+            output_expand = None
+
+        sparsity = max(r_sparsity, c_sparsity) * 100
+        print(f"{name}, sparsity = {sparsity:0.2f}")
+
+        if r is not None:
+            weight = weight[r, :]
+        if c is not None:
+            weight = weight[:, c]
+
+        bias = linear.bias.detach()
+        if r is not None:
+            bias = bias[r]
+
+        if input_extract is None and output_expand is None:
+            new_linear = torch.nn.Linear(weight.shape[1], weight.shape[0], bias=True).to(weight.device)
+            with torch.no_grad():
+                new_linear.weight.copy_(weight)
+                new_linear.bias.copy_(bias)
+            ret = new_linear
+        else:
+            ret = SparseDimensionsLinear(in_features, out_features, weight, bias, input_extract, output_expand, name)
+
+        return ret
 
     def forward(self, batch):
         if self.input_extract is not None:
@@ -136,6 +152,7 @@ class InferenceModelPatcher(ModelPatcher):
 
     def new_child_module_block_sparse(self, child_module_name, child_module, patch_info):
         from pytorch_block_sparse.block_sparse_linear import BlockSparseLinear, PseudoBlockSparseLinear
+
         density = patch_info.get("density")
         pseudo = patch_info.get("pseudo_linear")
         if pseudo:
@@ -160,16 +177,20 @@ class InferenceModelPatcher(ModelPatcher):
         return 1.0 - (nnz / r.numel()), r != 0
 
     def new_child_module_dense(self, child_module_name, child_module, patch_info):
-        output_keep_dimension = patch_info.get("output_keep_dimension", True)
         input_keep_dimension = patch_info.get("input_keep_dimension", True)
+        prune_input = patch_info.get("prune_input", True)
+        output_keep_dimension = patch_info.get("output_keep_dimension", True)
+        prune_output = patch_info.get("prune_output", True)
 
         # print(child_module_name, input_keep_dimension, output_keep_dimension)
 
-        return SparseDimensionsLinear(
+        return SparseDimensionsLinear.create(
             child_module,
             input_keep_dimension=input_keep_dimension,
             output_keep_dimension=output_keep_dimension,
             name=child_module_name,
+            prune_input=prune_input,
+            prune_output=prune_output,
         )
 
     def new_child_module(self, child_module_name, child_module, patch_info):
@@ -189,10 +210,11 @@ class InferenceModelPatcher(ModelPatcher):
 
         super().patch(model)
 
-def optimize_model(model, mode, clone = True):
+
+def optimize_model(model, mode, clone=True):
     import copy
 
-    assert(mode != "disabled")
+    assert mode != "disabled"
     if clone == True:
         model = copy.deepcopy(model)
 
@@ -205,21 +227,27 @@ def optimize_model(model, mode, clone = True):
         n0 = f"bert.encoder.layer.{layer_number}.intermediate.dense.weight"
         n1 = f"bert.encoder.layer.{layer_number}.output.dense.weight"
 
-        output_mask = (params[n0].abs().sum(1) == 0)
-        input_mask = (params[n1].abs().sum(0) == 0)
+        output_mask = params[n0].abs().sum(1) == 0
+        input_mask = params[n1].abs().sum(0) == 0
 
         with torch.no_grad():
             params[n0][input_mask] = 0
-            params[n1][:,output_mask] = 0
+            params[n1][:, output_mask] = 0
 
     # Create a model patcher
-    mp = InferenceModelPatcher(prune_heads=True, mode = mode)
+    mp = InferenceModelPatcher(prune_heads=True, mode=mode)
     #    for l in mp.get_patchable_layers(model):
     #        print(l)
-    #mp.add_pattern("bert\\.encoder\\.layer\\.[0-9+]\\.attention\\.self\\.(query|key|value)", {})
-    #mp.add_pattern("bert\\.encoder\\.layer\\.[0-9]+\\.attention\\.output\\.dense", {})
-    mp.add_pattern("bert\\.encoder\\.layer\\.[0-9]+\\.intermediate\\.dense", {"input_keep_dimension":True, "output_keep_dimension":False})
-    mp.add_pattern("bert\\.encoder\\.layer\\.[0-9]+\\.output\\.dense", {"output_keep_dimension":True, "input_keep_dimension":False})
+    # mp.add_pattern("bert\\.encoder\\.layer\\.[0-9+]\\.attention\\.self\\.(query|key|value)", {})
+    # mp.add_pattern("bert\\.encoder\\.layer\\.[0-9]+\\.attention\\.output\\.dense", {})
+    mp.add_pattern(
+        "bert\\.encoder\\.layer\\.[0-9]+\\.intermediate\\.dense",
+        {"input_keep_dimension": True, "output_keep_dimension": False, "prune_input":False, "prune_output":True},
+    )
+    mp.add_pattern(
+        "bert\\.encoder\\.layer\\.[0-9]+\\.output\\.dense",
+        {"output_keep_dimension": True, "input_keep_dimension": False, "prune_input":True, "prune_output":False},
+    )
 
     mp.patch_model(model)
     return model

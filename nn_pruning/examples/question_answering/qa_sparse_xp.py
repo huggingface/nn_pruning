@@ -23,7 +23,7 @@ import shutil
 from pathlib import Path
 from types import SimpleNamespace
 import torch
-from nn_pruning.model_patcher import optimize_model
+from nn_pruning.inference_model_patcher import optimize_model
 
 from nn_pruning.hp_naming import TrialShortNamer
 from nn_pruning.modules.patch_coordinator import SparseTrainingArguments, ModelPatchingCoordinator
@@ -137,11 +137,7 @@ class QASparseXP(QAXP):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.patch_coordinator = ModelPatchingCoordinator(
-            self.sparse_args,
-            self.training_args.device,
-            self.model_args.cache_dir,
-            logit_names=["start_logits", "end_logits"],
-            teacher_constructor = AutoModelForQuestionAnswering
+            self.sparse_args, self.training_args.device, self.model_args.cache_dir
         )
 
     def create_trainer(self, *args, **kwargs):
@@ -274,7 +270,12 @@ class QASparseXP(QAXP):
         model_args.model_name_or_path = str(src_path)
 
         model = cls._model_init(model_args, model_config)
-        patcher = ModelPatchingCoordinator(sparse_args, "cuda", None)
+        patcher = ModelPatchingCoordinator(sparse_args,
+                                           device = "cuda",
+                                           cache_dir = None,
+                                           logit_names = ["start_logits", "end_logits"],
+                                           teacher_constructor = AutoModelForQuestionAnswering)
+
         patcher.patch_model(model, trial=None)
 
         state_dict = torch.load(src_path / model_bin_name)
