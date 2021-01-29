@@ -506,7 +506,7 @@ class ModelPatchingCoordinator:
 
         patcher = BertLinearModelPatcher(module_patchers)
         patcher.patch(model)
-        #assert (patcher.stats["patched"] == 72 * 2)
+        assert ((patcher.stats["patched"] % 72) == 0)
 
         return patcher
 

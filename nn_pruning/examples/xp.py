@@ -123,7 +123,7 @@ class XPTrainingArguments(TrainingArguments):
     optimize_model_before_eval: str = field(
         default="disabled",
         metadata={
-            "help": "Apply some optimization to model before evaluation (use pytorch_block_sparse.BlockSparseModelPatcher)."
+            "help": "Apply some optimization to model before evaluation (use nn_pruning.inference_model_patcher.InferencePatcher)."
                     "Valid values: disabled, block_sparse, dense"
         },
     )

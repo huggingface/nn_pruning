@@ -86,7 +86,7 @@ class PlotterBase:
 
     def model_part_size(self, model_name, white_list, black_list):
         from transformers import AutoModelForQuestionAnswering
-        from pytorch_block_sparse import BlockSparseModelPatcher
+        from nn_pruning.inference_model_patcher import InferenceModelPatcher
 
         model = AutoModelForQuestionAnswering.from_pretrained(model_name)
 

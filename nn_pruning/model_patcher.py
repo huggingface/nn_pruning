@@ -1,8 +1,5 @@
 import re
 
-import torch
-
-
 class ModelPatcher:
     def __init__(self, all_match=False):
         self.patterns = []
@@ -67,38 +64,3 @@ class ModelPatcher:
                 " Check patchable layers with `mp.get_patchable_layers(model)`"
             )
 
-def optimize_model(model, mode, clone = True):
-    from pytorch_block_sparse import BlockSparseModelPatcher
-    import copy
-
-    assert(mode != "disabled")
-    if clone == True:
-        model = copy.deepcopy(model)
-
-    params = {}
-    for name, parameter in model.named_parameters():
-        params[name] = parameter
-
-    # Further prune
-    for layer_number in range(12):
-        n0 = f"bert.encoder.layer.{layer_number}.intermediate.dense.weight"
-        n1 = f"bert.encoder.layer.{layer_number}.output.dense.weight"
-
-        output_mask = (params[n0].abs().sum(1) == 0)
-        input_mask = (params[n1].abs().sum(0) == 0)
-
-        with torch.no_grad():
-            params[n0][input_mask] = 0
-            params[n1][:,output_mask] = 0
-
-    # Create a model patcher
-    mp = BlockSparseModelPatcher(prune_heads=True, mode = mode)
-    #    for l in mp.get_patchable_layers(model):
-    #        print(l)
-    #mp.add_pattern("bert\\.encoder\\.layer\\.[0-9+]\\.attention\\.self\\.(query|key|value)", {})
-    #mp.add_pattern("bert\\.encoder\\.layer\\.[0-9]+\\.attention\\.output\\.dense", {})
-    mp.add_pattern("bert\\.encoder\\.layer\\.[0-9]+\\.intermediate\\.dense", {"input_keep_dimension":True, "output_keep_dimension":False})
-    mp.add_pattern("bert\\.encoder\\.layer\\.[0-9]+\\.output\\.dense", {"output_keep_dimension":True, "input_keep_dimension":False})
-
-    mp.patch_model(model)
-    return model
