@@ -23,7 +23,7 @@ import shutil
 from pathlib import Path
 from types import SimpleNamespace
 import torch
-from nn_pruning.model_patcher import optimize_model
+from nn_pruning.inference_model_patcher import optimize_model
 
 from nn_pruning.hp_naming import TrialShortNamer
 from nn_pruning.modules.patch_coordinator import SparseTrainingArguments, ModelPatchingCoordinator

@@ -171,7 +171,7 @@ class GlueXP(XP):
                     "validation": data_args.validation_file,
                 },
             )
-        self.datasets = datasets
+
 
         # See more about loading any type of standard or custom dataset at
         # https://huggingface.co/docs/datasets/loading_datasets.html.
@@ -282,6 +282,7 @@ class GlueXP(XP):
             load_from_cache_file=not data_args.overwrite_cache,
             cache_file_names = cache_file_names
         )
+        self.datasets = datasets
 
         self.train_dataset = datasets["train"]
         self.eval_dataset = datasets["validation_matched" if data_args.task_name == "mnli" else "validation"]
@@ -330,7 +331,7 @@ class GlueXP(XP):
             model=None,
             args=training_args,
             train_dataset=self.train_dataset if training_args.do_train else None,
-            eval_dataset=self.eval_dataset if training_args.do_eval else None,
+            eval_dataset=None,
             compute_metrics=compute_metrics,
             tokenizer=self.tokenizer,
             # Data collator will default to DataCollatorWithPadding, so we change it if we already did the padding.
@@ -338,6 +339,8 @@ class GlueXP(XP):
             model_init=self.model_init,
             **all_args,
         )
+
+        self.trainer.additional_datasets = self.datasets
 
     @classmethod
     def evaluate_model(cls, src_path, optimize_mode="dense"):
@@ -371,3 +374,4 @@ class GlueXP(XP):
 
         ret = {"timings":j, "metrics":j2}
         return ret
+

@@ -18,60 +18,24 @@ A subclass of `Trainer` specific to Question-Answering tasks
 
 import json
 import os
-from pathlib import Path
 
-from nn_pruning.modules.sparse_trainer import TimingModule
-from nn_pruning.inference_model_patcher import optimize_model
-from transformers import Trainer, is_datasets_available, is_torch_tpu_available
-from transformers.integrations import is_ray_available
+from nn_pruning.examples.xp import XPTrainer
 from transformers.trainer_utils import (
-    PREFIX_CHECKPOINT_DIR,
-    HPSearchBackend,
     PredictionOutput,
 )
 from transformers.utils import logging
-
-if is_ray_available():
-    from ray import tune
-
-if is_datasets_available():
-    import datasets
-
-if is_torch_tpu_available():
-    import torch_xla.core.xla_model as xm
-    import torch_xla.debug.metrics as met
+import datasets
 
 logger = logging.get_logger(__name__)
 
 
-class QATrainer(Trainer):
+class QATrainer(XPTrainer):
     def __init__(self, *args, eval_examples=None, post_process_function=None, **kwargs):
         self.model_args = kwargs.pop("model_args")
         self.data_args = kwargs.pop("data_args")
         super().__init__(*args, **kwargs)
         self.eval_examples = eval_examples
         self.post_process_function = post_process_function
-
-    def run_dir(self):
-        # Save model checkpoint
-        if hasattr(self, "_trial"):
-            trial = self._trial
-        else:
-            trial = None
-        if self.hp_search_backend is not None and trial is not None:
-            run_id = trial.number if self.hp_search_backend == HPSearchBackend.OPTUNA else tune.get_trial_id()
-            run_name = self.hp_name(trial) if self.hp_name is not None else f"run-{run_id}"
-            run_dir = Path(self.args.output_dir) / run_name
-        else:
-            run_dir = Path(self.args.output_dir)
-
-        return run_dir
-
-    def checkpoint_dir(self):
-        # Save model checkpoint
-        checkpoint_folder = f"{PREFIX_CHECKPOINT_DIR}-{self.state.global_step}"
-
-        return self.run_dir() / checkpoint_folder
 
     def evaluate(self, eval_dataset=None, eval_examples=None, ignore_keys=None):
         eval_dataset = self.eval_dataset if eval_dataset is None else eval_dataset
@@ -82,35 +46,19 @@ class QATrainer(Trainer):
         compute_metrics = self.compute_metrics
         self.compute_metrics = None
 
-        import timeit
+        self.start_timer()
 
-        start_time = timeit.default_timer()
-        model_save = self.model
+        output = self.prediction_loop(
+            eval_dataloader,
+            description="Evaluation",
+            # No point gathering the predictions if there are no metrics, otherwise we defer to
+            # self.args.prediction_loss_only
+            prediction_loss_only=True if compute_metrics is None else None,
+            ignore_keys=ignore_keys,
+        )
 
-        if self.args.optimize_model_before_eval != "disabled":
-            self.model = optimize_model(self.model, self.args.optimize_model_before_eval)
-
-        self.model = TimingModule(self.model)
-
-        try:
-            output = self.prediction_loop(
-                eval_dataloader,
-                description="Evaluation",
-                # No point gathering the predictions if there are no metrics, otherwise we defer to
-                # self.args.prediction_loss_only
-                prediction_loss_only=True if compute_metrics is None else None,
-                ignore_keys=ignore_keys,
-            )
-        finally:
-            cudaEvalTime, cudaEvalCount = self.model.get_results()
-            cudaEvalTime = 1e-3 * cudaEvalTime
-            self.model = model_save
-            self.compute_metrics = compute_metrics
-
-        evalTime = timeit.default_timer() - start_time
-        logger.info("  Evaluation done in total %f secs (%f sec per example)", evalTime, evalTime / len(eval_dataset))
-
-        logger.info("  Cuda time %f secs (%f sec per example)", cudaEvalTime, cudaEvalTime / len(eval_dataset))
+        self.end_timer(len(eval_dataset))
+        self.compute_metrics = compute_metrics
 
         # We might have removed columns from the dataset so we put them back.
         if isinstance(eval_dataset, datasets.Dataset):
@@ -120,13 +68,6 @@ class QATrainer(Trainer):
             )
         checkpoint_dir = self.checkpoint_dir()
 
-        if not checkpoint_dir.exists():
-            checkpoint_dir.mkdir()
-
-        timing_file = os.path.join(checkpoint_dir, "evaluate_timing.json")
-        with open(timing_file, "w") as f:
-            f.write(json.dumps({"eval_elapsed_time": evalTime, "cuda_eval_elapsed_time":cudaEvalTime}))
-
         if self.post_process_function is not None and self.compute_metrics is not None:
             eval_preds = self.post_process_function(eval_examples, eval_dataset, output.predictions, checkpoint_dir)
             metrics = self.compute_metrics(eval_preds)
@@ -135,10 +76,6 @@ class QATrainer(Trainer):
             self.log(log_metrics)
         else:
             metrics = {}
-
-        if self.args.tpu_metrics_debug or self.args.debug:
-            # tpu-comment: Logging debug metrics for PyTorch/XLA (compile, execute times, ops, etc.)
-            xm.master_print(met.metrics_report())
 
         self.control = self.callback_handler.on_evaluate(self.args, self.state, self.control, metrics)
 

@@ -6,6 +6,7 @@ import sys
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Optional
+import timeit
 
 import transformers
 from transformers import (
@@ -17,6 +18,21 @@ from transformers import (
     set_seed,
 )
 from transformers.trainer_utils import is_main_process
+from transformers.trainer import Trainer
+from transformers.trainer_utils import (
+    PREFIX_CHECKPOINT_DIR,
+)
+from nn_pruning.modules.sparse_trainer import TimingModule
+from transformers.trainer_utils import (
+    HPSearchBackend,
+)
+
+from transformers.integrations import is_ray_available
+
+from nn_pruning.inference_model_patcher import optimize_model
+
+if is_ray_available():
+    from ray import tune
 
 logger = logging.getLogger(__name__)
 
@@ -348,3 +364,55 @@ class XP:
             hp_space=hp_space,
             n_trials=n_trials,
         )
+
+class XPTrainer(Trainer):
+    def checkpoint_dir(self):
+        # Save model checkpoint
+        checkpoint_folder = f"{PREFIX_CHECKPOINT_DIR}-{self.state.global_step}"
+
+        checkpoint_dir = self.run_dir() / checkpoint_folder
+        if not checkpoint_dir.exists():
+            checkpoint_dir.mkdir()
+
+        return checkpoint_dir
+
+    def instrument_model(self, model):
+        if self.args.optimize_model_before_eval != "disabled":
+            model = optimize_model(self.model, self.args.optimize_model_before_eval)
+
+        return TimingModule(model)
+
+    def run_dir(self):
+        # Save model checkpoint
+        if hasattr(self, "_trial"):
+            trial = self._trial
+        else:
+            trial = None
+        if self.hp_search_backend is not None and trial is not None:
+            run_id = trial.number if self.hp_search_backend == HPSearchBackend.OPTUNA else tune.get_trial_id()
+            run_name = self.hp_name(trial) if self.hp_name is not None else f"run-{run_id}"
+            run_dir = Path(self.args.output_dir) / run_name
+        else:
+            run_dir = Path(self.args.output_dir)
+
+        return run_dir
+
+    def start_timer(self):
+        self._model_save = self.model
+        self.model = self.instrument_model(self.model)
+        self._start_time = timeit.default_timer()
+
+    def end_timer(self, eval_dataset_length, suffix = None):
+        evalTime = timeit.default_timer() - self._start_time
+        self.model = self._model_save
+        checkpoint_dir = self.checkpoint_dir()
+        suffix = "" if suffix is None else "_" + suffix
+        timing_file = os.path.join(checkpoint_dir, f"evaluate_timing{suffix}.json")
+        cudaEvalTime, cudaEvalCount = self.model.get_results()
+        cudaEvalTime = 1e-3 * cudaEvalTime
+
+        logger.info("  Evaluation done in total %f secs (%f sec per example)", evalTime, evalTime / eval_dataset_length)
+        logger.info("  Cuda time %f secs (%f sec per example)", cudaEvalTime, cudaEvalTime / eval_dataset_length)
+
+        with open(timing_file, "w") as f:
+            f.write(json.dumps({"eval_elapsed_time": evalTime, "cuda_eval_elapsed_time": cudaEvalTime}))

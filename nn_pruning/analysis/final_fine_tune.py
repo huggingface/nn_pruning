@@ -58,7 +58,8 @@ def main(checkpoint_list_file):
         dest_path.mkdir(exist_ok=True)
         with (dest_path / "source.txt").open("w") as f:
             f.write(str(src_path))
-        qa_sparse_xp.QASparseXP.final_finetune(str(tmp_path), str(dest_path))
+        large = key.startswith("large_")
+        qa_sparse_xp.QASparseXP.final_finetune(str(tmp_path), str(dest_path), large=large)
 
 if __name__ == "__main__":
     #checkpoint_list_file = sys.argv[1]

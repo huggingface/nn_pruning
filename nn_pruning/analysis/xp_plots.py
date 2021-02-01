@@ -8,6 +8,7 @@ from pathlib import Path
 from collections import defaultdict
 import re
 import copy
+import torch
 
 # %matplotlib widget
 
@@ -52,7 +53,7 @@ class PlotterBase:
             return copy.deepcopy(self.CHECKPOINTS)
 
         j = json.load(open(self.input_filename))
-        speed_key = "eval_elapsed_time"
+        speed_key = "cuda_eval_elapsed_time"
         base_time = j["base_speed_report"][speed_key]
 
         points = []
@@ -60,7 +61,7 @@ class PlotterBase:
         for name, checkpoint in j["checkpoints"].items():
             try:
                 speedup = base_time / checkpoint["speed"][speed_key]
-                speedup = max(1.0, speedup)
+                #speedup = max(1.0, speedup)
             except:
                 speedup = 1.0
             max_speedup = max(max_speedup, speedup)
@@ -78,7 +79,9 @@ class PlotterBase:
             sparsity = 1.0 - (sparsity_report["linear_nnz"] / sparsity_report["linear_total"])
             sparse_args = json.load(open(p / "sparse_args.json"))
 
-            point = dict(speedup=speedup, **eval_metrics, sparsity=sparsity, sparse_args=sparse_args, path=name)
+            #training_args = torch.load(p / "training_args.bin")
+
+            point = dict(speedup=speedup, **eval_metrics, sparsity=sparsity, sparse_args=sparse_args, path=name) #, training_args=training_args)
             points.append(point)
 
         self.CHECKPOINTS = points
@@ -262,8 +265,8 @@ TinyBERT6 (ours) 67.0M 11.3B 2.0x 84.6/83.2 71.6 90.4 93.1 51.1 83.7 87.3 70.0 7
         ret = dict(fill_rate=1.0 - d["sparsity"], f1=d["f1"])
 
         speedup = d["speedup"]
-        if speedup > 1:
-            ret["speedup"] = speedup
+        #if speedup > 1:
+        ret["speedup"] = speedup
         return ret
 
     def checkpoints_prepare(self, checkpoints):
@@ -281,6 +284,7 @@ TinyBERT6 (ours) 67.0M 11.3B 2.0x 84.6/83.2 71.6 90.4 93.1 51.1 83.7 87.3 70.0 7
         return ret
 
     def convexity_filter_checkpoints(self, checkpoints, key="speedup", filt=True):
+        margin = 1.0000
         if key == "fill_rate":
             sgn = -1
         else:
@@ -291,7 +295,7 @@ TinyBERT6 (ours) 67.0M 11.3B 2.0x 84.6/83.2 71.6 90.4 93.1 51.1 83.7 87.3 70.0 7
 
         filtered_checkpoints = [best_c]
         for checkpoint in checkpoints[1:]:
-            if not filt or checkpoint["f1"] > filtered_checkpoints[-1]["f1"]:
+            if not filt or checkpoint["f1"] > filtered_checkpoints[-1]["f1"] * margin:
                 filtered_checkpoints.append(checkpoint)
 
         filtered_checkpoints.sort(key=sort_by_key, reverse=False)
@@ -376,10 +380,10 @@ TinyBERT6 (ours) 67.0M 11.3B 2.0x 84.6/83.2 71.6 90.4 93.1 51.1 83.7 87.3 70.0 7
             max_x = max(max_x, max(x))
             y = [e["f1"] for e in data]
 
-            label = self.label_cleanup(label)
+            label_for_file = self.label_cleanup(label)
             log_dir = dest_dir / "logs"
             log_dir.mkdir(exist_ok=True)
-            self.log_plot(log_dir / f"{dest_file_name}_{label}.txt", x, y, data, key, "f1")
+            self.log_plot(log_dir / f"{dest_file_name}_{label_for_file}.txt", x, y, data, key, "f1")
 
             if len(x) == 1 or self.only_dots:
                 pyplot.scatter(x, y, cmap="viridis", alpha=1.0, label=label)  # , marker=markers[i]) # cool
@@ -504,10 +508,13 @@ class GeneralPlotter(PlotterBase):
         compare = dict(
             final_finetune=1
         )
-        compare_different = {}
         sparse_args = xp["sparse_args"]
+
+        large = "large" in sparse_args["distil_teacher_name_or_path"] or "large" in str(xp["path"])
+        size = "l" if large else "b"
+        compare_different = {}
         if self.check(sparse_args, compare, compare_different):
-            ret = f"Block/struct method, final fine tuned"
+            ret = f"Block/struct method, final fine tuned, s={size}"
             # annotate += ", fw=" + str(sparse_args["final_warmup"])
 
             # annotate += ", ver=" + str(0 if sparse_args.get('attention_output_with_dense', True) else 1)
@@ -536,7 +543,7 @@ class GeneralPlotter(PlotterBase):
                 ret = "Structured pruning"
             else:
                 ver = 1 - int(sparse_args.get("attention_output_with_dense", True))
-                ret = f"Block/struct method, bs= {rows}x{cols}, v={ver}"
+                ret = f"Block/struct method, bs= {rows}x{cols}, v={ver}, s={size}"
                 # ret += ", fw=" + str(sparse_args["final_warmup"])
 
             annotate = self.get_lambdas_annotation(sparse_args)
@@ -689,7 +696,7 @@ class GeneralPlotter(PlotterBase):
 
 if __name__ == "__main__":
     import sys
-    input_file_name = "results12.json"
+    input_file_name = "results16.json"
 
     def multiplot(p, name):
         name = PlotterBase.label_cleanup(name)
@@ -699,13 +706,12 @@ if __name__ == "__main__":
 
     white_list = [#"Block/struct method, bs= [0-9]+x[0-9]+, v=1",
                   "Block/struct method, bs= 32x32, v=1",
-                  "Block/struct method, final fine tuned",
+                  "Block/struct method, final fine tuned, s=[bl]",
                   "Block/unstruct method, bs= [0-9]+x[0-9]+",
                   "improved soft movement with distillation",
                   "soft_movement_with_distillation",
                   "Full block method, bs= [0-9]+x[0-9]+",
                   "Structured pruning",
-                  "Block/struct method, final fine tuned",
                   ]
     black_list = ["new method, attention pruned with rows"] #"Block/struct method, bs= [0-9]+x.[0-9]+, v=0"]
     raw_black_list = copy.deepcopy(white_list)
@@ -722,7 +728,7 @@ if __name__ == "__main__":
 
     CAT_FUN_NAMES = {
     #    "new_xp_v0": dict(fun_name="new_xp", draw_labels=False, white_list=["Block/struct method, bs= [0-9]+x.[0-9]+, v=0"]),
-        "new_xp_v1": dict(fun_name="new_xp", draw_labels=True, white_list=["Block/struct method, bs= [0-9]+x.[0-9]+, v=1","Block/struct method, final fine tuned"], convex_envelop=True),
+        "new_xp_v1": dict(fun_name="new_xp", draw_labels=True, white_list=["Block/struct method, bs= 32x32, v=1, s=[bl]","Block/struct method, final fine tuned, s=[bl]"], convex_envelop=True),
         "structured": dict(fun_name="new_xp", draw_labels=False, white_list=["Structured pruning"]),
         #        "new_xp_16": dict(fun_name="new_xp", draw_labels=False, white_list=["Block/struct method, bs= 16x16, v=[0-9]+"]),
 #        "new_xp_32": dict(fun_name="new_xp", draw_labels=False, white_list=["Block/struct method, bs= 32x32, v=[0-9]+"]),
@@ -733,7 +739,7 @@ if __name__ == "__main__":
     }
     for name, configuration in CAT_FUN_NAMES.items():
         limits = {
-            "speedup": dict(legend="upper right", x_min=0.95, x_max=4.0, y_min=None, y_max=None),
+            "speedup": dict(legend="upper right", x_min=0.75, x_max=4.0, y_min=None, y_max=None),
             "fill_rate": dict(legend="lower right", x_min=0.0, x_max=0.65, y_min=None, y_max=None),
         }
         draw_labels = configuration.get("draw_labels", True)

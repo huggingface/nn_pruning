@@ -56,7 +56,7 @@ class AWSExperienceDownloader:
         dest_file_name = self.tmp_dir / xp_name / (xp_name + "_output.tgz")
         dest_dir = dest_file_name.parent
         final_dest_file = self.dest / ("aws_" + dest_dir.name)
-        if final_dest_file.exists():
+        if final_dest_file.exists() and False:
             print("ALREADY PROCESSED", final_dest_file)
             # Nothing to do
             return
@@ -127,5 +127,5 @@ downloader = AWSExperienceDownloader(sagemaker_bucket,
                                      Path("__file__").parent / "tmp",
                                      "/data_2to/devel_data/nn_pruning/output/squad_test_aws/")
 
-for version in ["v10", "v11"]:
+for version in ["v8"]:
     downloader.load(version=version)

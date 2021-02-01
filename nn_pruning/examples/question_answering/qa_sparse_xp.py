@@ -136,20 +136,34 @@ class QASparseXP(QAXP):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.patch_coordinator = ModelPatchingCoordinator(
-            self.sparse_args, self.training_args.device, self.model_args.cache_dir
-        )
+        self.patch_coordinator = self.create_patching_coordinator(self.sparse_args,
+                                                                  self.training_args.device,
+                                                                  self.model_args.cache_dir)
+
+    @classmethod
+    def create_patching_coordinator(cls, sparse_args, device, cache_dir):
+        return ModelPatchingCoordinator(sparse_args,
+                                        device=device,
+                                        cache_dir=cache_dir,
+                                        logit_names=["start_logits", "end_logits"],
+                                        teacher_constructor=AutoModelForQuestionAnswering)
 
     def create_trainer(self, *args, **kwargs):
         super().create_trainer(*args, **kwargs)
         self.trainer.set_patch_coordinator(self.patch_coordinator)
 
-    def unzero_parameters(self, model, epsilon=0.001):
+    def unzero_parameters(self, model, epsilon=0.01):
         # Used to avoid zero gradients when doing final finetune on sparse networks that we want to extend
         # Make sure some parts are not completely zero
         for k, v in model.named_parameters():
+            if "bias" in k:
+                continue
             zero_mask = v == 0
+            if zero_mask.sum() == 0:
+                continue
+
             with torch.no_grad():
+                print("unzero_parameters", k, "sparsity=", zero_mask.sum() / zero_mask.numel(), zero_mask.shape)
                 new_values = torch.randn_like(v)
                 new_values *= v.std() * epsilon
                 new_values += v.mean()
@@ -205,13 +219,13 @@ class QASparseXP(QAXP):
 
         for k, v in m.items():
             correct_shape = None
-            if k.endswith("intermediate.dense.linear.weight"):
+            if k.endswith("intermediate.dense.linear.weight") or k.endswith("intermediate.dense.weight"):
                 correct_shape = (hidden_size * ffn_multiplier, hidden_size)
-            elif k.endswith("intermediate.dense.linear.bias"):
+            elif k.endswith("intermediate.dense.linear.bias") or k.endswith("intermediate.dense.bias") :
                 correct_shape = (hidden_size * ffn_multiplier,)
-            elif k.endswith("output.dense.linear.weight"):
+            elif k.endswith("output.dense.linear.weight") or (k.endswith("output.dense.weight") and "attention" not in k):
                 correct_shape = (hidden_size, hidden_size * ffn_multiplier)
-            elif k.endswith("output.dense.linear.bias"):
+            elif k.endswith("output.dense.linear.bias") or k.endswith("output.dense.bias"):
                 correct_shape = (hidden_size,)
 
             if correct_shape is not None:
@@ -270,11 +284,7 @@ class QASparseXP(QAXP):
         model_args.model_name_or_path = str(src_path)
 
         model = cls._model_init(model_args, model_config)
-        patcher = ModelPatchingCoordinator(sparse_args,
-                                           device = "cuda",
-                                           cache_dir = None,
-                                           logit_names = ["start_logits", "end_logits"],
-                                           teacher_constructor = AutoModelForQuestionAnswering)
+        patcher = cls.create_patching_coordinator(sparse_args=sparse_args, device="cuda", cache_dir=None)
 
         patcher.patch_model(model, trial=None)
 
@@ -292,7 +302,11 @@ class QASparseXP(QAXP):
 
 
     @classmethod
-    def final_finetune(cls, src_path, dest_path):
+    def final_finetune(cls, src_path, dest_path, large: bool):
+        if large:
+            teacher = "bert-large-uncased-whole-word-masking-finetuned-squad"
+        else:
+            teacher = "csarron/bert-base-uncased-squad-v1"
         param_dict = {
             "model_name_or_path": src_path,
             "dataset_name": "squad",
@@ -302,7 +316,7 @@ class QASparseXP(QAXP):
             "per_device_eval_batch_size": 128,
             "max_seq_length": 384,
             "doc_stride": 128,
-            "num_train_epochs": 4,
+            "num_train_epochs": 10,
             "logging_steps": 250,
             "save_steps": 2500,
             "eval_steps": 2500,
@@ -319,7 +333,7 @@ class QASparseXP(QAXP):
             "final_warmup": 0,
             "regularization": "",
             "regularization_final_lambda": 0,
-            "distil_teacher_name_or_path": "csarron/bert-base-uncased-squad-v1",
+            "distil_teacher_name_or_path": teacher,
             "distil_alpha_ce": 0.1,
             "distil_alpha_teacher": 0.9,
             "final_finetune": 1,
