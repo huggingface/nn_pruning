@@ -74,6 +74,9 @@ class GlueTrainer(XPTrainer):
 
             eval_results = output.metrics
 
+            log_metrics = {f"eval_{task}_{k}": v for k, v in output.metrics.items()}
+            self.log(log_metrics)
+
             output_eval_file = os.path.join(checkpoint_dir, f"eval_results_{task}.txt")
             if self.is_world_process_zero():
                 with open(output_eval_file, "w") as writer:
@@ -96,7 +99,8 @@ class GlueTrainer(XPTrainer):
 
         for test_dataset, task in zip(test_datasets, tasks):
             # Removing the `label` columns because it contains -1 and Trainer won't like that.
-            test_dataset.remove_columns_("label")
+            if "label" in test_dataset.column_names:
+                test_dataset.remove_columns_("label")
             predictions = self.predict(test_dataset=test_dataset).predictions
             predictions = np.squeeze(predictions) if self.is_regression else np.argmax(predictions, axis=1)
 
