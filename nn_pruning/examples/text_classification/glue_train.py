@@ -37,12 +37,6 @@ class GlueTrainer(XPTrainer):
         data_args = self.data_args
         eval_dataset = self.additional_datasets["validation_matched" if data_args.task_name == "mnli" else "validation"]
 
-        for k in eval_dataset:
-            print(k)
-            import pdb;
-            pdb.set_trace()
-            break
-
         logger.info("*** Evaluate ***")
 
         # Loop to handle MNLI double evaluation (matched, mis-matched)
@@ -52,15 +46,28 @@ class GlueTrainer(XPTrainer):
             tasks.append("mnli-mm")
             eval_datasets.append(self.additional_datasets["validation_mismatched"])
 
+        eval_dataloaders = []
+        for eval_dataset in eval_datasets:
+            eval_dataloaders.append( self.get_eval_dataloader(eval_dataset))
+
+        # Temporarily disable metric computation, we will do it in the loop here.
+        compute_metrics = self.compute_metrics
+        self.compute_metrics = None
+
         checkpoint_dir = self.checkpoint_dir()
 
         eval_results = {}
-        for eval_dataset, task in zip(eval_datasets, tasks):
+        for eval_dataloader, task in zip(eval_dataloaders, tasks):
             self.start_timer()
-            for data in eval_dataset:
-                print(data)
-                break
-            eval_result = super().evaluate(eval_dataset=eval_dataset)
+
+            eval_result = self.prediction_loop(
+                eval_dataloader,
+                description="Evaluation",
+                # No point gathering the predictions if there are no metrics, otherwise we defer to
+                # self.args.prediction_loss_only
+                prediction_loss_only=True if compute_metrics is None else None,
+                ignore_keys=ignore_keys,
+            )
             self.end_timer(len(eval_dataset), task)
 
             output_eval_file = os.path.join(checkpoint_dir, f"eval_results_{task}.txt")
@@ -101,4 +108,6 @@ class GlueTrainer(XPTrainer):
                         else:
                             item = self.label_list[item]
                             writer.write(f"{index}\t{item}\n")
+
+        self.compute_metrics = compute_metrics
 
