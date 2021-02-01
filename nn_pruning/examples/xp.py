@@ -404,15 +404,16 @@ class XPTrainer(Trainer):
 
     def end_timer(self, eval_dataset_length, suffix = None):
         evalTime = timeit.default_timer() - self._start_time
-        self.model = self._model_save
+        cudaEvalTime, cudaEvalCount = self.model.get_results()
+        cudaEvalTime = 1e-3 * cudaEvalTime
         checkpoint_dir = self.checkpoint_dir()
         suffix = "" if suffix is None else "_" + suffix
         timing_file = os.path.join(checkpoint_dir, f"evaluate_timing{suffix}.json")
-        cudaEvalTime, cudaEvalCount = self.model.get_results()
-        cudaEvalTime = 1e-3 * cudaEvalTime
 
         logger.info("  Evaluation done in total %f secs (%f sec per example)", evalTime, evalTime / eval_dataset_length)
         logger.info("  Cuda time %f secs (%f sec per example)", cudaEvalTime, cudaEvalTime / eval_dataset_length)
 
         with open(timing_file, "w") as f:
             f.write(json.dumps({"eval_elapsed_time": evalTime, "cuda_eval_elapsed_time": cudaEvalTime}))
+
+        self.model = self._model_save

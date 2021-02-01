@@ -339,6 +339,8 @@ class GlueXP(XP):
             model_init=self.model_init,
             **all_args,
         )
+        self.trainer.is_regression = self.is_regression
+        self.trainer.label_list = self.label_list
 
         self.trainer.additional_datasets = self.datasets
 

@@ -21,6 +21,9 @@ from pathlib import Path
 
 from nn_pruning.examples.xp import XPTrainer
 from transformers.utils import logging
+from transformers.trainer_utils import (
+    PredictionOutput,
+)
 import numpy as np
 
 logger = logging.get_logger(__name__)
@@ -51,34 +54,34 @@ class GlueTrainer(XPTrainer):
             eval_dataloaders.append( self.get_eval_dataloader(eval_dataset))
 
         # Temporarily disable metric computation, we will do it in the loop here.
-        compute_metrics = self.compute_metrics
-        self.compute_metrics = None
-
         checkpoint_dir = self.checkpoint_dir()
 
-        eval_results = {}
+        output0 = None
         for eval_dataloader, task in zip(eval_dataloaders, tasks):
             self.start_timer()
 
-            eval_result = self.prediction_loop(
+            output = self.prediction_loop(
                 eval_dataloader,
                 description="Evaluation",
                 # No point gathering the predictions if there are no metrics, otherwise we defer to
                 # self.args.prediction_loss_only
-                prediction_loss_only=True if compute_metrics is None else None,
+                prediction_loss_only=True if self.compute_metrics is None else None,
                 ignore_keys=ignore_keys,
             )
+            if output0 is None:
+                output0 = output
             self.end_timer(len(eval_dataset), task)
+
+            eval_results = output.metrics
 
             output_eval_file = os.path.join(checkpoint_dir, f"eval_results_{task}.txt")
             if self.is_world_process_zero():
                 with open(output_eval_file, "w") as writer:
                     logger.info(f"***** Eval results {task} *****")
-                    for key, value in eval_result.items():
+                    for key, value in eval_results.items():
                         logger.info(f"  {key} = {value}")
                         writer.write(f"{key} = {value}\n")
 
-            eval_results.update(eval_result)
 
         logger.info("*** Test ***")
 
@@ -109,5 +112,4 @@ class GlueTrainer(XPTrainer):
                             item = self.label_list[item]
                             writer.write(f"{index}\t{item}\n")
 
-        self.compute_metrics = compute_metrics
-
+        return output0.metrics
