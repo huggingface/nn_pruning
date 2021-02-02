@@ -220,7 +220,7 @@ class ModelPatchingCoordinator:
                 config=model_config,
                 cache_dir=cache_dir,
             )
-
+            print(teacher)
             teacher.to(device)
         else:
             teacher = None

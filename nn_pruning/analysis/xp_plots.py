@@ -32,7 +32,7 @@ class PlotterBase:
         black_list=None,
         reference_black_list=None,
         limits=None,
-        label_mapping = None,
+        label_mapping = None
     ):
         self.input_filename = input_filename
         self.cat_fun_names = cat_fun_names or []
@@ -293,7 +293,7 @@ TinyBERT6 (ours) 67.0M 11.3B 2.0x 84.6/83.2 71.6 90.4 93.1 51.1 83.7 87.3 70.0 7
         return ret
 
     def convexity_filter_checkpoints(self, checkpoints, key="speedup", filt=True):
-        margin = 1.0000
+        margin = 1.00001
         if key == "fill_rate":
             sgn = -1
         else:
@@ -728,19 +728,19 @@ if __name__ == "__main__":
 
     # For debug purpose : black_list is the kept white list
     p = GeneralPlotter(input_file_name, white_list=False, black_list=raw_black_list, reference_black_list=None)
-    multiplot(p, "raw_global")
+    #multiplot(p, "raw_global")
 #    sys.exit(0)
     reference_black_list = ["local_movement_pruning"]
     p = GeneralPlotter(input_file_name, white_list=white_list, black_list=black_list, reference_black_list=reference_black_list)
-    multiplot(p, "global")
+    #multiplot(p, "global")
 
-    new_xp_v0_mapping = {"Block/struct method, final fine tuned, s=l":"Fine-pruned BERT large",
-                         "Block/struct method, final fine tuned, s=b": "Fine-pruned BERT base",
-                         }
+    new_xp_v0_mapping = {"Block/struct method, final fine tuned, s=l":"BERT large, hybrid pruning",
+                         "Block/struct method, final fine tuned, s=b": "BERT base, hybrid pruning",
+                         "Structured pruning":"BERT-base, structured pruning"}
 
     CAT_FUN_NAMES = {
     #    "new_xp_v0": dict(fun_name="new_xp", draw_labels=False, white_list=["Block/struct method, bs= [0-9]+x.[0-9]+, v=0"]),
-        "new_xp_v0": dict(cat_fun_names=["new_xp"], draw_labels=True, white_list=["Block/struct method, final fine tuned, s=[bl]"], label_mapping=new_xp_v0_mapping),
+        "new_xp_v0": dict(cat_fun_names=["new_xp"], draw_labels=False, white_list=["Block/struct method, final fine tuned, s=[bl]", "Structured pruning"], label_mapping=new_xp_v0_mapping),
         "new_xp_v1": dict(cat_fun_names=["new_xp"], draw_labels=True, white_list=["Block/struct method, bs= 32x32, v=1, s=[bl]","Block/struct method, final fine tuned, s=[bl]"]),
         "structured": dict(cat_fun_names=["new_xp"], draw_labels=False, white_list=["Structured pruning"]),
         #        "new_xp_16": dict(fun_name="new_xp", draw_labels=False, white_list=["Block/struct method, bs= 16x16, v=[0-9]+"]),

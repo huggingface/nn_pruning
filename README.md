@@ -41,6 +41,7 @@ The "BERT version" column shows which base network was pruned.
 |base      |-0.25%       |1.98x            |-65%                      |2.9x               |
 |base      |-0.79%       |2.44x            |-67%                      |3.1x               |
 |base      |-1.81%       |2.80x            |-74%                      |3.9x               |
+|base      |-2.98%       |3.64x            |-86%                      |7.3x               |
 
 
 
@@ -51,7 +52,8 @@ The "BERT version" column shows which base network was pruned.
 That means that starting from a larger networks is beneficial on all metrics, even absolute size, something observed in the [Train Large, Then Compress](https://arxiv.org/abs/2002.11794) paper.
   
 - 3rd network : we can shrink BERT-base by ~60%, speedup inference by 1.8x and still have a ***better*** network
-- We can select a tradeoff between speed and accuracy, depending on the final application.
+- nth network: we can select a tradeoff between speed and accuracy, depending on the final application.
+- last network: pruned using a slightly different method that gives faster networks but with a significant drop in F1.
 
 **Additional remarks**
 - The parameter reduction of the BERT-large networks are actually higher compared to the original network: 40% smaller than BERT-base means actually 77% smaller than BERT-large.
