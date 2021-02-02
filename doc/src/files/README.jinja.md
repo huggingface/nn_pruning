@@ -36,7 +36,7 @@ That means that starting from a larger networks is beneficial on all metrics, ev
   
 - 3rd network : we can shrink BERT-base by ~60%, speedup inference by 1.8x and still have a ***better*** network
 - nth network: we can select a tradeoff between speed and accuracy, depending on the final application.
-- last network: pruned using a slightly different method that gives faster networks but with a significant drop in F1.
+- last network: pruned using a slightly different "structured pruning" method that gives faster networks but with a significant drop in F1.
 
 **Additional remarks**
 - The parameter reduction of the BERT-large networks are actually higher compared to the original network: 40% smaller than BERT-base means actually 77% smaller than BERT-large.
@@ -49,7 +49,7 @@ If we plot the F1 of the full set of pruned networks against the speedup, we can
 
 ![Squad v1 speedup](doc/media/new_xp_v0_speedup.png)
 
-Even in terms of save size, we get smaller networks for the same accuracy:
+Even in terms of saved size, we get smaller networks for the same accuracy:
 
 ![Squad v1 speedup](doc/media/new_xp_v0_fill_rate.png)
 
