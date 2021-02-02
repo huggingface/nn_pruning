@@ -21,6 +21,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 import random
 import numpy as np
+import copy
 
 from datasets import load_metric, load_dataset
 from transformers import (
@@ -261,6 +262,13 @@ class GlueXP(XP):
 
         self.label_to_id = label_to_id
 
+        # This is needed because some part of the dataset contains label = -1
+        if label_to_id is not None:
+            preprocess_label_to_id = copy.deepcopy(label_to_id)
+            preprocess_label_to_id[-1] = -1
+        else:
+            preprocess_label_to_id = None
+
         def preprocess_function(examples):
             # Tokenize the texts
             args = (
@@ -270,8 +278,8 @@ class GlueXP(XP):
             result = self.tokenizer(*args, padding=padding, max_length=max_length, truncation=True)
 
             # Map labels to IDs (not necessary for GLUE tasks)
-            if label_to_id is not None and "label" in examples:
-                result["label"] = [label_to_id[l] for l in examples["label"]]
+            if preprocess_label_to_id is not None and "label" in examples:
+                result["label"] = [preprocess_label_to_id[l] for l in examples["label"]]
             return result
 
         cache_file_names = {}
