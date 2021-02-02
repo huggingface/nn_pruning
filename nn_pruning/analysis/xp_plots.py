@@ -32,6 +32,7 @@ class PlotterBase:
         black_list=None,
         reference_black_list=None,
         limits=None,
+        label_mapping = None,
     ):
         self.input_filename = input_filename
         self.cat_fun_names = cat_fun_names or []
@@ -46,6 +47,7 @@ class PlotterBase:
         self.limits = limits or self.LIMITS
 
         self.reference_black_list = reference_black_list
+        self.label_mapping = label_mapping or {}
 
     CHECKPOINTS = None
     def read_checkpoint_info(self):
@@ -262,7 +264,14 @@ TinyBERT6 (ours) 67.0M 11.3B 2.0x 84.6/83.2 71.6 90.4 93.1 51.1 83.7 87.3 70.0 7
 
     def process_checkpoint(self, checkpoint):
         d = checkpoint
-        ret = dict(fill_rate=1.0 - d["sparsity"], f1=d["f1"])
+
+        fill_rate = 1.0 - d["sparsity"]
+
+        if "large" in d["path"]:
+            # Large BERT has more parameters
+            fill_rate *= 8 / 3
+
+        ret = dict(fill_rate=fill_rate, f1=d["f1"])
 
         speedup = d["speedup"]
         #if speedup > 1:
@@ -383,10 +392,11 @@ TinyBERT6 (ours) 67.0M 11.3B 2.0x 84.6/83.2 71.6 90.4 93.1 51.1 83.7 87.3 70.0 7
             log_dir.mkdir(exist_ok=True)
             self.log_plot(log_dir / f"{dest_file_name}_{label_for_file}.jsonl", x, y, data, key, "f1")
 
+            label_text = self.label_mapping.get(label, label)
             if len(x) == 1 or self.only_dots:
-                pyplot.scatter(x, y, cmap="viridis", alpha=1.0, label=label)  # , marker=markers[i]) # cool
+                pyplot.scatter(x, y, cmap="viridis", alpha=1.0, label=label_text)  # , marker=markers[i]) # cool
             else:
-                pyplot.plot(x, y, label=label)  # , marker=markers[i]) # cool
+                pyplot.plot(x, y, label=label_text)  # , marker=markers[i]) # cool
 
             if self.draw_labels or len(x) == 1:
                 for i, txt in enumerate(x):
@@ -410,8 +420,8 @@ TinyBERT6 (ours) 67.0M 11.3B 2.0x 84.6/83.2 71.6 90.4 93.1 51.1 83.7 87.3 70.0 7
             pyplot.ylim(y_min, y_max)
 
         XLabel = key.replace("_", " ").capitalize()
-        pyplot.xlabel(XLabel, fontsize=self.fontsize)
-        YLabel = "F1"
+        pyplot.xlabel(XLabel + " (vs BERT-base)", fontsize=self.fontsize)
+        YLabel = "SQuAD v1 F1"
         pyplot.ylabel(YLabel, fontsize=self.fontsize)
         title = "%s against %s\n" % (YLabel, XLabel)
         pyplot.title(title, fontsize=self.fontsize)
@@ -463,8 +473,8 @@ class GeneralPlotter(PlotterBase):
         input_file_name,
         cat_fun_names=None,
         cluster=False,
-        white_list=None,
-        black_list=None,
+        white_list=False,
+        black_list=False,
         reference_black_list=None,
         **kwargs
     ):
@@ -724,10 +734,15 @@ if __name__ == "__main__":
     p = GeneralPlotter(input_file_name, white_list=white_list, black_list=black_list, reference_black_list=reference_black_list)
     multiplot(p, "global")
 
+    new_xp_v0_mapping = {"Block/struct method, final fine tuned, s=l":"Fine-pruned BERT large",
+                         "Block/struct method, final fine tuned, s=b": "Fine-pruned BERT base",
+                         }
+
     CAT_FUN_NAMES = {
     #    "new_xp_v0": dict(fun_name="new_xp", draw_labels=False, white_list=["Block/struct method, bs= [0-9]+x.[0-9]+, v=0"]),
-        "new_xp_v1": dict(fun_name="new_xp", draw_labels=True, white_list=["Block/struct method, bs= 32x32, v=1, s=[bl]","Block/struct method, final fine tuned, s=[bl]"], convex_envelop=True),
-        "structured": dict(fun_name="new_xp", draw_labels=False, white_list=["Structured pruning"]),
+        "new_xp_v0": dict(cat_fun_names=["new_xp"], draw_labels=True, white_list=["Block/struct method, final fine tuned, s=[bl]"], label_mapping=new_xp_v0_mapping),
+        "new_xp_v1": dict(cat_fun_names=["new_xp"], draw_labels=True, white_list=["Block/struct method, bs= 32x32, v=1, s=[bl]","Block/struct method, final fine tuned, s=[bl]"]),
+        "structured": dict(cat_fun_names=["new_xp"], draw_labels=False, white_list=["Structured pruning"]),
         #        "new_xp_16": dict(fun_name="new_xp", draw_labels=False, white_list=["Block/struct method, bs= 16x16, v=[0-9]+"]),
 #        "new_xp_32": dict(fun_name="new_xp", draw_labels=False, white_list=["Block/struct method, bs= 32x32, v=[0-9]+"]),
 
@@ -738,18 +753,12 @@ if __name__ == "__main__":
     for name, configuration in CAT_FUN_NAMES.items():
         limits = {
             "speedup": dict(legend="upper right", x_min=0.75, x_max=4.0, y_min=None, y_max=None),
-            "fill_rate": dict(legend="lower right", x_min=0.0, x_max=0.65, y_min=None, y_max=None),
+            "fill_rate": dict(legend="upper left", x_min=0.0, x_max=0.75, y_min=None, y_max=None),
         }
-        draw_labels = configuration.get("draw_labels", True)
-        cat_fun_name = configuration.get("fun_name", name)
-        convex_envelop = configuration.get("convex_envelop", name)
         p = GeneralPlotter(
             input_file_name,
-            cat_fun_names=[cat_fun_name],
-            draw_labels=draw_labels,
             limits=limits,
-            convex_envelop=convex_envelop,
             cluster=True,
-            white_list=configuration.get("white_list", False),
+            **configuration,
         )
         multiplot(p, name)

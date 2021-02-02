@@ -11,20 +11,59 @@ Some degree of structure is necessary to use the intrinsic parallel nature of to
 ##  
 ## Results
 
-##### Squad V1
-BERT base performance: EM=80.4, F1=88.1
+### Squad V1
+The experiments were done first on SQuAD v1.
 
-| Pruned BERT version |  F1 difference    | Speedup (BERT-base )             | 
-| :---:                     | :---:                | :---:                  | 
-| large | +2.5%       | 1.0x| 
-| base  | 0%      | 1.8x | 
-| base  | -1%       | 2.25x| 
-| base  | -2%       | 2.6x | 
-
-
-| MNLI - Dev<br>acc/MM acc       | 84.5/84.9                | |                   |  | 
-| QQP - Dev<br>acc/F1            | 91.4/88.4                | |                   |  | 
+Two networks were tested: BERT-base, and BERT-large.
+ 
+|BERT version|Exact Match| F1 |
+|------------|----------:|---:|
+|large       |       84.1|90.9|
+|base        |       80.8|88.5|
 
 
 
-![Squad v1 speedup](doc/media/squad_speedup.png)
+
+Significant speedups where obtained with limited drop in accuracy.
+
+Here is a selection of the networks that are obtained through the method.
+
+The "BERT version" column shows which base network was pruned.
+
+**F1 difference, speedups and parameters counts are all relative to BERT-base.**
+
+    
+|BERT model|F1 difference|Effective Speedup|Parameters count reduction|Theoretical speedup|
+|----------|-------------|-----------------|--------------------------|-------------------|
+|large     |+2.53%       |0.92x            |-17%                      |1.2x               |
+|large     |+1.66%       |1.03x            |-40%                      |1.7x               |
+|base      |+0.22%       |1.84x            |-59%                      |2.4x               |
+|base      |-0.25%       |1.98x            |-65%                      |2.9x               |
+|base      |-0.79%       |2.44x            |-67%                      |3.1x               |
+|base      |-1.81%       |2.80x            |-74%                      |3.9x               |
+
+
+
+### Main takeaways
+- 1st network: pruned from BERT-large, it's significantly more accurate than BERT-base, but have a similar size and speed.
+- 2nd network: pruned from BERT-large, it is finally 40% smaller but significantly better than a BERT-base, and still as fast.
+
+That means that starting from a larger networks is beneficial on all metrics, even absolute size, something observed in the [Train Large, Then Compress](https://arxiv.org/abs/2002.11794) paper.
+  
+- 3rd network : we can shrink BERT-base by ~60%, speedup inference by 1.8x and still have a ***better*** network
+- We can select a tradeoff between speed and accuracy, depending on the final application.
+
+**Additional remarks**
+- The parameter reduction of the BERT-large networks are actually higher compared to the original network: 40% smaller than BERT-base means actually 77% smaller than BERT-large.
+We kept here the comparison with BERT-base numbers as it's what matters on a practical point of view.
+- The "theoretical speedup" is a speedup of linear layers (actual number of flops), something that seems to be equivalent to the measured speedup in some papers. 
+The speedup here is measured on a 3090 RTX, using the HuggingFace transformers library, using Pytorch cuda timing features, and so is 100% in line with real-world speedup.
+
+### Comparison with state of the art 
+If we plot the F1 of the full set of pruned networks against the speedup, we can see that we outperform fine-tuned TinyBERT and Distilbert by a large amount: 
+
+![Squad v1 speedup](doc/media/new_xp_v0_speedup.png)
+
+Even in terms of save size, we get smaller networks for the same accuracy:
+
+![Squad v1 speedup](doc/media/new_xp_v0_fill_rate.png)
