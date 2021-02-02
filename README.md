@@ -1,9 +1,9 @@
 # Neural Networks Block Movement Pruning
 
-**[Movement pruning](https://arxiv.org/abs/2005.07683)** has been proved as a **very efficient
+**[Movement](https://arxiv.org/abs/2005.07683) [pruning](https://github.com/huggingface/transformers/tree/master/examples/research_projects/movement-pruning)** has been proved as a **very efficient
 method to prune networks in a unstructured manner**.
  
- [High levels of sparsity](https://github.com/huggingface/transformers/tree/master/examples/research_projects/movement-pruning) can be reached with a minimal of accuracy loss. 
+High levels of sparsity can be reached with a minimal of accuracy loss. 
 
 The resulting sparse networks can be **compressed heavily**, saving a lot of permanent storage space on servers or devices, and bandwidth, an important advantage for edge devices.
 
