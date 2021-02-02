@@ -54,7 +54,7 @@ class DocBuilder:
 
     def build_squad_table(self):
         infos = self.read_jsonl("new_xp_v1_speedup_Block_struct_method__final_fine_tuned.jsonl")
-        headers = ["BERT model", "F1 difference", "Effective Speedup", "Parameters count reduction", "Theoretical speedup"]
+        headers = ["BERT model", "F1 difference", "Effective Speedup", "Parameters count", "Theoretical speedup"]
 
         base_performance = self.BERT_BASE_PERFORMANCE
         values = []

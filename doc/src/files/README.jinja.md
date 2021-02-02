@@ -25,6 +25,7 @@ Significant speedups where obtained with limited drop in accuracy.
 Here is a selection of the networks that are obtained through the method.
 
 The "BERT version" column shows which base network was pruned.
+The parameter count column is relative to linear layers, which contain most of the model parameters (with the embeddings being most of the remaining parameters).
 
 **F1 difference, speedups and parameters counts are all relative to BERT-base.**
 
