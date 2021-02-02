@@ -28,3 +28,4 @@ BERT base performance: EM=80.4, F1=88.1
 
 
 ![Squad v1 speedup](doc/media/squad_speedup.png)
+

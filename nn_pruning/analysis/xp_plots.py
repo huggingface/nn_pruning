@@ -312,12 +312,10 @@ TinyBERT6 (ours) 67.0M 11.3B 2.0x 84.6/83.2 71.6 90.4 93.1 51.1 83.7 87.3 70.0 7
         return False
 
     def log_plot(self, dest_file_name, x, y, data, x_key, y_key):
-
         with dest_file_name.open("w") as f:
             for i in range(len(x)):
                 s = {x_key:x[i], y_key:y[i], "meta":data[i]}
-                s = f"{s}\n"
-                f.write(s)
+                f.write(json.dumps(s) + "\n")
 
     @staticmethod
     def label_cleanup(label):
@@ -383,7 +381,7 @@ TinyBERT6 (ours) 67.0M 11.3B 2.0x 84.6/83.2 71.6 90.4 93.1 51.1 83.7 87.3 70.0 7
             label_for_file = self.label_cleanup(label)
             log_dir = dest_dir / "logs"
             log_dir.mkdir(exist_ok=True)
-            self.log_plot(log_dir / f"{dest_file_name}_{label_for_file}.txt", x, y, data, key, "f1")
+            self.log_plot(log_dir / f"{dest_file_name}_{label_for_file}.jsonl", x, y, data, key, "f1")
 
             if len(x) == 1 or self.only_dots:
                 pyplot.scatter(x, y, cmap="viridis", alpha=1.0, label=label)  # , marker=markers[i]) # cool
