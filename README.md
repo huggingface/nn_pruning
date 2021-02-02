@@ -15,6 +15,8 @@ Some degree of structure is necessary to use the intrinsic parallel nature of to
 The experiments were done first on SQuAD v1.
 
 Two networks were tested: BERT-base, and BERT-large.
+
+Original performance for this networks:
  
 |BERT version|Exact Match| F1 |
 |------------|----------:|---:|
