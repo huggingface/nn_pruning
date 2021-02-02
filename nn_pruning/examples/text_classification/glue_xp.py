@@ -123,11 +123,21 @@ class GlueXP(XP):
         # download model & vocab.
         model_args = self.model_args
 
+        teacher = self.patch_coordinator.teacher
+
+        if teacher is not None:
+            id2label = teacher.config.id2label
+            label2id = {v:k for k,v in id2label.items()}
+            kwargs = dict(id2label=id2label, label2id=label2id)
+        else:
+            kwargs = {}
+
         self.config = AutoConfig.from_pretrained(
             model_args.config_name if model_args.config_name else model_args.model_name_or_path,
             num_labels=self.num_labels,
             finetuning_task=self.data_args.task_name,
             cache_dir=model_args.cache_dir,
+            **kwargs
         )
 
         return self.config
@@ -235,7 +245,6 @@ class GlueXP(XP):
         if (
                 model_config.label2id != PretrainedConfig(num_labels=num_labels).label2id
                 and data_args.task_name is not None
-                and self.is_regression
         ):
             # Some have all caps in their config, some don't.
             label_name_to_id = {k.lower(): v for k, v in model_config.label2id.items()}
