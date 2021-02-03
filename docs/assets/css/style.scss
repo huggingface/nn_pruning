@@ -22,14 +22,13 @@ body {
   }
 
   .inner {
-    min-width: 320px;
-    max-width: 480px;
+    width: 470px;
   }
 }
 
 @media screen and (max-width: 320px) {
   .outer {
-    width: 400px;
+    width: 320px;
   }
 
   body {
@@ -37,7 +36,6 @@ body {
   }
 
   .inner {
-    min-width: 240px;
-    max-width: 400px;
+    width: 310px;
   }
 }
