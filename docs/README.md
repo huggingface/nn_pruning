@@ -66,9 +66,11 @@ If we plot the F1 of the full set of pruned networks against the speedup, we can
 
  
  <div class="graph">
-<script src="media/graph.js" id="b90bc19b-a8e4-4e3d-ba08-b6a83c7f375c"></script></div>
+<script src="media/graph.js" id="a03a7d2c-4abe-4043-b7f5-80c4927d5e12"></script></div>
 
 
 Even in terms of saved size, we get smaller networks for the same accuracy:
  
- 
+ <div class="graph">
+<script src="media/graph.js" id="a03a7d2c-4abe-4043-b7f5-80c4927d5e12"></script></div>
+
