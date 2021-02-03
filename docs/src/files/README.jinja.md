@@ -16,29 +16,27 @@ The experiments were done first on SQuAD v1.
 
 Two networks were tested: BERT-base, and BERT-large.
 
-Original performance for this networks:
- 
-{{ bert_performance }}
+Very significant speedups where obtained with limited drop in accuracy.
 
-Significant speedups where obtained with limited drop in accuracy.
+Here is a selection of the networks that are obtained through the different variant method variants.
 
-Here is a selection of the networks that are obtained through the method.
+The original "large" and "base" finedtuned models were added in the table for comparison.
 
 The "BERT version" column shows which base network was pruned.
 The parameter count column is relative to linear layers, which contain most of the model parameters (with the embeddings being most of the remaining parameters).
 
-**F1 difference, speedups and parameters counts are all relative to BERT-base.**
+**F1 difference, speedups and parameters counts are all relative to BERT-base to ease practical comparison.**
 
     
 {{ squad_table.table }}
 ### Main takeaways
-- 1st network: pruned from BERT-large, it's significantly more accurate than BERT-base, but have a similar size and speed.
-- 2nd network: pruned from BERT-large, it is finally 40% smaller but significantly better than a BERT-base, and still as fast.
+- network #2: pruned from BERT-large, it's significantly more accurate than BERT-base, but have a similar size and speed.
+- network #3: pruned from BERT-large, it is finally 40% smaller but significantly better than a BERT-base, and still as fast.
 
 That means that starting from a larger networks is beneficial on all metrics, even absolute size, something observed in the [Train Large, Then Compress](https://arxiv.org/abs/2002.11794) paper.
   
-- 3rd network : we can shrink BERT-base by ~60%, speedup inference by 1.8x and still have a ***better*** network
-- nth network: we can select a tradeoff between speed and accuracy, depending on the final application.
+- network #4: we can shrink BERT-base by ~60%, speedup inference by 1.8x and still have a ***better*** network
+- networks #N: we can select a **tradeoff between speed and accuracy**, depending on the final application.
 - last network: pruned using a slightly different "structured pruning" method that gives faster networks but with a significant drop in F1.
 
 **Additional remarks**
@@ -50,9 +48,16 @@ The speedup here is measured on a 3090 RTX, using the HuggingFace transformers l
 ### Comparison with state of the art 
 If we plot the F1 of the full set of pruned networks against the speedup, we can see that we outperform fine-tuned TinyBERT and Distilbert by a large amount: 
 
-![Squad v1 speedup](doc/media/new_xp_v0_speedup.png)
+{% if github_readme %}
+![Squad v1 speedup]({{media_path}}/new_xp_v0_speedup.png)
+{% else %} 
+   {{ squad_table.graph_speedup_html }}
+{% endif %}
 
 Even in terms of saved size, we get smaller networks for the same accuracy:
-
-![Squad v1 speedup](doc/media/new_xp_v0_fill_rate.png)
+{% if github_readme %}
+![Squad v1 speedup]({{media_path}}/new_xp_v0_fill_rate.png)
+{% else %} 
+   {{ squad_table.graph_speedup_html }}
+{% endif %}
 

@@ -62,11 +62,11 @@ The speedup here is measured on a 3090 RTX, using the HuggingFace transformers l
 ### Comparison with state of the art 
 If we plot the F1 of the full set of pruned networks against the speedup, we can see that we outperform fine-tuned TinyBERT and Distilbert by a large amount: 
 
-![Squad v1 speedup](doc/media/new_xp_v0_speedup.png)
+
+![Squad v1 speedup](docs/media/new_xp_v0_speedup.png)
+
 
 Even in terms of saved size, we get smaller networks for the same accuracy:
 
-![Squad v1 speedup](doc/media/new_xp_v0_fill_rate.png)
+![Squad v1 speedup](docs/media/new_xp_v0_fill_rate.png)
 
-
-<script src="doc/media/graph.js" id="c3ac6995-e17c-4a53-9bda-5af452c522f5"></script>

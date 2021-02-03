@@ -4,15 +4,21 @@ from io import StringIO
 from pytablewriter import MarkdownTableWriter
 from pprint import pprint
 import json
+import nn_pruning.analysis.grapher as grapher
 
 class DocBuilder:
     def __init__(self):
-        self.git_path = Path(__file__).parent.parent.parent
+        self.docs_path = Path(__file__).parent.parent
+        self.git_path = self.docs_path.parent
+        self.media_path = self.docs_path / "media"
         self.path = Path(__file__).parent / "files"
-        print(self.git_path)
+        print(self.docs_path)
 
     # From https://www.aclweb.org/anthology/N19-1423.pdf Table 2
-    BERT_BASE_PERFORMANCE = dict(large=dict(em=84.1, f1=90.9), base=dict(em=80.8, f1=88.5))
+    # From https://huggingface.co/csarron/bert-base-uncased-squad-v1
+    # From https://huggingface.co/bert-large-uncased-whole-word-masking-finetuned-squad
+    BERT_BASE_PERFORMANCE = dict(large=dict(em=86.91, f1=93.15, url="https://huggingface.co/bert-large-uncased-whole-word-masking-finetuned-squad"),
+                                 base=dict(em=80.8, f1=88.5, url="https://huggingface.co/csarron/bert-base-uncased-squad-v1"))
 
     def open(self, name):
         return (self.path / name).open()
@@ -51,30 +57,70 @@ class DocBuilder:
 
         return self.markdown_table_string("BERT SQuAD v1 performance", headers, values)
 
+    def bold_line(self, line):
+        return ["**" + str(v) + "**" for v in line]
+
+    def reorder_squad_table_columns(self, lines):
+        new_lines = []
+        for l in lines:
+            new_l = l[0:3] + l[5:7] + l[3:5] + l[7:]
+            new_lines.append(new_l)
+
+        return new_lines
 
     def build_squad_table(self):
         infos = self.read_jsonl("new_xp_v1_speedup_Block_struct_method__final_fine_tuned.jsonl")
-        headers = ["BERT model", "F1 difference", "Effective Speedup", "Parameters count", "Theoretical speedup"]
+        headers = ["model", "type", "method", "F1", "F1 diff", "Parameters count", "Theoretical speedup", "Full pipeline speedup"]
 
         base_performance = self.BERT_BASE_PERFORMANCE
         values = []
+        bert_large = [f"[#1]({base_performance['large']['url']})", "large", "unpruned", base_performance["large"]["f1"], "%+0.2f" % (base_performance["large"]["f1"] - base_performance["base"]["f1"]), "+166%", "0.37x", "0.35x"]
+        bert_large = self.bold_line(bert_large)
+
+        values.append(bert_large)
+
+        bert_base = ["base",  "unpruned", base_performance["base"]["f1"], "+0.00", "+0%", "1.0x", "1.0x", ]
+        bert_base = self.bold_line(bert_base)
+
+        base_added = False
         for info in infos:
-            type = "large" if "large" in info["meta"]["path"] else "base"
+            path = info["path"]
+            size = "large" if "large" in path else "base"
+            type = info["type"]
 
-            f1 = info["f1"] - base_performance["base"]["f1"]
+            f1 = info["f1"]
+            if f1 <  base_performance["base"]["f1"] and not base_added:
+                values.append([f"**[#{len(values) + 1}]({base_performance['base']['url']})**"] + bert_base)
+                base_added = True
+
+
+            f1_diff = info["f1"] - base_performance["base"]["f1"]
             speedup = info["speedup"]
-            sparsity = 1.0 - info["meta"]["fill_rate"]
+            sparsity = 1.0 - info["fill_rate"]
 
-            if type == "large":
-                large_reduction = "%d%%" % (100 * (1.0 - (info["meta"]["fill_rate"] * 3 / 8)))
+            if size == "large":
+                large_reduction = "%d%%" % (100 * (1.0 - (info["fill_rate"] * 3 / 8)))
 
-            perf = "%+0.2f%%" % f1
+            perf = "%+.2f" % f1_diff
             speedup = "%0.2fx" % speedup
             theo_speedup = "%0.1fx" % (1.0 / (1.0 - sparsity))
             sparsity = "-%d%%" % (100 * sparsity)
-            values.append([type, perf, speedup, sparsity, theo_speedup])
+            values.append([f"#{len(values) + 1}",  size, type, f1, perf, sparsity, theo_speedup, speedup])
 
-        return {"table":self.markdown_table_string("Squad V1", headers, values), "large_reduction":large_reduction}
+        headers = self.reorder_squad_table_columns([headers])[0]
+        values = self.reorder_squad_table_columns(values)
+
+        p = grapher.MyPlotter()
+        graph_js, graph_html = p.run()
+
+        graph_html = graph_html.replace("$$JS_SOURCE$$", "media/graph.js")
+
+        with open(self.docs_path / "media" / "graph.js", "w") as output:
+            output.write(graph_js)
+
+        return dict(table=self.markdown_table_string("Squad V1", headers, values),
+                    large_reduction=large_reduction,
+                    graph_speedup_html=graph_html)
 
     def run(self):
         template = jinja2.Template(self.open("README.jinja.md").read())
@@ -87,11 +133,14 @@ class DocBuilder:
                 report[key] = getattr(self, name)()
 
         pprint(report)
-        ret = template.render(**report)
 
         with (self.git_path / "README.md").open("w") as readme_file:
+            ret = template.render(github_readme=True, media_path="docs/media", **report)
             readme_file.write(ret)
 
+        with (self.docs_path / "README.md").open("w") as readme_file:
+            ret = template.render(github_readme=False, media_path="media", **report)
+            readme_file.write(ret)
 
         pass
 
