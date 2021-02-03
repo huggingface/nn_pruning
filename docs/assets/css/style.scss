@@ -12,13 +12,9 @@ body {
     width: 830px;
 }
 
-.outer {
-    width: 830px;
-}
-
 @media screen and (max-width: 480px) {
   .outer {
-    width: 830px;
+    width: 480px;
   }
 
   body {
@@ -33,7 +29,7 @@ body {
 
 @media screen and (max-width: 320px) {
   .outer {
-    width: 830px;
+    width: 320px;
   }
 
   body {
