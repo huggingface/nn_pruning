@@ -29,7 +29,7 @@ body {
 
 @media screen and (max-width: 320px) {
   .outer {
-    width: 320px;
+    width: 400px;
   }
 
   body {
@@ -38,6 +38,6 @@ body {
 
   .inner {
     min-width: 240px;
-    max-width: 320px;
+    max-width: 400px;
   }
 }
