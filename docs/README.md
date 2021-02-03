@@ -65,12 +65,12 @@ The speedup here is measured on a 3090 RTX, using the HuggingFace transformers l
 If we plot the F1 of the full set of pruned networks against the speedup, we can see that we outperform fine-tuned TinyBERT and Distilbert by a large amount: 
 
  
-   
-<script src="media/graph.js" id="03903305-6198-4a56-9eb8-9bd1c8ef54e6"></script>
+ <div class=".graph">
+<script src="media/graph.js" id="ede37ce8-dd5f-4560-a6c6-de5af0259ea5"></script></div>
 
 
 Even in terms of saved size, we get smaller networks for the same accuracy:
  
-   
-<script src="media/graph.js" id="03903305-6198-4a56-9eb8-9bd1c8ef54e6"></script>
+ <div class=".graph">
+<script src="media/graph.js" id="ede37ce8-dd5f-4560-a6c6-de5af0259ea5"></script></div>
 

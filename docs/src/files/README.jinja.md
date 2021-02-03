@@ -55,13 +55,13 @@ If we plot the F1 of the full set of pruned networks against the speedup, we can
 {% if github_readme %}
 ![Squad v1 speedup]({{media_path}}/new_xp_v0_speedup.png)
 {% else %} 
-   {{ squad_table.graph_speedup_html }}
+ <div class=".graph">{{ squad_table.graph_speedup_html }}</div>
 {% endif %}
 
 Even in terms of saved size, we get smaller networks for the same accuracy:
 {% if github_readme %}
 ![Squad v1 speedup]({{media_path}}/new_xp_v0_fill_rate.png)
 {% else %} 
-   {{ squad_table.graph_speedup_html }}
+ <div class=".graph">{{ squad_table.graph_speedup_html }}</div>
 {% endif %}
 
