@@ -13,6 +13,7 @@ body {
 }
 
 .graph {
+  width: 830px;
   padding: 10px;
 }
 
@@ -26,7 +27,11 @@ body {
   }
 
   .inner {
-    width: 470px;
+    width: 480px;
+  }
+  .graph {
+    width: 480px;
+    padding: 10px;
   }
 }
 
@@ -40,6 +45,12 @@ body {
   }
 
   .inner {
-    width: 310px;
+    width: 320px;
   }
+
+  .graph {
+    width: 320px;
+    padding: 10px;
+  }
+
 }
