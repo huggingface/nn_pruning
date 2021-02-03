@@ -63,7 +63,8 @@ class DocBuilder:
     def reorder_squad_table_columns(self, lines):
         new_lines = []
         for l in lines:
-            new_l = l[0:3] + l[5:7] + l[3:5] + l[7:]
+            # 5 will contain the theoretical speedup, we are removing it
+            new_l = l[0:3] + l[6:7] + l[3:5] + l[7:]
             new_lines.append(new_l)
 
         return new_lines
@@ -74,12 +75,12 @@ class DocBuilder:
 
         base_performance = self.BERT_BASE_PERFORMANCE
         values = []
-        bert_large = [f"[#1]({base_performance['large']['url']})", "large", "origin", base_performance["large"]["f1"], "%+0.2f" % (base_performance["large"]["f1"] - base_performance["base"]["f1"]), "+166%", "0.37x", "0.35x"]
+        bert_large = [f"[#1]({base_performance['large']['url']})", "large", "-", base_performance["large"]["f1"], "%+0.2f" % (base_performance["large"]["f1"] - base_performance["base"]["f1"]), "+166%", "0.37x", "0.35x"]
         bert_large = self.bold_line(bert_large)
 
         values.append(bert_large)
 
-        bert_base = ["base",  "origin", base_performance["base"]["f1"], "+0.00", "+0%", "1.0x", "1.0x", ]
+        bert_base = ["base",  "-", base_performance["base"]["f1"], "+0.00", "+0%", "1.0x", "1.0x", ]
         bert_base = self.bold_line(bert_base)
 
         base_added = False
