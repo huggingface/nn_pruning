@@ -13,23 +13,23 @@ body {
 }
 
 @media screen and (max-width: 480px) {
-  body {
-    font-size:14px;
-  }
+//  body {
+//    font-size:14px;
+//  }
 
   .inner {
-    min-width: 320px;
-    max-width: 480px;
+    max-width: 830px;
+    width: 830px;
   }
 }
 
 @media screen and (max-width: 320px) {
-  body {
-    font-size:14px;
-  }
+//  body {
+//    font-size:14px;
+//  }
 
   .inner {
-    min-width: 240px;
-    max-width: 320px;
+    max-width: 830px;
+    width: 830px;
   }
 }
