@@ -4,8 +4,9 @@
 @import "{{ site.theme }}";
 
 .inner {
-    max-width: 830px;
-    width: 830px;
+    max-width: 480px;
+    min-width: 320px;
+//    width: 830px;
 }
 
 @media screen and (max-width: 480px) {
