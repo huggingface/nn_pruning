@@ -11,7 +11,6 @@ saving a lot of permanent storage space on servers or devices, and bandwidth, an
 Some degree of structure is necessary to use the intrinsic parallel nature of today hardware.
 **Block Movement Pruning** work extends the original method and explore **semi-structured and structured variants** of Movement Pruning.*
 
-##  
 ## Results
 
 ### Squad V1
@@ -66,12 +65,16 @@ The speedup here is measured on a 3090 RTX, using the HuggingFace transformers l
 If we plot the F1 of the full set of pruned networks against the speedup, we can see that we outperform fine-tuned TinyBERT and Distilbert by a large amount: 
 
  
+   <div  style="margin: 10px;">
    
-<script src="media/graph.js" id="48bd9c38-9548-4a62-ba48-a22836d26f8c"></script>
+<script src="media/graph.js" id="196095c4-3205-45f1-87a3-aadc4b36bc0d"></script>
+   </div>
 
 
 Even in terms of saved size, we get smaller networks for the same accuracy:
  
+   <div  style="margin: 10px;">
    
-<script src="media/graph.js" id="48bd9c38-9548-4a62-ba48-a22836d26f8c"></script>
+<script src="media/graph.js" id="196095c4-3205-45f1-87a3-aadc4b36bc0d"></script>
+   </div>
 
