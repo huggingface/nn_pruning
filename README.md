@@ -13,7 +13,6 @@ saving a lot of permanent storage space on servers or devices, and bandwidth, an
 Some degree of structure is necessary to use the intrinsic parallel nature of today hardware.
 **Block Movement Pruning** work extends the original method and explore **semi-structured and structured variants** of Movement Pruning.*
 
-##  
 ## Results
 
 ### Squad V1
