@@ -63,15 +63,15 @@ class DocBuilder:
     def reorder_squad_table_columns(self, lines):
         new_lines = []
         for l in lines:
-            # 5 will contain the theoretical speedup, we are removing it
-            new_l = l[0:3] + l[6:7] + l[3:5] + l[7:]
+            # 7 will contain the theoretical speedup, we are
+            new_l = l[0:3] + l[5:6] + l[3:5] + l[7:]
             new_lines.append(new_l)
 
         return new_lines
 
     def build_squad_table(self):
         infos = self.read_jsonl("new_xp_v1_speedup_Block_struct_method__final_fine_tuned.jsonl")
-        headers = ["Model", "Type", "method", "F1", "F1 diff", "Params", "Theoretical<br>Speedup", "Full<br>pipeline<br>speedup"]
+        headers = ["Model", "Type", "method", "F1", "F1 diff", "Params", "Theoretical<br>Speedup", "Speedup"]
 
         base_performance = self.BERT_BASE_PERFORMANCE
         values = []

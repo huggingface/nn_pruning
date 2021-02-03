@@ -30,18 +30,18 @@ The parameter count column is relative to linear layers, which contain most of t
 **F1 difference, speedups and parameters counts are all relative to BERT-base to ease practical comparison.**
 
     
-|                                        Model                                         |  Type   |method|Theoretical<br>Speedup|   F1    | F1 diff |Full<br>pipeline<br>speedup|
-|--------------------------------------------------------------------------------------|---------|------|----------------------|---------|---------|---------------------------|
-|**[#1](https://huggingface.co/bert-large-uncased-whole-word-masking-finetuned-squad)**|**large**|**-** |**0.37x**             |**93.15**|**+4.65**|**0.35x**                  |
-|#2                                                                                    |large    |hybrid|1.2x                  |    91.03|+2.53    |0.92x                      |
-|#3                                                                                    |large    |hybrid|1.7x                  |    90.16|+1.66    |1.03x                      |
-|#4                                                                                    |base     |hybrid|2.4x                  |    88.72|+0.22    |1.84x                      |
-|**[#5](https://huggingface.co/csarron/bert-base-uncased-squad-v1)**                   |**base** |**-** |**1.0x**              |**88.5** |**+0.00**|**1.0x**                   |
-|#6                                                                                    |base     |hybrid|2.9x                  |    88.25|-0.25    |1.98x                      |
-|#7                                                                                    |base     |hybrid|3.1x                  |    87.71|-0.79    |2.44x                      |
-|#8                                                                                    |base     |hybrid|3.8x                  |    87.23|-1.27    |2.60x                      |
-|#9                                                                                    |base     |hybrid|3.9x                  |    86.69|-1.81    |2.80x                      |
-|#10                                                                                   |base     |struct|7.3x                  |    85.52|-2.98    |3.64x                      |
+|                                        Model                                         |  Type   |method| Params  |   F1    | F1 diff | Speedup |
+|--------------------------------------------------------------------------------------|---------|------|---------|---------|---------|---------|
+|**[#1](https://huggingface.co/bert-large-uncased-whole-word-masking-finetuned-squad)**|**large**|**-** |**+166%**|**93.15**|**+4.65**|**0.35x**|
+|#2                                                                                    |large    |hybrid|-17%     |    91.03|+2.53    |0.92x    |
+|#3                                                                                    |large    |hybrid|-40%     |    90.16|+1.66    |1.03x    |
+|#4                                                                                    |base     |hybrid|-59%     |    88.72|+0.22    |1.84x    |
+|**[#5](https://huggingface.co/csarron/bert-base-uncased-squad-v1)**                   |**base** |**-** |**+0%**  |**88.5** |**+0.00**|**1.0x** |
+|#6                                                                                    |base     |hybrid|-65%     |    88.25|-0.25    |1.98x    |
+|#7                                                                                    |base     |hybrid|-67%     |    87.71|-0.79    |2.44x    |
+|#8                                                                                    |base     |hybrid|-73%     |    87.23|-1.27    |2.60x    |
+|#9                                                                                    |base     |hybrid|-74%     |    86.69|-1.81    |2.80x    |
+|#10                                                                                   |base     |struct|-86%     |    85.52|-2.98    |3.64x    |
 
 
 
@@ -66,11 +66,11 @@ If we plot the F1 of the full set of pruned networks against the speedup, we can
 
  
  <div class="graph">
-<script src="media/graph.js" id="55a3081b-e822-4c5a-8c3e-68163cf92422"></script></div>
+<script src="media/graph.js" id="e1014d13-f98a-44c3-a40b-ec54cfcf6ad0"></script></div>
 
 
 Even in terms of saved size, we get smaller networks for the same accuracy:
  
  <div class="graph">
-<script src="media/graph.js" id="55a3081b-e822-4c5a-8c3e-68163cf92422"></script></div>
+<script src="media/graph.js" id="e1014d13-f98a-44c3-a40b-ec54cfcf6ad0"></script></div>
 
