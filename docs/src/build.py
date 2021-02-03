@@ -70,16 +70,16 @@ class DocBuilder:
 
     def build_squad_table(self):
         infos = self.read_jsonl("new_xp_v1_speedup_Block_struct_method__final_fine_tuned.jsonl")
-        headers = ["model", "type", "method", "F1", "F1 diff", "Parameters count", "Theoretical speedup", "Full pipeline speedup"]
+        headers = ["Model", "Type", "method", "F1", "F1 diff", "Params", "Theoretical<br>Speedup", "Full<br>pipeline<br>speedup"]
 
         base_performance = self.BERT_BASE_PERFORMANCE
         values = []
-        bert_large = [f"[#1]({base_performance['large']['url']})", "large", "unpruned", base_performance["large"]["f1"], "%+0.2f" % (base_performance["large"]["f1"] - base_performance["base"]["f1"]), "+166%", "0.37x", "0.35x"]
+        bert_large = [f"[#1]({base_performance['large']['url']})", "large", "origin", base_performance["large"]["f1"], "%+0.2f" % (base_performance["large"]["f1"] - base_performance["base"]["f1"]), "+166%", "0.37x", "0.35x"]
         bert_large = self.bold_line(bert_large)
 
         values.append(bert_large)
 
-        bert_base = ["base",  "unpruned", base_performance["base"]["f1"], "+0.00", "+0%", "1.0x", "1.0x", ]
+        bert_base = ["base",  "origin", base_performance["base"]["f1"], "+0.00", "+0%", "1.0x", "1.0x", ]
         bert_base = self.bold_line(bert_base)
 
         base_added = False
