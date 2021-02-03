@@ -1,5 +1,8 @@
 # Neural Networks Block Movement Pruning
 
+
+
+
 **[Movement](https://arxiv.org/abs/2005.07683) [pruning](https://github.com/huggingface/transformers/tree/master/examples/research_projects/movement-pruning)** *has been proved as a **very efficient
 method to prune networks in a unstructured manner**. High levels of sparsity can be reached with a minimal of accuracy loss. 
 The resulting sparse networks can be **compressed heavily**,
@@ -64,11 +67,11 @@ If we plot the F1 of the full set of pruned networks against the speedup, we can
 
  
    
-<script src="media/graph.js" id="7461dc98-972f-4474-9222-dd385f3bc5d9"></script>
+<script src="media/graph.js" id="48bd9c38-9548-4a62-ba48-a22836d26f8c"></script>
 
 
 Even in terms of saved size, we get smaller networks for the same accuracy:
  
    
-<script src="media/graph.js" id="7461dc98-972f-4474-9222-dd385f3bc5d9"></script>
+<script src="media/graph.js" id="48bd9c38-9548-4a62-ba48-a22836d26f8c"></script>
 
