@@ -12,11 +12,15 @@ body {
     width: 830px;
 }
 
-#header_wrap .outer {
+.outer {
     width: 830px;
 }
 
 @media screen and (max-width: 480px) {
+  .outer {
+    width: 830px;
+  }
+
   body {
     font-size:14px;
   }
@@ -28,6 +32,10 @@ body {
 }
 
 @media screen and (max-width: 320px) {
+  .outer {
+    width: 830px;
+  }
+
   body {
     font-size:14px;
   }
