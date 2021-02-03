@@ -16,46 +16,41 @@ The experiments were done first on SQuAD v1.
 
 Two networks were tested: BERT-base, and BERT-large.
 
-Original performance for this networks:
- 
-|BERT version|Exact Match| F1 |
-|------------|----------:|---:|
-|large       |       84.1|90.9|
-|base        |       80.8|88.5|
+Very significant speedups where obtained with limited drop in accuracy.
 
+Here is a selection of the networks that are obtained through the different variant method variants.
 
-
-
-Significant speedups where obtained with limited drop in accuracy.
-
-Here is a selection of the networks that are obtained through the method.
+The original "large" and "base" finedtuned models were added in the table for comparison.
 
 The "BERT version" column shows which base network was pruned.
 The parameter count column is relative to linear layers, which contain most of the model parameters (with the embeddings being most of the remaining parameters).
 
-**F1 difference, speedups and parameters counts are all relative to BERT-base.**
+**F1 difference, speedups and parameters counts are all relative to BERT-base to ease practical comparison.**
 
     
-|BERT model|F1 difference|Effective Speedup|Parameters count|Theoretical speedup|
-|----------|-------------|-----------------|----------------|-------------------|
-|large     |+2.53%       |0.92x            |-17%            |1.2x               |
-|large     |+1.66%       |1.03x            |-40%            |1.7x               |
-|base      |+0.22%       |1.84x            |-59%            |2.4x               |
-|base      |-0.25%       |1.98x            |-65%            |2.9x               |
-|base      |-0.79%       |2.44x            |-67%            |3.1x               |
-|base      |-1.81%       |2.80x            |-74%            |3.9x               |
-|base      |-2.98%       |3.64x            |-86%            |7.3x               |
+|                                        model                                         |  type   |   method   |Parameters count|Theoretical speedup|   F1    | F1 diff |Full pipeline speedup|
+|--------------------------------------------------------------------------------------|---------|------------|----------------|-------------------|---------|---------|---------------------|
+|**[#1](https://huggingface.co/bert-large-uncased-whole-word-masking-finetuned-squad)**|**large**|**unpruned**|**+166%**       |**0.37x**          |**93.15**|**+4.65**|**0.35x**            |
+|#2                                                                                    |large    |hybrid      |-17%            |1.2x               |    91.03|+2.53    |0.92x                |
+|#3                                                                                    |large    |hybrid      |-40%            |1.7x               |    90.16|+1.66    |1.03x                |
+|#4                                                                                    |base     |hybrid      |-59%            |2.4x               |    88.72|+0.22    |1.84x                |
+|**[#5](https://huggingface.co/csarron/bert-base-uncased-squad-v1)**                   |**base** |**unpruned**|**+0%**         |**1.0x**           |**88.5** |**+0.00**|**1.0x**             |
+|#6                                                                                    |base     |hybrid      |-65%            |2.9x               |    88.25|-0.25    |1.98x                |
+|#7                                                                                    |base     |hybrid      |-67%            |3.1x               |    87.71|-0.79    |2.44x                |
+|#8                                                                                    |base     |hybrid      |-73%            |3.8x               |    87.23|-1.27    |2.60x                |
+|#9                                                                                    |base     |hybrid      |-74%            |3.9x               |    86.69|-1.81    |2.80x                |
+|#10                                                                                   |base     |structured  |-86%            |7.3x               |    85.52|-2.98    |3.64x                |
 
 
 
 ### Main takeaways
-- 1st network: pruned from BERT-large, it's significantly more accurate than BERT-base, but have a similar size and speed.
-- 2nd network: pruned from BERT-large, it is finally 40% smaller but significantly better than a BERT-base, and still as fast.
+- network #2: pruned from BERT-large, it's significantly more accurate than BERT-base, but have a similar size and speed.
+- network #3: pruned from BERT-large, it is finally 40% smaller but significantly better than a BERT-base, and still as fast.
 
 That means that starting from a larger networks is beneficial on all metrics, even absolute size, something observed in the [Train Large, Then Compress](https://arxiv.org/abs/2002.11794) paper.
   
-- 3rd network : we can shrink BERT-base by ~60%, speedup inference by 1.8x and still have a ***better*** network
-- nth network: we can select a tradeoff between speed and accuracy, depending on the final application.
+- network #4: we can shrink BERT-base by ~60%, speedup inference by 1.8x and still have a ***better*** network
+- networks #N: we can select a **tradeoff between speed and accuracy**, depending on the final application.
 - last network: pruned using a slightly different "structured pruning" method that gives faster networks but with a significant drop in F1.
 
 **Additional remarks**
@@ -72,3 +67,6 @@ If we plot the F1 of the full set of pruned networks against the speedup, we can
 Even in terms of saved size, we get smaller networks for the same accuracy:
 
 ![Squad v1 speedup](doc/media/new_xp_v0_fill_rate.png)
+
+
+<script src="doc/media/graph.js" id="c3ac6995-e17c-4a53-9bda-5af452c522f5"></script>
