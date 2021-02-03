@@ -13,6 +13,10 @@ body {
 }
 
 @media screen and (max-width: 480px) {
+  #header_wrap .inner {
+    padding: 0px 0px 30px 10px;
+  }
+
   body {
     font-size:5px;
   }
@@ -24,6 +28,10 @@ body {
 }
 
 @media screen and (max-width: 320px) {
+  #header_wrap .inner {
+    padding: 0px 0px 30px 10px;
+  }
+
   body {
     font-size:5px;
   }
