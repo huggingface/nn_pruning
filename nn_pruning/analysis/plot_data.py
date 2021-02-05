@@ -411,8 +411,6 @@ class TinyBert(PointProvider):
         else:
             raise Exception(f"Unkwnon task {task}")
 
-        return ret
-
 
 class Are16HeadsBetter(PointProvider):
     def points_(self, task):
@@ -435,14 +433,13 @@ class MobileBert(PointProvider):
 class MovementPruning(PointProvider):
     SUBSETS = ["local_movement_pruning", "soft_movement_with_distillation"]
 
-    def __init__(self, cache_dir, subset):
+    def __init__(self, cache_dir):
         super().__init__(cache_dir)
-        self.subset = subset
 
     def points_(self, task):
         assert task == "squadv1"
         defaults = dict(size=1, inner_sparsity=1, cols=1, rows=1, epochs=10)
-        ret = []
+        ret = {}
 
         xcel_file_name = Path(__file__).parent / "mvmt_pruning.xlsx"
         xcel = pandas.read_excel(xcel_file_name, index_col=0, sheet_name="Details - SQuAD")
@@ -458,11 +455,13 @@ class MovementPruning(PointProvider):
                         key = "soft_movement_with_distillation"
                     else:
                         key = None
-                    if key != None and key == self.subset:
+                    if key != None and key in self.SUBSETS:
                         d = dict(name=name, fill_rate=d[3] / 100.0, exact=d[4], f1=d[5])
 
                         d.update(defaults)
-                        ret.append(d)
+                        if key not in ret:
+                            ret[key] = []
+                        ret[key].append(d)
 
         return ret
 
@@ -470,8 +469,7 @@ class MovementPruning(PointProvider):
 class MultiProvider:
     def points(self, task, cache_dir, analyze_result_file):
         ret = {}
-        for subset in MovementPruning.SUBSETS:
-            ret[subset] = MovementPruning(cache_dir, subset).points(task)
+        ret.update(MovementPruning(cache_dir).points(task))
         ret.update(DistilBert(cache_dir).points(task))
         ret.update(TinyBert(cache_dir).points(task))
 

@@ -73,7 +73,7 @@ class DocBuilder:
         return new_lines
 
 
-    def build_squad(self):
+    def build_squadv1(self):
         infos = self.read_jsonl("new_xp_v1_speedup_Block_struct_method__final_fine_tuned.jsonl")
         headers = ["Model", "Type", "method", "F1", "F1 diff", "Params", "Theoretical<br>Speedup", "Speedup"]
 
@@ -124,8 +124,8 @@ class DocBuilder:
         #    output.write(graph_js)
 
 
-        speedup_html = self.read_media_file("squad/summary_speedup.html")
-        summary_fill_rate_html = self.read_media_file("squad/summary_fill_rate.html")
+        speedup_html = self.read_media_file("squadv1/summary_speedup.html")
+        summary_fill_rate_html = self.read_media_file("squadv1/summary_fill_rate.html")
 
 
         return dict(table=self.markdown_table_string("Squad V1", headers, values),

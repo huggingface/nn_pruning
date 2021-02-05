@@ -1,25 +1,31 @@
 from matplotlib import pyplot as pyplot
 from bokeh.plotting import figure, output_file, show
+from bokeh.io import export_png
 import json
 from pathlib import Path
 import re
-import copy
+import shutil
 import plot_data
 import math
 
+import bokeh
 import bokeh.plotting as plotting
-import bokeh.models
+from bokeh.models import Label, Range1d
 from bokeh.resources import CDN
 from bokeh.embed import autoload_static
+import itertools
 
 
 class Plotter:
-    def __init__(self, dest_dir, dest_file_name, only_dots, draw_labels, limits):
+    def __init__(self, dest_dir, dest_file_name, only_dots, draw_labels, limits, title, x_label, y_label):
         self.dest_dir = dest_dir
         self.dest_file_name = dest_file_name
         self.only_dots = only_dots
         self.draw_labels = draw_labels
         self.limits = limits
+        self.title = title
+        self.x_label = x_label
+        self.y_label = y_label
 
     @staticmethod
     def label_cleanup(label):
@@ -89,12 +95,9 @@ class MatplotlibPlotter(Plotter):
         if y_min != None:
             pyplot.ylim(y_min, y_max)
 
-        XLabel = key.replace("_", " ").capitalize()
-        pyplot.xlabel(XLabel + " (vs BERT-base)", fontsize=self.fontsize)
-        YLabel = "SQuAD v1 F1"
-        pyplot.ylabel(YLabel, fontsize=self.fontsize)
-        title = "%s against %s\n" % (YLabel, XLabel)
-        pyplot.title(title, fontsize=self.fontsize)
+        pyplot.xlabel(self.x_label, fontsize=self.fontsize)
+        pyplot.ylabel(self.y_label, fontsize=self.fontsize)
+        pyplot.title(self.title, fontsize=self.fontsize)
 
         self.save_fig("png")
         self.save_fig("eps")
@@ -114,30 +117,66 @@ class BokehHelper:
         if show:
             plotting.output_notebook()
         fig = self.create_fig(*args, **kwargs)
+
         if show:
             bokeh.plotting.show(fig)
         else:
             js, tag = autoload_static(fig, CDN, self.js_path)
-            return js, tag
+            return fig, js, tag
 
 class BokehPlot(BokehHelper):
-    def create_fig(self, plots, key):
+    def create_fig(self, plots, key, title, width, x_label, y_label, limits):
+        # select a palette
+        from bokeh.palettes import Dark2_5 as palette
+
         # create a new plot with a title and axis labels
-        fig = bokeh.plotting.figure(title="simple line example", x_axis_label='x', y_axis_label='y')
+        fig = bokeh.plotting.figure(title=title, width = width, x_axis_label='x', y_axis_label='y')
+        fig.xaxis.axis_label = x_label
+        fig.yaxis.axis_label = y_label
+
+        x_min = limits[key]["x_min"]
+        x_max = limits[key]["x_max"]
+        y_min = limits[key]["y_min"]
+        y_max = limits[key]["y_max"]
+
+        fig.x_range = Range1d(x_min, x_max)
+        if y_min is not None and y_max is not None:
+            fig.y_range = Range1d(y_min, y_max)
 
         # add a line renderer with legend and line thickness
 
+        colors = itertools.cycle(palette)
+
         max_x = -math.inf
-        for label_text, plot in plots.items():
+        for plot in plots.values():
+            max_x = max(max_x, max(plot["x"]))
+
+        for (label_text, plot), color in zip(plots.items(), colors):
             x = plot["x"]
             y = plot["y"]
             annotate = plot["annotate"]
-            max_x = max(max_x, max(x))
 
             if len(x) == 1 or self.only_dots:
-                pyplot.scatter(x, y, cmap="viridis", alpha=1.0, label=label_text)  # , marker=markers[i]) # cool
+                point = Label(x=x[0], y=y[0], text = label_text)
+                fig.add_layout(point)
+                fig.scatter(x, y)  # , marker=markers[i]) # cool
             else:
-                fig.line(x, y, legend_label=label_text, line_width=2)
+                fig.line(x, y, legend_label=label_text, line_width=2, color=color)
+
+            for i in range(3):
+                f1 = 88.5 - i
+                if i == 0:
+                    line_args = dict(legend_label=f"BERT-base reference (f1={f1})")
+                else:
+                    line_args = {}
+
+                fig.line(
+                    x = [0, max_x],
+                    y = [88.5 - i] * 2,
+                    color="red",
+                    alpha=0.5**(i + 2),
+                    **line_args
+                )
 
             if False:
                 if draw_labels or len(x) == 1:
@@ -152,15 +191,25 @@ class BokehPlot(BokehHelper):
 
 
 class BokehPlotter(Plotter):
+
     def save_file(self, extension, data):
         with (self.dest_dir / (self.dest_file_name + "." + extension)).open("w") as f:
             f.write(data)
 
     def run(self, plots, key):
+        WIDTH=800
         div_id =  str(self.dest_file_name)
         js_path = "$$JS_PATH$$"
         bp = BokehPlot(div_id, js_path, only_dots = self.only_dots)
-        js, tag = bp.run(plots, key)
+        fig, js, tag = bp.run(plots,
+                              key,
+                              width=WIDTH,
+                              title = self.title,
+                              x_label=self.x_label,
+                              y_label=self.y_label,
+                              limits = self.limits)
+
+        export_png(fig, filename=self.dest_dir / (self.dest_file_name + "_static.png"), width=WIDTH)
 
         self.save_file("js", js)
         self.save_file("html", tag)
@@ -269,6 +318,7 @@ class PlotManager:
         for k, v in references.items():
             if reference_black_list is not None and k in reference_black_list:
                 continue
+
             final_plots[k] = v
 
         for k, v in checkpoints.items():
@@ -292,20 +342,31 @@ class PlotManager:
             x = [e.get(key, 1.0) for e in data]
             max_x = max(max_x, max(x))
             y = [e["f1"] for e in data]
-            annotate = [e["annotate"] for e in data]
+            annotate = [e.get("annotate","") for e in data]
 
             label_text = self.label_mapping.get(label, label.capitalize())
             plots[label_text] = {"x":x, "y":y, "annotate": annotate, "points":data}
 
+        x_label = key.capitalize()
+        y_label = "F1"
 
-        mp = MatplotlibPlotter(dest_dir, dest_file_name, self.only_dots, self.draw_labels, self.limits)
-        mp.run(plots, key)
+        title = "%s against %s (BERT-base reference)" % (y_label, x_label)
 
-        tp = TextFilePlotter(dest_dir, dest_file_name, self.only_dots, self.draw_labels, self.limits)
-        tp.run(plots, key)
+        params = dict(dest_dir=dest_dir,
+                      dest_file_name=dest_file_name,
+                      only_dots=self.only_dots,
+                      draw_labels=self.draw_labels,
+                      limits=self.limits,
+                      title=title,
+                      x_label=x_label,
+                      y_label=y_label)
 
-        mp = BokehPlotter(dest_dir, dest_file_name, self.only_dots, self.draw_labels, self.limits)
-        mp.run(plots, key)
+        constructors = [MatplotlibPlotter, TextFilePlotter, BokehPlotter]
+
+        for c in constructors:
+            m = c(**params)
+            m.run(plots, key)
+
 
 
 
@@ -390,11 +451,14 @@ def draw_all_plots(input_file_name, task, cleanup_cache=False):
         "summary": dict(
             cat_fun_names=["new_xp"],
             draw_labels=False,
-            white_list=["Block/struct method, final fine tuned, s=[bl]", "Structured pruning"],
+            #reference_black_list=["local_movement_pruning"],
+            white_list=["Block/struct method, final fine tuned, s=[bl]", "Structured pruning",  "improved soft movement with distillation"],
             label_mapping={
-                "Block/struct method, final fine tuned, s=l": "BERT large, hybrid pruning",
-                "Block/struct method, final fine tuned, s=b": "BERT base, hybrid pruning",
+                "Block/struct method, final fine tuned, s=l": "BERT-large, hybrid pruning",
+                "Block/struct method, final fine tuned, s=b": "BERT-base, hybrid pruning",
                 "Structured pruning": "BERT-base, structured pruning",
+                "improved soft movement with distillation": "Improved soft movement",
+                "soft_movement_with_distillation" : "Original Soft Movement",
             },
         ),
         }
@@ -412,6 +476,19 @@ def draw_all_plots(input_file_name, task, cleanup_cache=False):
         )
         multiplot(p, name)
 
+def copy_plots(task):
+    graph_path = (Path(__file__).parent / "graphs").resolve()
+    dest_dir = (Path(__file__).parent.parent.parent / "docs" / "assets" / "media" / task).resolve()
+
+    parts = ["summary"]
+    suffixes = [".html", ".js", ".png"]
+    for part in parts:
+        part_dir = graph_path / part
+        for name in part_dir.iterdir():
+            if name.suffix in suffixes:
+                src = name
+                dst = str(dest_dir / name.name)
+                shutil.copyfile(src, dst)
 
 #
 
@@ -420,6 +497,7 @@ if __name__ == "__main__":
     task = "squadv1"
 
     draw_all_plots(input_file_name, task, cleanup_cache=False)
+    copy_plots(task)
     import sys
 
     sys.exit()
