@@ -9,7 +9,7 @@ class DocBuilder:
     def __init__(self):
         self.docs_path = Path(__file__).parent.parent
         self.git_path = self.docs_path.parent
-        self.media_path = self.docs_path / "media"
+        self.media_path = self.docs_path / "assets" / "media"
         self.path = Path(__file__).parent / "files"
         print(self.docs_path)
 
@@ -159,8 +159,8 @@ class DocBuilder:
                 key = name[len(prefix):]
                 report[key] = getattr(self, name)()
 
-        variations = [dict(path=self.git_path, github_readme=True, media_path="docs/media"),
-                      dict(path=self.docs_path, github_readme=False, media_path="media")]
+        variations = [dict(path=self.git_path, github_readme=True, media_path="docs/assets/media"),
+                      dict(path=self.docs_path, github_readme=False, media_path="assets/media")]
 
         for variation in variations:
             with (variation["path"] / "README.md").open("w") as readme_file:
