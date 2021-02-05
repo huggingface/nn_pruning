@@ -87,8 +87,8 @@ class MatplotlibPlotter(Plotter):
                 [0, 10], [88.5 - i] * 2, label=f"original BERT-base {'' if i == 0 else str(-i) + '% '}(F1 = {f1})"
             )
 
-        legend_loc = self.limits[key]["legend"]
-        pyplot.legend(loc=legend_loc, prop={"size": self.fontsize})
+        legend_pos = self.limits[key]["legend_pos"]
+        pyplot.legend(loc=legend_pos, prop={"size": self.fontsize})
 
         if x_min != None:
             pyplot.xlim(x_min, x_max)
@@ -125,6 +125,13 @@ class BokehHelper:
             return fig, js, tag
 
 class BokehPlot(BokehHelper):
+    def get_legend_pos(self, limits):
+        replacements = [(" ", "_"), ("upper", "top"), ("lower", "bottom")]
+        pos = limits["legend_pos"]
+        for s,d in replacements:
+            pos = pos.replace(s,d)
+        return pos
+
     def create_fig(self, plots, key, title, width, x_label, y_label, limits):
         # select a palette
         from bokeh.palettes import Dark2_5 as palette
@@ -134,10 +141,11 @@ class BokehPlot(BokehHelper):
         fig.xaxis.axis_label = x_label
         fig.yaxis.axis_label = y_label
 
-        x_min = limits[key]["x_min"]
-        x_max = limits[key]["x_max"]
-        y_min = limits[key]["y_min"]
-        y_max = limits[key]["y_max"]
+        limits = limits[key]
+        x_min = limits["x_min"]
+        x_max = limits["x_max"]
+        y_min = limits["y_min"]
+        y_max = limits["y_max"]
 
         fig.x_range = Range1d(x_min, x_max)
         if y_min is not None and y_max is not None:
@@ -163,12 +171,10 @@ class BokehPlot(BokehHelper):
             else:
                 fig.line(x, y, legend_label=label_text, line_width=2, color=color)
 
+            base_f1 = 88.5
             for i in range(3):
-                f1 = 88.5 - i
-                if i == 0:
-                    line_args = dict(legend_label=f"BERT-base reference (f1={f1})")
-                else:
-                    line_args = {}
+                f1 = base_f1 - i
+                line_args = dict(legend_label=f"Reference f1={base_f1} BERT-base")
 
                 fig.line(
                     x = [0, max_x],
@@ -187,6 +193,8 @@ class BokehPlot(BokehHelper):
                                 ax1.annotate(annotate, (x[i] + 0.005, y[i] + 0.005))
 
         fig.legend.click_policy = "hide"
+
+        fig.legend.location = self.get_legend_pos(limits)
         return fig
 
 
@@ -237,8 +245,8 @@ class TextFilePlotter(Plotter):
 
 class PlotManager:
     LIMITS = {
-        "speedup": dict(legend="upper right", x_min=0.95, x_max=4.0, y_min=84, y_max=90),
-        "fill_rate": dict(legend="lower right", x_min=0.0, x_max=0.75, y_min=84, y_max=90),
+        "speedup": dict(legend_pos="upper right", x_min=0.95, x_max=4.0, y_min=84, y_max=90),
+        "fill_rate": dict(legend_pos="lower right", x_min=0.0, x_max=0.75, y_min=84, y_max=90),
     }
 
     def __init__(
@@ -280,10 +288,10 @@ class PlotManager:
     def convexity_filter_checkpoints(self, checkpoints, key="speedup", filt=True):
         margin = 1.0001
         if key == "fill_rate":
-            margin = 1.001
             sgn = -1
         else:
             sgn = 1
+        key_margin_min = 0.001
         sort_by_key = lambda x: sgn * x.get(key, 1.0)
         checkpoints.sort(key=sort_by_key, reverse=True)
         best_c = checkpoints[0]
@@ -291,9 +299,13 @@ class PlotManager:
         filtered_checkpoints = [best_c]
         for checkpoint in checkpoints[1:]:
             f1_margin = checkpoint["f1"] > filtered_checkpoints[-1]["f1"] * margin
-
-            if not filt or f1_margin:
-                filtered_checkpoints.append(checkpoint)
+            key_margin = abs(checkpoint[key] - filtered_checkpoints[-1][key])
+            if key_margin < key_margin_min:
+                if checkpoint["f1"] > filtered_checkpoints[-1]["f1"]:
+                    filtered_checkpoints[-1] = checkpoint
+            else:
+                if not filt or f1_margin:
+                    filtered_checkpoints.append(checkpoint)
 
         filtered_checkpoints.sort(key=sort_by_key, reverse=False)
 
@@ -454,18 +466,18 @@ def draw_all_plots(input_file_name, task, cleanup_cache=False):
             #reference_black_list=["local_movement_pruning"],
             white_list=["Block/struct method, final fine tuned, s=[bl]", "Structured pruning",  "improved soft movement with distillation"],
             label_mapping={
-                "Block/struct method, final fine tuned, s=l": "BERT-large, hybrid pruning",
-                "Block/struct method, final fine tuned, s=b": "BERT-base, hybrid pruning",
-                "Structured pruning": "BERT-base, structured pruning",
-                "improved soft movement with distillation": "Improved soft movement",
+                "Block/struct method, final fine tuned, s=l": "Hybrid pruning, BERT-large",
+                "Block/struct method, final fine tuned, s=b": "Hybrid pruning, BERT-base",
+                "Structured pruning": "Structured pruning, BERT-base",
+                "improved soft movement with distillation": "Improved soft movement, BERT-base",
                 "soft_movement_with_distillation" : "Original Soft Movement",
             },
         ),
         }
     for name, configuration in plots.items():
         limits = {
-            "speedup": dict(legend="upper right", x_min=0.75, x_max=4.0, y_min=None, y_max=None),
-            "fill_rate": dict(legend="upper left", x_min=0.0, x_max=0.75, y_min=None, y_max=None),
+            "speedup": dict(legend_pos="upper right", x_min=0.75, x_max=4.0, y_min=None, y_max=None),
+            "fill_rate": dict(legend_pos="upper left", x_min=0.0, x_max=0.9, y_min=None, y_max=None),
         }
         p = GeneralPlotter(
             task,
@@ -517,8 +529,8 @@ if __name__ == "__main__":
     # raw_black_list = False
 
     limits = {
-        "speedup": dict(legend="upper right", x_min=0.75, x_max=4.0, y_min=None, y_max=None),
-        "fill_rate": dict(legend="upper left", x_min=0.0, x_max=0.75, y_min=None, y_max=None),
+        "speedup": dict(legend_pos="upper right", x_min=0.75, x_max=4.0, y_min=None, y_max=None),
+        "fill_rate": dict(legend_pos="upper left", x_min=0.0, x_max=0.75, y_min=None, y_max=None),
     }
 
     # For debug purpose : black_list is the kept white list
@@ -568,8 +580,8 @@ if __name__ == "__main__":
     }
     for name, configuration in CAT_FUN_NAMES.items():
         limits = {
-            "speedup": dict(legend="upper right", x_min=0.75, x_max=4.0, y_min=None, y_max=None),
-            "fill_rate": dict(legend="upper left", x_min=0.0, x_max=0.75, y_min=None, y_max=None),
+            "speedup": dict(legend_pos="upper right", x_min=0.75, x_max=4.0, y_min=None, y_max=None),
+            "fill_rate": dict(legend_pos="upper left", x_min=0.0, x_max=0.75, y_min=None, y_max=None),
         }
         p = GeneralPlotter(
             task,
