@@ -4,7 +4,6 @@ from io import StringIO
 from pytablewriter import MarkdownTableWriter
 from pprint import pprint
 import json
-import nn_pruning.analysis.grapher as grapher
 
 class DocBuilder:
     def __init__(self):
@@ -22,6 +21,10 @@ class DocBuilder:
 
     def open(self, name):
         return (self.path / name).open()
+
+    def read_media_file(self, name):
+        with (self.media_path / name).open() as f:
+            return f.read()
 
     def read_jsonl(self, name):
         ret = []
@@ -69,7 +72,8 @@ class DocBuilder:
 
         return new_lines
 
-    def build_squad_table(self):
+
+    def build_squad(self):
         infos = self.read_jsonl("new_xp_v1_speedup_Block_struct_method__final_fine_tuned.jsonl")
         headers = ["Model", "Type", "method", "F1", "F1 diff", "Params", "Theoretical<br>Speedup", "Speedup"]
 
@@ -111,20 +115,42 @@ class DocBuilder:
         headers = self.reorder_squad_table_columns([headers])[0]
         values = self.reorder_squad_table_columns(values)
 
-        p = grapher.MyPlotter()
-        graph_js, graph_html = p.run()
+        #p = grapher.MyPlotter()
+        #graph_js, graph_html = p.run()
 
-        graph_html = graph_html.replace("$$JS_SOURCE$$", "media/graph.js")
+        #graph_html = graph_html.replace("$$JS_SOURCE$$", "media/graph.js")
 
-        with open(self.docs_path / "media" / "graph.js", "w") as output:
-            output.write(graph_js)
+        #with open(self.docs_path / "media" / "graph.js", "w") as output:
+        #    output.write(graph_js)
+
+
+        speedup_html = self.read_media_file("squad/summary_speedup.html")
+        summary_fill_rate_html = self.read_media_file("squad/summary_fill_rate.html")
+
 
         return dict(table=self.markdown_table_string("Squad V1", headers, values),
                     large_reduction=large_reduction,
-                    graph_speedup_html=graph_html)
+                    summary_speedup=speedup_html,
+                    summary_fill_rate=summary_fill_rate_html)
 
     def run(self):
         template = jinja2.Template(self.open("README.jinja.md").read())
+
+        variables = {}
+
+        def graph_create(title, part, name):
+            media_path = variables["media_path"]
+            html = variables[part][name]
+            html = html.replace("$$JS_PATH$$", f"{media_path}/{part}/{name}.js")[1:]
+
+            if variables["github_readme"]:
+                ret = f"![{title}]({media_path}/{part}/{name}.png)"
+            else:
+                ret = f'<div class="graph">{html}</div>'
+
+            return ret
+
+        template.globals['graph'] = graph_create
 
         prefix = "build_"
         report = {}
@@ -133,17 +159,16 @@ class DocBuilder:
                 key = name[len(prefix):]
                 report[key] = getattr(self, name)()
 
-        pprint(report)
+        variations = [dict(path=self.git_path, github_readme=True, media_path="docs/media"),
+                      dict(path=self.docs_path, github_readme=False, media_path="media")]
 
-        with (self.git_path / "README.md").open("w") as readme_file:
-            ret = template.render(github_readme=True, media_path="docs/media", **report)
-            readme_file.write(ret)
-
-        with (self.docs_path / "README.md").open("w") as readme_file:
-            ret = template.render(github_readme=False, media_path="media", **report)
-            readme_file.write(ret)
-
-        pass
+        for variation in variations:
+            with (variation["path"] / "README.md").open("w") as readme_file:
+                variables.clear()
+                variables.update(variation)
+                variables.update(report)
+                ret = template.render(**variables)
+                readme_file.write(ret)
 
 
 if __name__ == "__main__":

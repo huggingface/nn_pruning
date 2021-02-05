@@ -1,0 +1,1 @@
+{'speedup': 1.0188259739389196, 'f1': 89.04987146464723, 'meta': {'fill_rate': 0.12083943684895837, 'f1': 89.04987146464723, 'speedup': 1.0188259739389196, 'annotate': 'l=(10, 1.0, 1.0)', 'path': '/data_2to/devel_data/nn_pruning/output/squad_test_large/large_regu_10/checkpoint-221320'}}
