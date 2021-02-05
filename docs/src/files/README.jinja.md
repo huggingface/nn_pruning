@@ -32,7 +32,7 @@ The parameter count column is relative to linear layers, which contain most of t
 **F1 difference, speedups and parameters counts are all relative to BERT-base to ease practical comparison.**
 
     
-{{ squad.table }}
+{{ squadv1.table }}
 ### Main takeaways
 - network #2: pruned from BERT-large, it's significantly more accurate than BERT-base, but have a similar size and speed.
 - network #3: pruned from BERT-large, it is finally 40% smaller but significantly better than a BERT-base, and still as fast.
@@ -52,17 +52,9 @@ The speedup here is measured on a 3090 RTX, using the HuggingFace transformers l
 ### Comparison with state of the art 
 If we plot the F1 of the full set of pruned networks against the speedup, we can see that we outperform fine-tuned TinyBERT and Distilbert by a large amount: 
 
-{{ graph("SQuAD v1 speedup", "squad", "summary_speedup") }}
+{{ graph("SQuAD v1 speedup", "squadv1", "summary_speedup") }}
 
 Even in terms of saved size, we get smaller networks for the same accuracy:
 
-{{ graph("SQuAD fill rate", "squad", "summary_fill_rate") }}
+{{ graph("SQuAD fill rate", "squadv1", "summary_fill_rate") }}
 
-{#
-{% if github_readme %}
-![Squad v1 speedup]({{media_path}}/summary_fill_rate.png)
-{% else %} 
- <div class="graph">{{ squad_table.summary_fill_rate_html }}</div>
-{% endif %}
-
-#}
