@@ -6,7 +6,7 @@ import json
 import torch
 from collections import defaultdict
 import tempfile
-
+from nn_pruning.inference_model_patcher import optimize_model
 
 class ModelStatsExtractBase:
     def __init__(self, path, output_name, copy_to_tmp_path = False):
@@ -65,11 +65,14 @@ class ModelStatsExtract(ModelStatsExtractBase):
         self.stats["total"] += numel
         self.stats["nnz"] += nnz
 
+        if layer_number is None:
+            return
+
         if layer_number not in self.stats["layers"]:
             self.stats["layers"][layer_number] = defaultdict(int)
 
-        self.stats["layers"][layer_number]["total"] = numel
-        self.stats["layers"][layer_number]["nnz"] = nnz
+        self.stats["layers"][layer_number]["total"] += numel
+        self.stats["layers"][layer_number]["nnz"] += nnz
 
         if is_linear_layer_weight:
             self.stats["linear_total"] += numel
@@ -100,6 +103,9 @@ class ModelStatsExtract(ModelStatsExtractBase):
         self.stats["linear_sparsity"] = sparsity
         print(f"################# sparsity={sparsity}")
         print(self.path)
+
+        model = optimize_model(model, "heads")
+        self.stats["pruned_heads"] = model.config.pruned_heads
 
         return self.stats
 
@@ -146,12 +152,23 @@ class ModelAddBasicReport:
             else:
                 ret["eval_metrics"] = eval_metrics
 
+
         sparse_args = json.load(open(p / "sparse_args.json"))
+        try:
+            with (p.parent / "source.txt").open() as f:
+                source_checkpoint = f.read().strip()
+        except:
+            source_checkpoint = None
+
+        config = json.load(open(p / "config.json"))
         training_args = torch.load(p / "training_args.bin").to_dict()
         #print(dir(training_args))
 
 
         ret["sparse_args"] = sparse_args
+        ret["config"] = config
+        if source_checkpoint is not None:
+            ret["source_checkpoint"] = source_checkpoint
         ret["training_args"] = training_args
         ret["speedup"] = speedup
         return ret
@@ -179,7 +196,7 @@ class ModelAnalysis:
         checkpoint_info = {}
 
         # Create base report
-        base_speed_report_file = Path("base_speed_report_file.json")
+        base_speed_report_file = Path("files/base_speed_report_file.json")
         if base_speed_report_file.exists():
             base_speed_report = json.load(base_speed_report_file.open())
         else:
@@ -251,34 +268,57 @@ class ModelAnalysis:
 
     def run(self):
         checkpoints = {}
-        for root, dirs, files in os.walk(self.path, followlinks=True):
-            for name in dirs:
-                if self.check_prefix(name):
-                    new_checkpoints, base_speed_report = self.analyze_run((Path(root) / name).resolve(), force_speed=self.force_speed)
-                    checkpoints.update(new_checkpoints)
+        missings = {}
+        for i in range(2):
+            if i == 0:
+                for root, dirs, files in os.walk(self.path, followlinks=True):
+                    for name in dirs:
+                        if self.check_prefix(name):
+                            new_checkpoints, base_speed_report = self.analyze_run((Path(root) / name).resolve(), force_speed=self.force_speed)
+                            checkpoints.update(new_checkpoints)
+            elif i == 1:
+                for missing in missings:
+                    assert(missing is not None)
+                    assert(missing not in checkpoints)
+                    new_checkpoint, _ = self.process_checkpoint(missing, force_speed=self.force_speed)
+                    checkpoints[missing] = new_checkpoint
 
-        to_delete = []
-        for checkpoint_path, checkpoint_info in checkpoints.items():
-            mabr = ModelAddBasicReport(checkpoint_path, checkpoint_info, base_speed_report, exclude_non_matching_f1=self.exclude_non_matching_f1)
-            br = mabr.basic_report()
-            if br is None:
-                to_delete.append(checkpoint_path)
-            else:
-                checkpoint_info.update(br)
+            to_delete = {}
+            for checkpoint_path, checkpoint_info in checkpoints.items():
+                if i == 1 and checkpoint_path not in missings:
+                    continue
 
-        for checkpoint_path in to_delete:
-            del checkpoints[checkpoint_path]
+                mabr = ModelAddBasicReport(checkpoint_path, checkpoint_info, base_speed_report, exclude_non_matching_f1=self.exclude_non_matching_f1)
+                br = mabr.basic_report()
+                if br is None:
+                    assert(i == 0)
+                    assert(checkpoint_path is not None)
+                    to_delete[checkpoint_path] = True
+                else:
+                    checkpoint_info.update(br)
+                    source_checkpoint = br.get("source_checkpoint")
+                    # Some checkpoint are the result of a post-processing of other checkpoints : make sure that the source is part of the report
+                    if source_checkpoint is not None and source_checkpoint not in checkpoints:
+                        missings[source_checkpoint] = True
+
+            for checkpoint_path in to_delete:
+                del checkpoints[checkpoint_path]
 
         out = dict(base_speed_report=base_speed_report, checkpoints=checkpoints)
-        with open(self.output_file_name, "w") as f:
-            s = json.dump(out, f, sort_keys=True, indent = 4)
+        with open(self.output_file_name + ".json", "w") as f:
+            json.dump(out, f, sort_keys=True, indent = 4)
 
 
 if __name__ == "__main__":
     import sys
+    if len(sys.argv) > 3:
+        exclude = sys.argv[3] != "all"
+    else:
+        exclude = True
+
     ma = ModelAnalysis(sys.argv[1],
                        sys.argv[2],
                        force_speed=False,
                        prefixes = ["fine_tuned_", "hp_", "large_", "aws_"],
-                       exclude_non_matching_f1 = False)
+                       exclude_non_matching_f1 = exclude)
     ma.run()

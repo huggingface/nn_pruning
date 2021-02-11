@@ -36,7 +36,7 @@ from .glue_xp import (
 )
 from transformers import AutoModelForSequenceClassification
 import tempfile
-
+from nn_pruning.modules.sparse_xp import SparseXP
 
 class SparseGlueShortNamer(TrialShortNamer):
     DEFAULTS = {
@@ -119,7 +119,7 @@ class SparseGlueShortNamer(TrialShortNamer):
     }
 
 
-class GlueSparseXP(GlueXP):
+class GlueSparseXP(SparseXP, GlueXP):
     ARGUMENTS = {
         "model": ModelArguments,
         "data": GlueDataTrainingArguments,
@@ -128,6 +128,7 @@ class GlueSparseXP(GlueXP):
     }
     GLUE_TRAINER_CLASS = GlueSparseTrainer
     SHORT_NAMER = SparseGlueShortNamer
+    CONSTRUCTOR = AutoModelForSequenceClassification
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -136,7 +137,7 @@ class GlueSparseXP(GlueXP):
             self.training_args.device,
             self.model_args.cache_dir,
             logit_names=["logits"],
-            teacher_constructor=AutoModelForSequenceClassification,
+            teacher_constructor=self.CONSTRUCTOR,
         )
 
     def create_trainer(self, *args, **kwargs):
@@ -190,102 +191,6 @@ class GlueSparseXP(GlueXP):
         for src_path in run_path.iterdir():
             if src_path.name.startswith("checkpoint-"):
                 cls.fix_last_checkpoint_bug_checkpoint(src_path)
-
-    @classmethod
-    def final_fine_tune_bertarize(cls, src_path, dest_path):
-        src_path = Path(src_path)
-        assert dest_path is not None
-        dest_path = Path(dest_path)
-
-        config = json.load((src_path / "config.json").open())
-        hidden_size = config["hidden_size"]
-
-        m = torch.load(src_path / "pytorch_model.bin")
-
-        new_m = {}
-        # TODO : depends on the network
-        ffn_multiplier = 4
-
-        for k, v in m.items():
-            correct_shape = None
-            if k.endswith("intermediate.dense.linear.weight"):
-                correct_shape = (hidden_size * ffn_multiplier, hidden_size)
-            elif k.endswith("intermediate.dense.linear.bias"):
-                correct_shape = (hidden_size * ffn_multiplier,)
-            elif k.endswith("output.dense.linear.weight"):
-                correct_shape = (hidden_size, hidden_size * ffn_multiplier)
-            elif k.endswith("output.dense.linear.bias"):
-                correct_shape = (hidden_size,)
-
-            if correct_shape is not None:
-                k = k.replace("linear.", "")
-
-            if correct_shape is not None and v.shape != correct_shape:
-                z = torch.zeros(correct_shape, device=v.device)
-                if len(correct_shape) == 1:
-                    z[: v.shape[0]] = v
-                else:
-                    z[: v.shape[0], : v.shape[1]] = v
-                v = z
-
-            new_m[k] = v
-
-        shutil.copytree(src_path, dest_path, dirs_exist_ok=True)
-
-        torch.save(new_m, dest_path / "pytorch_model.bin")
-
-        # Final check : try to load the network
-        model = AutoModelForQuestionAnswering.from_pretrained(dest_path, from_tf=False)
-
-        return model
-
-    @classmethod
-    def compile_model(cls, src_path, dest_path=None):
-        src_path = Path(src_path)
-        if dest_path is not None:
-            dest_path = Path(dest_path)
-        model_bin_name = "pytorch_model.bin"
-
-        def load_json_to_obj(name):
-            with (src_path / name).open() as f:
-                return json.load(f, object_hook=lambda d: SimpleNamespace(**d))
-
-        current_config = src_path / "config.json"
-        up_config = (src_path.parent) / "config.json"
-
-        if not current_config.exists():
-            shutil.copy(up_config, current_config)
-
-        with current_config.open() as f:
-            model_config = json.load(f)
-
-        model_args = load_json_to_obj("model_args.json")
-        sparse_args = load_json_to_obj("sparse_args.json")
-
-        if hasattr(sparse_args, "final_finetune") and sparse_args.final_finetune:
-            if dest_path is None:
-                with tempfile.TemporaryDirectory() as dest_path:
-                    return cls.final_fine_tune_bertarize(src_path, dest_path)
-            else:
-                return cls.final_fine_tune_bertarize(src_path, dest_path)
-
-        model_args.model_name_or_path = str(src_path)
-
-        model = cls._model_init(model_args, model_config)
-        patcher = ModelPatchingCoordinator(sparse_args, "cuda", None)
-        patcher.patch_model(model, trial=None)
-
-        state_dict = torch.load(src_path / model_bin_name)
-        model.load_state_dict(state_dict, strict=True)
-
-        patcher.compile_model(model)
-
-        if dest_path is not None:
-            shutil.copytree(src_path, dest_path, dirs_exist_ok=True)
-            state_dict = model.state_dict()
-            torch.save(state_dict, dest_path / model_bin_name)
-
-        return model
 
     @classmethod
     def final_finetune(cls, src_path, dest_path):

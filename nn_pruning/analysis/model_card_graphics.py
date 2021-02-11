@@ -2,100 +2,8 @@ import plotly.graph_objects as go
 from io import StringIO
 
 import plotly.io as pio
+import plotly.express as px
 pio.orca.config.use_xvfb = True
-
-class Plotter:
-    def create_fig(self):
-        raise RuntimeError("Please implement in subclass")
-
-    def plot(self):
-        self.fig = go.Figure()
-        self.create_fig(self.fig)
-
-    def show(self):
-        self.fig.show()
-
-    def get_html(self):
-        output = StringIO()
-        self.fig.write_html(output, include_plotlyjs="cdn", full_html=False)
-        t = output.getvalue()
-        return t
-
-    def save_image(self, path):
-        self.fig.write_image(path)
-
-class PruningInfoPlotter(Plotter):
-    def __init__(self, pruning_info, heads_count):
-        self.pruning_info = pruning_info
-        self.heads_count = heads_count
-
-    def create_fig(self, fig):
-        pruned = self.pruning_info
-        x = list(range(len(self.pruning_info)))
-        layer_count = len(x)
-
-        pruned = self.pruning_info
-
-        try:
-            y_pruned = [len(pruned[str(i)]) for i in x]
-        except:
-            y_pruned = [len(pruned[i]) for i in x]
-
-        y_heads = [self.heads_count - y for y in y_pruned]
-
-        traces = {}
-
-        def add_info(d, layer_index, kind, count):
-            if kind not in traces:
-                traces[kind] = {"layer index": [], "kind": [], "count": [], "color": []}
-            d = traces[kind]
-
-            d["layer index"].append(layer_index)
-            d["kind"].append(kind)
-            d["count"].append(count)
-            color = "#ffcccc" if kind == "pruned" else "blue"
-            d["color"].append(color)
-
-        for i in x:
-            add_info(traces, i, "active", y_heads[i])
-            add_info(traces, i, "pruned", y_pruned[i])
-
-        for key in traces:
-            d = traces[key]
-            bar = go.Bar(name=key,
-                         x=d["layer index"],
-                         y=d["count"],
-                         customdata=d["kind"],
-                         marker_color=d["color"],
-                         text=d["count"],
-                         textposition="inside",
-                         hovertemplate="%{customdata}: %{y}<extra></extra>",
-                         )
-            fig.add_trace(bar)
-
-        fig.update_xaxes(
-            tickvals=list(range(len(x)))
-        )
-
-        fig.update_layout(
-            title_text="Pruned Transformer Heads",
-            barmode="stack",
-            uniformtext=dict(mode="hide", minsize=10),
-
-            yaxis=dict(
-                title='Heads count',
-                titlefont_size=16,
-                tickfont_size=14,
-            ),
-            xaxis=dict(
-                title='Layer index',
-                titlefont_size=16,
-                tickfont_size=14,
-            ),
-            width=800,
-            height=400
-        )
-
 
 import bokeh.plotting
 import bokeh.models
@@ -104,25 +12,59 @@ from bokeh.embed import autoload_static
 
 from pathlib import Path
 import torch
-import plotly.express as px
+from .graph_util import BokehHelper
 
-class BokehPlotter:
-    def __init__(self, div_id, js_path):
-        self.div_id = div_id
-        self.js_path = js_path
+class PruningInfoBokehPlotter(BokehHelper):
 
-    def create_fig(self):
-        raise RuntimeError("Please implement in subclass")
 
-    def show(self):
-        bokeh.plotting.show(self.fig)
+    def create_fig(self, layer_count, pruned_heads, heads_count):
+        from bokeh.plotting import figure
+        import copy
 
-    def get_html(self):
-        #html = file_html(self.fig, CDN, self.div_id)
-        js, tag = autoload_static(self.fig, CDN, self.js_path)
-        return js, tag
+        layers = list([str(x) for x in range(layer_count)])
 
-class DensityPlotter(BokehPlotter):
+        kinds = ["active", "pruned"]
+        colors = ["#0000ff", "#ffcccc"]
+
+        active_by_layer = []
+        pruned_by_layer = []
+        for i in range(layer_count):
+            pruned = len(pruned_heads.get(str(i), []))
+            active = heads_count - pruned
+            pruned_by_layer.append(pruned)
+            active_by_layer.append(active)
+
+        data = {'layers': layers,
+                'pruned': pruned_by_layer,
+                'active': active_by_layer, }
+
+        p = figure(x_range=layers, plot_height=400, title="Pruned Transformer Heads",
+                   toolbar_location=None, tools="",
+                   x_axis_label="Layer index",
+                   y_axis_label="Heads count")
+
+        rs = p.vbar_stack(kinds, x='layers', width=0.9, color=colors, source=data,
+                          legend_label=kinds)
+
+        p.y_range.start = 0
+        p.x_range.range_padding = 0.1
+        p.xgrid.grid_line_color = None
+        p.axis.minor_tick_line_color = None
+        p.outline_line_color = None
+        p.legend.location = None
+        # p.legend.orientation = "horizontal"
+
+        # rs.reverse()
+        # kinds.reverse()
+
+        legend = bokeh.models.Legend(items=[(kind, [r]) for (kind, r) in zip(kinds, rs)],
+                                     location=(10, 0), orientation="horizontal")
+        p.add_layout(legend, 'above')
+
+        return p
+
+
+class DensityPlotter(BokehHelper):
     def __init__(self,
                  model,
                  dest_path,

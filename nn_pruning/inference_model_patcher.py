@@ -199,6 +199,10 @@ class InferenceModelPatcher(ModelPatcher):
             return self.new_child_module_block_sparse(child_module_name, child_module, patch_info)
         elif self.mode == "dense":
             return self.new_child_module_dense(child_module_name, child_module, patch_info)
+        elif self.mode == "heads":
+            return None
+        else:
+            raise Exception(f"Unknown mode {self.mode}")
 
     def patch_model(self, model):
         if self.prune_heads:
@@ -212,6 +216,7 @@ class InferenceModelPatcher(ModelPatcher):
 
 
 def optimize_model(model, mode, clone=True):
+    """mode in ["dense", "heads", "block_sparse"]"""
     import copy
 
     assert mode != "disabled"

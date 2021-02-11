@@ -10,29 +10,30 @@ def main(checkpoint_list_file):
     source_points = []
     lines = checkpoint_list_file.open().read().split("\n")
     for s in lines:
-        s = s.replace("'", "\"")
         if len(s) != 0:
-            source_point = json.loads(s)
-            source_points.append(source_point)
+            s = s.strip()
+            source_points.append(s)
 
-    source_points.sort(key=lambda x : x["speedup"])
 
-    last_speedup = 0
-    new_source_points = []
-    for s in source_points:
-        speedup = s["speedup"]
-        if speedup > last_speedup * 1.00:
-            new_source_points.append(s)
-            last_speedup = speedup
+    if False:
+        source_points.sort(key=lambda x : x["speedup"])
 
-    source_points = new_source_points
+        last_speedup = 0
+        new_source_points = []
+        for s in source_points:
+            speedup = s["speedup"]
+            if speedup > last_speedup * 1.00:
+                new_source_points.append(s)
+                last_speedup = speedup
+
+        source_points = new_source_points
 
     print(f"SOURCE POINTS: {len(source_points)}")
     for source_point in source_points:
         print(source_point)
 
     for source_point in source_points:
-        src_path = Path(source_point["meta"]["path"])
+        src_path = Path(source_point) #Path(source_point["meta"]["path"])
         key = src_path.parent.name
         assert(key.startswith("hp_") or key.startswith("aws_") or key.startswith("large_"))
         dest_key = "fine_tuned_" + key
@@ -63,5 +64,5 @@ def main(checkpoint_list_file):
 
 if __name__ == "__main__":
     #checkpoint_list_file = sys.argv[1]
-    checkpoint_list_file = "checkpoints.jsonl"
+    checkpoint_list_file = "checkpoints.txt"
     main(checkpoint_list_file)

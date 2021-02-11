@@ -15,8 +15,11 @@ class PointProvider:
         # task is "squadv1", "mnli" etc
         raise NotImplementedError("Implement in subclass")
 
+    def get_filename(self, task):
+        return self.__class__.__name__.lower() + "_" + task + ".json"
+
     def points(self, task):
-        filename = self.__class__.__name__.lower() + "_" + task + ".json"
+        filename = self.get_filename(task)
         if filename in self.CACHE:
             return self.CACHE[filename]
 
@@ -270,6 +273,13 @@ class Experiments(PointProvider):
         super().__init__(cache_dir)
         self.analyze_result_file = analyze_result_file
 
+    def get_filename(self, task):
+        input_file_name = Path(self.analyze_result_file).resolve()
+        mtime = int(input_file_name.stat().st_mtime)
+        h = input_file_name.name.split(".")[0] + "-" + str(mtime)
+
+        return self.__class__.__name__.lower() + "_" + task + "-" + h +".json"
+
     def process_checkpoint(self, checkpoint):
         fill_rate = 1.0 - checkpoint["stats"]["linear_sparsity"] / 100
         if "large" in checkpoint["path"]:
@@ -441,7 +451,7 @@ class MovementPruning(PointProvider):
         defaults = dict(size=1, inner_sparsity=1, cols=1, rows=1, epochs=10)
         ret = {}
 
-        xcel_file_name = Path(__file__).parent / "mvmt_pruning.xlsx"
+        xcel_file_name = Path(__file__).parent / "files" / "mvmt_pruning.xlsx"
         xcel = pandas.read_excel(xcel_file_name, index_col=0, sheet_name="Details - SQuAD")
         xcel = pandas.DataFrame(xcel)
         for i, (r, d) in enumerate(xcel.iterrows()):

@@ -1,0 +1,204 @@
+{
+    "local_movement_pruning": [
+        {
+            "cols": 1,
+            "epochs": 10,
+            "exact": 78.647114474929,
+            "f1": 87.2352379495134,
+            "fill_rate": 0.9,
+            "inner_sparsity": 1,
+            "name": "topK_1.0_*_1_2_null_0._3e-5_1e-2_topK_constant_0._10_epochs",
+            "rows": 1,
+            "size": 1
+        },
+        {
+            "cols": 1,
+            "epochs": 10,
+            "exact": 76.1116367076632,
+            "f1": 85.0200791447152,
+            "fill_rate": 0.7,
+            "inner_sparsity": 1,
+            "name": "topK_1.0_*_1_2_null_0._3e-5_1e-2_topK_constant_0._10_epochs",
+            "rows": 1,
+            "size": 1
+        },
+        {
+            "cols": 1,
+            "epochs": 10,
+            "exact": 73.2355723746452,
+            "f1": 83.1623614706555,
+            "fill_rate": 0.501,
+            "inner_sparsity": 1,
+            "name": "topK_1.0_*_1_2_null_0._3e-5_1e-2_topK_constant_0._10_epochs",
+            "rows": 1,
+            "size": 1
+        },
+        {
+            "cols": 1,
+            "epochs": 10,
+            "exact": 72.4597918637653,
+            "f1": 82.3798006055091,
+            "fill_rate": 0.301,
+            "inner_sparsity": 1,
+            "name": "topK_1.0_*_1_2_null_0._3e-5_1e-2_topK_constant_0._10_epochs",
+            "rows": 1,
+            "size": 1
+        },
+        {
+            "cols": 1,
+            "epochs": 10,
+            "exact": 71.8732261116367,
+            "f1": 81.7189594266913,
+            "fill_rate": 0.10099999999999999,
+            "inner_sparsity": 1,
+            "name": "topK_1.0_*_1_2_null_0._3e-5_1e-2_topK_constant_0._10_epochs",
+            "rows": 1,
+            "size": 1
+        },
+        {
+            "cols": 1,
+            "epochs": 10,
+            "exact": 71.4380321665089,
+            "f1": 81.2055100389499,
+            "fill_rate": 0.081,
+            "inner_sparsity": 1,
+            "name": "topK_1.0_*_1_2_null_0._3e-5_1e-2_topK_constant_0._10_epochs",
+            "rows": 1,
+            "size": 1
+        },
+        {
+            "cols": 1,
+            "epochs": 10,
+            "exact": 69.3566698202459,
+            "f1": 79.590816556626,
+            "fill_rate": 0.051,
+            "inner_sparsity": 1,
+            "name": "topK_1.0_*_1_2_null_0._3e-5_1e-2_topK_constant_0._10_epochs",
+            "rows": 1,
+            "size": 1
+        },
+        {
+            "cols": 1,
+            "epochs": 10,
+            "exact": 65.2317880794701,
+            "f1": 76.2761166571979,
+            "fill_rate": 0.031,
+            "inner_sparsity": 1,
+            "name": "topK_1.0_*_1_2_null_0._3e-5_1e-2_topK_constant_0._10_epochs",
+            "rows": 1,
+            "size": 1
+        }
+    ],
+    "soft_movement_with_distillation": [
+        {
+            "cols": 1,
+            "epochs": 10,
+            "exact": 82.6300851466414,
+            "f1": 89.508140874387,
+            "fill_rate": 0.934228131753319,
+            "inner_sparsity": 1,
+            "name": "l1_with_distil_0._0.1_1_2_l1_*_3e-5_1e-2_sigmoied_threshold_constant_0._10_epochs",
+            "rows": 1,
+            "size": 1
+        },
+        {
+            "cols": 1,
+            "epochs": 10,
+            "exact": 81.0312204351939,
+            "f1": 88.365230562872,
+            "fill_rate": 0.33692503194188606,
+            "inner_sparsity": 1,
+            "name": "l1_with_distil_0._0.1_1_2_l1_*_3e-5_1e-2_sigmoied_threshold_constant_0._10_epochs",
+            "rows": 1,
+            "size": 1
+        },
+        {
+            "cols": 1,
+            "epochs": 10,
+            "exact": 79.848628192999,
+            "f1": 87.5263834085333,
+            "fill_rate": 0.23178618820053898,
+            "inner_sparsity": 1,
+            "name": "l1_with_distil_0._0.1_1_2_l1_*_3e-5_1e-2_sigmoied_threshold_constant_0._10_epochs",
+            "rows": 1,
+            "size": 1
+        },
+        {
+            "cols": 1,
+            "epochs": 10,
+            "exact": 77.3036896877956,
+            "f1": 85.5113906680275,
+            "fill_rate": 0.12717287831006702,
+            "inner_sparsity": 1,
+            "name": "l1_with_distil_0._0.1_1_2_l1_*_3e-5_1e-2_sigmoied_threshold_constant_0._10_epochs",
+            "rows": 1,
+            "size": 1
+        },
+        {
+            "cols": 1,
+            "epochs": 10,
+            "exact": 76.2157048249763,
+            "f1": 84.55,
+            "fill_rate": 0.0844962705308448,
+            "inner_sparsity": 1,
+            "name": "l1_with_distil_0._0.1_1_2_l1_*_3e-5_1e-2_sigmoied_threshold_constant_0._10_epochs",
+            "rows": 1,
+            "size": 1
+        },
+        {
+            "cols": 1,
+            "epochs": 10,
+            "exact": 74.9858088930936,
+            "f1": 83.7985152764562,
+            "fill_rate": 0.0615813180599198,
+            "inner_sparsity": 1,
+            "name": "l1_with_distil_0._0.1_1_2_l1_*_3e-5_1e-2_sigmoied_threshold_constant_0._10_epochs",
+            "rows": 1,
+            "size": 1
+        },
+        {
+            "cols": 1,
+            "epochs": 10,
+            "exact": 74.6452223273415,
+            "f1": 83.5336572106868,
+            "fill_rate": 0.046974065934975495,
+            "inner_sparsity": 1,
+            "name": "l1_with_distil_0._0.1_1_2_l1_*_3e-5_1e-2_sigmoied_threshold_constant_0._10_epochs",
+            "rows": 1,
+            "size": 1
+        },
+        {
+            "cols": 1,
+            "epochs": 10,
+            "exact": 73.6707663197729,
+            "f1": 82.9035029539827,
+            "fill_rate": 0.0372814764901698,
+            "inner_sparsity": 1,
+            "name": "l1_with_distil_0._0.1_1_2_l1_*_3e-5_1e-2_sigmoied_threshold_constant_0._10_epochs",
+            "rows": 1,
+            "size": 1
+        },
+        {
+            "cols": 1,
+            "epochs": 10,
+            "exact": 72.8382213812677,
+            "f1": 82.3709214373788,
+            "fill_rate": 0.030607106053833898,
+            "inner_sparsity": 1,
+            "name": "l1_with_distil_0._0.1_1_2_l1_*_3e-5_1e-2_sigmoied_threshold_constant_0._10_epochs",
+            "rows": 1,
+            "size": 1
+        },
+        {
+            "cols": 1,
+            "epochs": 10,
+            "exact": 72.0908230842005,
+            "f1": 81.7389208616436,
+            "fill_rate": 0.025692807846040798,
+            "inner_sparsity": 1,
+            "name": "l1_with_distil_0._0.1_1_2_l1_*_3e-5_1e-2_sigmoied_threshold_constant_0._10_epochs",
+            "rows": 1,
+            "size": 1
+        }
+    ]
+}

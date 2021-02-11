@@ -1,11 +1,9 @@
-# from bokeh.plotting import figure, output_file, show, output_notebook
 import bokeh.plotting as plotting
 import bokeh.models
 from bokeh.resources import CDN
 from bokeh.embed import autoload_static
 
-
-class BokehPlotter:
+class BokehHelper:
     def __init__(self, div_id, js_path):
         self.div_id = div_id
         self.js_path = js_path
@@ -13,19 +11,20 @@ class BokehPlotter:
     def create_fig(self):
         raise RuntimeError("Please implement in subclass")
 
-    def run(self, show=False):
+    def run(self, *args, show=False, **kwargs):
         # html = file_html(self.fig, CDN, self.div_id)
         if show:
             plotting.output_notebook()
-        fig = self.create_fig()
+        fig = self.create_fig(*args, **kwargs)
+
         if show:
             bokeh.plotting.show(fig)
         else:
             js, tag = autoload_static(fig, CDN, self.js_path)
-            return js, tag
+            return fig, js, tag
 
 
-class MyPlotter(BokehPlotter):
+class SamplePlotter(BokehHelper):
     def __init__(self):
         super().__init__("main_graph", "$$JS_SOURCE$$")
 

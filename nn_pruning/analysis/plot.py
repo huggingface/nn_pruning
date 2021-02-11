@@ -9,10 +9,10 @@ import plot_data
 import math
 
 import bokeh
+from nn_pruning.analysis.graph_util import BokehHelper
 import bokeh.plotting as plotting
 from bokeh.models import Label, Range1d
-from bokeh.resources import CDN
-from bokeh.embed import autoload_static
+
 import itertools
 
 
@@ -103,26 +103,7 @@ class MatplotlibPlotter(Plotter):
         self.save_fig("eps")
 
 
-class BokehHelper:
-    def __init__(self, div_id, js_path, only_dots):
-        self.div_id = div_id
-        self.js_path = js_path
-        self.only_dots = only_dots
 
-    def create_fig(self):
-        raise RuntimeError("Please implement in subclass")
-
-    def run(self, *args, show=False, **kwargs):
-        # html = file_html(self.fig, CDN, self.div_id)
-        if show:
-            plotting.output_notebook()
-        fig = self.create_fig(*args, **kwargs)
-
-        if show:
-            bokeh.plotting.show(fig)
-        else:
-            js, tag = autoload_static(fig, CDN, self.js_path)
-            return fig, js, tag
 
 class BokehPlot(BokehHelper):
     def get_legend_pos(self, limits):
@@ -132,9 +113,10 @@ class BokehPlot(BokehHelper):
             pos = pos.replace(s,d)
         return pos
 
-    def create_fig(self, plots, key, title, width, x_label, y_label, limits):
+    def create_fig(self, plots, key, title, width, x_label, y_label, limits, only_dots):
         # select a palette
         from bokeh.palettes import Dark2_5 as palette
+
 
         # create a new plot with a title and axis labels
         fig = bokeh.plotting.figure(title=title, width = width, x_axis_label='x', y_axis_label='y')
@@ -164,7 +146,7 @@ class BokehPlot(BokehHelper):
             y = plot["y"]
             annotate = plot["annotate"]
 
-            if len(x) == 1 or self.only_dots:
+            if len(x) == 1 or only_dots:
                 point = Label(x=x[0], y=y[0], text = label_text)
                 fig.add_layout(point)
                 fig.scatter(x, y)  # , marker=markers[i]) # cool
@@ -208,14 +190,15 @@ class BokehPlotter(Plotter):
         WIDTH=800
         div_id =  str(self.dest_file_name)
         js_path = "$$JS_PATH$$"
-        bp = BokehPlot(div_id, js_path, only_dots = self.only_dots)
+        bp = BokehPlot(div_id, js_path)
         fig, js, tag = bp.run(plots,
                               key,
                               width=WIDTH,
                               title = self.title,
                               x_label=self.x_label,
                               y_label=self.y_label,
-                              limits = self.limits)
+                              limits = self.limits,
+                              only_dots = self.only_dots)
 
         export_png(fig, filename=self.dest_dir / (self.dest_file_name + "_static.png"), width=WIDTH)
 
@@ -336,9 +319,13 @@ class PlotManager:
         for k, v in checkpoints.items():
             if self.white_list is not None and not self.match_regexp_list(k, self.white_list):
                 print(f"Rejected (WL) {k}")
+                for c in v:
+                    print(" " * 4, c["checkpoint"]["path"])
                 continue
             if self.black_list is not None and self.match_regexp_list(k, self.black_list):
                 print(f"Rejected (BL) {k}")
+                for c in v:
+                    print(" " * 4, c["checkpoint"]["path"])
                 continue
             v = checkpoints[k]
             final_plots[k] = v
@@ -505,7 +492,7 @@ def copy_plots(task):
 #
 
 if __name__ == "__main__":
-    input_file_name = "test.json"
+    input_file_name = "files/test2.json"
     task = "squadv1"
 
     draw_all_plots(input_file_name, task, cleanup_cache=False)
