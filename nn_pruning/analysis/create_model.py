@@ -5,7 +5,7 @@ import shutil
 from transformers import BertForQuestionAnswering, TFBertForQuestionAnswering, BertConfig
 from tempfile import TemporaryDirectory
 from nn_pruning.inference_model_patcher import optimize_model
-from nn_pruning.analysis.model_card_graphics import PruningInfoBokehPlotter
+from nn_pruning.analysis.model_card_graphics import PruningInfoBokehPlotter, DensityBokehPlotter
 import jinja2
 
 import sys
@@ -60,33 +60,22 @@ class Packager:
         checkpoint_info = self.checkpoint_info
         source_path = checkpoint_info.get("source_checkpoint")
         if source_path is not None:
+            print(source_path)
             source_info = self.info["checkpoints"][source_path]
 
         self.is_ampere = checkpoint_info["sparse_args"]["ampere_pruning_method"] != "disabled"
-        if source_info is None:
-            stats = checkpoint_info["stats"]
-            size = "base" if stats["linear_total"] <= 84934656 else "large"
-            self.density = stats["linear_sparsity"]
-        else:
-            stats = checkpoint_info["stats"]
-            self.density = stats["linear_sparsity"]
-
-            size = "base" if source_info["config"]["_name_or_path"] == 'bert-base-uncased' else "large"
-            if size == "base":
-                linear_total = 12 * 12 * 768 * 768
-            elif size == "large":
-                linear_total = 12 * 24 * 1024 * 1024
-
-            linear_size = stats["linear_nnz"]
-            self.density = linear_size / linear_total
-
-        self.density  = int(self.density * 100)
+        stats = checkpoint_info["stats"]
+        self.model_size = "base" if stats["linear_total"] == 84934656 else "large"
+        self.sparsity = int(stats["linear_sparsity"])
+        self.total_sparsity = int(stats["total_sparsity"])
+        self.density = int(100 - stats["linear_sparsity"])
+        self.total_density = int(100 - stats["total_sparsity"])
         speedup = checkpoint_info["speedup"]
 
         f1 = checkpoint_info["eval_metrics"]["f1"]
         if self.is_ampere:
-            self.density /= 2
-        name = f"bert-{size}-uncased-{self.task}-x{speedup:.2f}-f{f1:.1f}-d{self.density}-{self.kind}"
+            self.sparsity /= 2
+        name = f"bert-{self.model_size}-uncased-{self.task}-x{speedup:.2f}-f{f1:.1f}-d{self.density}-{self.kind}"
         if self.is_ampere:
             name += "-ampere"
 
@@ -161,50 +150,39 @@ class Packager:
                 d.cleanup()
 
     JS_PATH = "$$JS_PATH$$"
-    def create_graphics(self):
+    def create_graphics(self, url_base, model_card_path):
         pruned_heads = self.checkpoint_info["config"].get("pruned_heads")
         ret = {}
         if pruned_heads is not None:
             pruning_info_plotter = PruningInfoBokehPlotter("pruning_info", self.JS_PATH)
             fig, js, html = pruning_info_plotter.run(layer_count=12, pruned_heads=pruned_heads, heads_count=12)
             ret["pruning_info"] = dict(js=js, html=html)
+
+        density_plotter = DensityBokehPlotter("density", self.JS_PATH)
+
+        model = BertForQuestionAnswering.from_pretrained(self.git_path)
+
+        fig, js, html = density_plotter.run(model=model,
+                                            dest_path=model_card_path / "images",
+                                            url_base=url_base + "/images")
+        ret["density_info"] = dict(js=js, html=html)
+
+        from bokeh.io import export_png
+
+        export_png(fig, filename="/tmp/plot.png")
+
         return ret
-
-        if False:
-
-            urlbase = f"{model_card_base_url}/layer_images"
-            js_path = f"/{self.model_owner_name}/{self.model_name}/raw/main/model_card/density.js"
-
-            if True:
-                from block_movement_pruning.model_card_graphics import PruningInfoPlotter, DensityPlotter
-                p = PruningInfoPlotter(self.report["sparsity"]["pruned_heads"], self.report["config"]["num_attention_heads"])
-                p.plot()
-
-                # TEMPORARY
-                model = BertForQuestionAnswering.from_pretrained(self.src_path)
-
-
-                dp = DensityPlotter(model, self.git_path / model_card_path / "layer_images", url_base=urlbase, js_path=js_path)
-                dp.plot()
-                js, density_html = dp.get_html()
-                (self.git_path / model_card_path / "density.js").open("w").write(js)
-
-                p.save_image(str(self.git_path / model_card_path / images["pruning_image"]))
-
-                pruned_heads_graphic = p.get_html()
-            else:
-                density_html = ""
-
 
     def create_readme(self):
         checkpoint_info = self.checkpoint_info
         model_card_path = "model_card"
         (self.git_path / model_card_path).mkdir(exist_ok=True)
 
-        graphics = self.create_graphics()
-
         model_path = f"/{self.model_owner_name}/{self.model_name}/raw/main/{model_card_path}"
         model_card_base_url = f"https://huggingface.co{model_path}"
+
+        graphics = self.create_graphics(url_base=model_path, model_card_path = self.git_path / model_card_path)
+
 
         for k, v in graphics.items():
             with (self.git_path / model_card_path / (k + ".js")).open("w") as f:
@@ -217,18 +195,28 @@ class Packager:
         template = jinja2.Template(template_file.open().read())
 
         config = checkpoint_info["config"]
-        pruned_heads = sum([len(x) for x in config["pruned_heads"]])
+        pruned_heads = sum([len(x) for x in config["pruned_heads"].values()])
         total_heads = config["num_hidden_layers"] * config["num_attention_heads"]
-        sparsity_report = dict(density = self.density, is_ampere=self.is_ampere, pruned_heads=pruned_heads, total_heads=total_heads)
+
+        sparsity_report = dict(linear_density = self.density,
+                               total_density = self.total_density,
+                               is_ampere=self.is_ampere, pruned_heads=pruned_heads, total_heads=total_heads)
         pytorch_final_file_size = (self.git_path / "pytorch_model.bin").stat().st_size
         packaging_report = dict(pytorch_final_file_size=pytorch_final_file_size, model_name=self.model_name, model_owner_name = self.model_owner_name, version=self.version)
+
+        reference = dict(main_metric_value=88.5, main_metric_name="F1")
+        eval_metrics = checkpoint_info["eval_metrics"]
+        if task == "squadv1":
+            eval_metrics["main_metric"] = eval_metrics["f1"]
+
         ret = template.render(speedup = checkpoint_info["speedup"],
                               sparsity = sparsity_report,
                               packaging = packaging_report,
-                              eval_metrics = checkpoint_info["eval_metrics"],
+                              eval_metrics = eval_metrics,
                               graphics=graphics,
                               burl=model_card_base_url,
                               kind=self.kind,
+                              reference = reference,
                               task=self.task)
 
         with (self.git_path / "README.md").open("w") as readme_file:
@@ -278,8 +266,7 @@ class Packager:
     def add_files(self):
         files = ["pytorch_model.bin",  "tf_model.h5"]
         files += ["config.json", "special_tokens_map.json", "tokenizer_config.json", "vocab.txt"]
-        files += ["README.md"] #, "model_meta.json", "model_card/pruning.svg", "model_card/layer_images",
-         #                  "model_card/density.js"]
+        files += ["README.md", "model_card"]
         with cd(self.git_path):
             sh.git("add", *files, _fg=True)
 
@@ -305,9 +292,10 @@ class Packager:
 
 if __name__ == "__main__":
     checkpoint_path = "/data_2to/devel_data/nn_pruning/output/squad_test_final_fine_tune/fine_tuned_aws_nn-pruning-v10-a32-l5-dl0-5--2021-01-21--00-52-45/checkpoint-22132"
+    checkpoint_path = "/data_2to/devel_data/nn_pruning/output/squad_test_final_fine_tune/fine_tuned_hp_od-output__squad_test3_es-steps_nte20_ls250_est5000_rn-output__squad_test3_dpm-sigmoied_threshold:1d_alt_apme-sigmoied_threshold_aowd0_bm1_abr32_abc32_it0_fw10_r-l1_rfl20_dl0.25_dtnop-csarron__bert-base-uncased-squad-v1/checkpoint-22132"
     kind = "hybrid-filled"
     task = "squadv1"
 
-    git_base_path = Path(__file__).parent.parent.parent.parent / "models"
-    p = Packager("madlag", "files/test2.json", checkpoint_path, git_base_path, kind = kind, task = task)
+    git_base_path = (Path(__file__).parent.parent.parent.parent / "models").resolve()
+    p = Packager("madlag", "files/test6.json", checkpoint_path, git_base_path, kind = kind, task = task)
     p.run()

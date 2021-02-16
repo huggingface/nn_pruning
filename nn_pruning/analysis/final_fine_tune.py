@@ -63,6 +63,5 @@ def main(checkpoint_list_file):
         qa_sparse_xp.QASparseXP.final_finetune(str(tmp_path), str(dest_path), large=large)
 
 if __name__ == "__main__":
-    #checkpoint_list_file = sys.argv[1]
-    checkpoint_list_file = "checkpoints.txt"
+    checkpoint_list_file = sys.argv[1]
     main(checkpoint_list_file)

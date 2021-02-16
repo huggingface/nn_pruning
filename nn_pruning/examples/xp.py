@@ -298,10 +298,9 @@ class XP:
 
     def train(self):
         # Training
+        model_path = self.model_args.model_name_or_path if os.path.isdir(self.model_args.model_name_or_path) else None
         self.trainer.train(
-            model_path=self.model_args.model_name_or_path
-            if os.path.isdir(self.model_args.model_name_or_path)
-            else None
+            model_path= model_path
         )
         self.trainer.save_model()  # Saves the tokenizer too for easy upload
 
@@ -353,10 +352,14 @@ class XP:
             raise
         return ret
 
-    def hyperparameter_search(self, direction, hp_space=None, n_trials=4):
+    def hyperparameter_search(self, direction="maximize", hp_space=None, n_trials=1):
         self.prepare()
+
+        def default_hp_space_fun(trial):
+            return {}
+
         if hp_space is None:
-            hp_space = {}
+            hp_space = default_hp_space_fun
 
         return self.trainer.hyperparameter_search(
             hp_name=self.hp_name,

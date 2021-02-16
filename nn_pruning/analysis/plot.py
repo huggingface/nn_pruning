@@ -492,7 +492,8 @@ def copy_plots(task):
 #
 
 if __name__ == "__main__":
-    input_file_name = "files/test2.json"
+    import sys
+    input_file_name = sys.argv[1]
     task = "squadv1"
 
     draw_all_plots(input_file_name, task, cleanup_cache=False)

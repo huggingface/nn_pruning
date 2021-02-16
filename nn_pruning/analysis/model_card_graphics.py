@@ -64,30 +64,7 @@ class PruningInfoBokehPlotter(BokehHelper):
         return p
 
 
-class DensityPlotter(BokehHelper):
-    def __init__(self,
-                 model,
-                 dest_path,
-                 url_base,
-                 js_path,
-                 width=505,
-                 height=300,
-                 div_id="density",
-                 block_size=(32, 32),
-                 full_color=[0, 0, 255],
-                 empty_color=[255, 190, 190]):
-        super().__init__(div_id=div_id, js_path = js_path)
-        self.model = model
-        self.dest_path = Path(dest_path)
-        self.width = width
-        self.height = height
-        if not self.dest_path.exists():
-            self.dest_path.mkdir()
-        self.block_size = block_size
-        self.full_color = full_color
-        self.empty_color = empty_color
-        self.url_base = url_base
-
+class DensityBokehPlotter(BokehHelper):
     def matrix_preprocess(self, matrix):
         self.block_size = (32, 32)
         block_size = self.block_size
@@ -127,19 +104,29 @@ class DensityPlotter(BokehHelper):
         return s
 
     def process_matrix(self, name, matrix):
+
         if not name.startswith("bert.encoder.layer"):
             return
         if matrix.dim() < 2:
             return
 
+        if "attention" in name:
+            attention_size = (self.attention_size, self.attention_size)
+            if matrix.shape != attention_size:
+                zeros = torch.zeros(attention_size)
+                zeros[:matrix.shape[0], :matrix.shape[1]] = matrix
+                matrix = zeros
+
         parts = name.split(".")
-        density = float((matrix != 0).sum() / matrix.numel())
+        nnz = float((matrix != 0).sum())
+        density = nnz / matrix.numel()
+        parameters = nnz  / 1e6
         block_matrix = self.matrix_preprocess(matrix)
         color_matrix = self.colorize_matrix(block_matrix)
 
         filename = self.replacements_apply(name, ["bert.encoder.", (".", "_"), ("_weight", ".png"), ])
 
-        layer = dict(name=name, filename=filename, density=density, size=matrix.shape)
+        layer = dict(name=name, filename=filename, density=density, parameters=parameters, size=matrix.shape)
         self.layers.append(layer)
         self.create_image(color_matrix, (self.dest_path / filename).open("wb"))
 
@@ -170,15 +157,39 @@ class DensityPlotter(BokehHelper):
 
         return shortname
 
-    def plot(self):
+    def create_fig(self,
+                   model,
+                   dest_path,
+                   url_base,
+                   width=505,
+                   height=300,
+                   div_id="density",
+                   block_size=(32, 32),
+                   full_color=[0, 0, 255],
+                   empty_color=[255, 190, 190]):
+        self.model = model
+        self.dest_path = Path(dest_path)
+        self.width = width
+        self.height = height
+        if not self.dest_path.exists():
+            self.dest_path.mkdir()
+        self.block_size = block_size
+        self.full_color = full_color
+        self.empty_color = empty_color
+        self.url_base = url_base
+        self.attention_size = model.config.hidden_size
+
         self.process_matrices()
+
+
         traces = {}
         part_index = 0
         positions = []
         for layer in self.layers:
             name = layer["name"]
-            density = layer["density"]
-            height = density
+            density = layer["density"] * 100
+            parameters = layer["parameters"]
+            height = parameters
 
             if "attention.self.query" in name:
                 increment = 1
@@ -210,7 +221,8 @@ class DensityPlotter(BokehHelper):
                           x=x,
                           height=height,
                           name=shortname,
-                          density=f"{density:0.2f}",
+                          density=f"{density:0.1f}%",
+                          parameters=f"{parameters:0.2f}",
                           url=url,
                           img_height=img_height,
                           img_width=img_width)
@@ -245,23 +257,34 @@ class DensityPlotter(BokehHelper):
         p = self.fig
         width = 1 / 8
 
+        kinds = []
+        bars = []
         for i, key in enumerate(traces):
-            p.vbar(top="height",
+            kinds.append(key)
+            bar = p.vbar(top="height",
                    x="x",
                    width=width,
                    color=colors[i],
                    source=traces[key],
-                   legend_label=key,
+#                   legend_label=key,
+#                   legend = False,
                    name=key)
+            bars.append(bar)
 
         p.y_range.start = 0
         p.x_range.range_padding = 0.1
         p.xgrid.grid_line_color = None
         p.axis.minor_tick_line_color = None
         p.outline_line_color = None
-        p.legend.location = "top_left"
-        p.legend.orientation = "horizontal"
+#        p.legend.visible = False
+        #p.legend.location = "top"
+        #p.legend.orientation = "horizontal"
+
+        legend = bokeh.models.Legend(items=[(kind, [r]) for (kind, r) in zip(kinds, bars)],
+                                     location=(10, 0), orientation="horizontal")
+        p.add_layout(legend, 'above')
 
         p.xaxis.axis_label = "Layer"
-        p.yaxis.axis_label = "Density"
+        p.yaxis.axis_label = "Parameters (M)"
 
+        return p

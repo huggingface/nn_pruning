@@ -60,7 +60,17 @@ class ModelStatsExtract(ModelStatsExtractBase):
 
     def add_parameter(self, name, parameter, is_linear_layer_weight, is_attention):
         layer_number = self.get_layer_number(name)
-        numel = parameter.numel()
+        if "attention" in name and "weight" in name and "layernorm" not in name.lower().replace("_", ""):
+            if len(parameter.shape) == 2:
+                # Special case to avoid bad size when attention is pruned
+                numel = self.attention_size * self.attention_size
+            elif len(parameter.shape) == 1:
+                numel = self.attention_size
+            else:
+                raise ValueError(f"Unsupported shape {parameter.shape}")
+        else:
+            numel = parameter.numel()
+
         nnz = int((parameter != 0).sum())
         self.stats["total"] += numel
         self.stats["nnz"] += nnz
@@ -88,6 +98,7 @@ class ModelStatsExtract(ModelStatsExtractBase):
                 self.stats["layers"][layer_number]["linear_dense_nnz"] += nnz
 
     def run_(self, model):
+        self.attention_size = model.config.hidden_size
         for name, parameter in model.named_parameters():
             if ".encoder."  in name:
                 is_linear_layer_weight = name.endswith(".weight") and "LayerNorm" not in name
@@ -141,7 +152,9 @@ class ModelAddBasicReport:
         speedup = base_time / checkpoint["speed"][self.speed_key]
 
         p = Path(checkpoint_path).resolve()
+        # We retrieve the metric we just measure
         final_eval_metrics = checkpoint.get("eval_metrics")
+        # We retrieve the non-optimized networks metrics (they may differ because bias pruning was not implemented at first)
         eval_metrics = json.load(open(p / "eval_metrics.json"))
 
         eval_diff = eval_metrics["f1"] - final_eval_metrics["f1"]
@@ -150,7 +163,9 @@ class ModelAddBasicReport:
                 print("Excluding", eval_diff, eval_metrics["f1"], final_eval_metrics["f1"], checkpoint_path)
                 return None
             else:
-                ret["eval_metrics"] = eval_metrics
+                # The metrics are really the bad ones (absence bias pruning degrades performance)
+                ret["eval_metrics"] = final_eval_metrics
+                ret["unopt_eval_metrics"] = eval_metrics
 
 
         sparse_args = json.load(open(p / "sparse_args.json"))
@@ -220,7 +235,6 @@ class ModelAnalysis:
         checkpoint_info["speed"] = eval_report["timings"]
         checkpoint_info["eval_metrics"] = eval_report["metrics"]
         print(checkpoint_info)
-        print(list(checkpoint_info.keys()))
 
         return checkpoint_info, base_speed_report
 
@@ -273,6 +287,8 @@ class ModelAnalysis:
             if i == 0:
                 for root, dirs, files in os.walk(self.path, followlinks=True):
                     for name in dirs:
+                        if not "squad" in name and not "large_regu" in name:
+                            continue
                         if self.check_prefix(name):
                             new_checkpoints, base_speed_report = self.analyze_run((Path(root) / name).resolve(), force_speed=self.force_speed)
                             checkpoints.update(new_checkpoints)
@@ -288,7 +304,7 @@ class ModelAnalysis:
                 if i == 1 and checkpoint_path not in missings:
                     continue
 
-                mabr = ModelAddBasicReport(checkpoint_path, checkpoint_info, base_speed_report, exclude_non_matching_f1=self.exclude_non_matching_f1)
+                mabr = ModelAddBasicReport(checkpoint_path, checkpoint_info, base_speed_report, exclude_non_matching_f1=self.exclude_non_matching_f1 and i == 0)
                 br = mabr.basic_report()
                 if br is None:
                     assert(i == 0)
@@ -301,11 +317,13 @@ class ModelAnalysis:
                     if source_checkpoint is not None and source_checkpoint not in checkpoints:
                         missings[source_checkpoint] = True
 
-            for checkpoint_path in to_delete:
-                del checkpoints[checkpoint_path]
+            if i == 0:
+                for checkpoint_path in to_delete:
+                    del checkpoints[checkpoint_path]
+
 
         out = dict(base_speed_report=base_speed_report, checkpoints=checkpoints)
-        with open(self.output_file_name + ".json", "w") as f:
+        with open(self.output_file_name, "w") as f:
             json.dump(out, f, sort_keys=True, indent = 4)
 
 
@@ -319,6 +337,6 @@ if __name__ == "__main__":
     ma = ModelAnalysis(sys.argv[1],
                        sys.argv[2],
                        force_speed=False,
-                       prefixes = ["fine_tuned_", "hp_", "large_", "aws_"],
+                       prefixes = ["fine_tuned_", "hp_", "aws_"], # "large_",
                        exclude_non_matching_f1 = exclude)
     ma.run()

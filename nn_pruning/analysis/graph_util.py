@@ -8,7 +8,7 @@ class BokehHelper:
         self.div_id = div_id
         self.js_path = js_path
 
-    def create_fig(self):
+    def create_fig(self, *args, **kwargs):
         raise RuntimeError("Please implement in subclass")
 
     def run(self, *args, show=False, **kwargs):

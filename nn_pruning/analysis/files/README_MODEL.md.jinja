@@ -19,33 +19,28 @@ widget:
 
 ## BERT-base uncased model fine-tuned on SQuAD v1
 
-This model is block sparse: the **linear** layers contains **{{"%.1f"|format(100 - sparsity.density)}}%** of the original weights.
+This model was created using the [nn_pruning](https://github.com/huggingface/nn_pruning) python library: the **linear layers contains {{"%.1f"|format(sparsity.linear_density)}}%** of the original weights.
 {% if is_ampere %}
 Moreover, this model is Ampere sparse. That means that the non-zero blocks are themselves Ampere sparse, reducing the number of parameters, increasing speed, with a limited impact on precision.
 {% endif %}
+The model contains **{{"%.1f"|format(sparsity.total_density)}}%** of the original weights **overall** (the embeddings account for a significant part of the model, and they are not pruned by this method).
 
-The model contains **{{"%.1f"|format(sparsity.density)}}%** of the original weights **overall**.
+With a simple resizing of the linear matrices it ran **{{"%.2f"|format(speedup)}}x as fast as BERT-base** on the evaluation.
+This is possible because the pruning method lead to structured matrices: to visualize them, hover below on the plot to see the non-zero/zero parts of each matrix.
 
-The training use a modified version of Victor Sanh [Movement Pruning](https://arxiv.org/abs/2005.07683) method.
+<div class="graph">{{graphics.density_info.html}}</div>
 
-That means that with the [block-sparse](https://github.com/huggingface/pytorch_block_sparse) runtime it ran **{{"%.2f"|format(speedup)}}x** faster than an dense networks on the evaluation, at the price of some impact on the accuracy (see below).
+In terms of accuracy, its **{{reference.main_metric_name}} is {{"%.2f"|format(eval_metrics.main_metric)}}**, compared with {{reference.main_metric_value}} for BERT-base, a **{{reference.main_metric_name}} {{"gain" if eval_metrics.main_metric > reference.main_metric_value else "drop"}} of {{"%.2f"|format(eval_metrics.main_metric - reference.main_metric_value | abs)}}**.
 
-
-
+## Fine-Pruning details
 This model was fine-tuned from the HuggingFace [BERT](https://www.aclweb.org/anthology/N19-1423/) base uncased checkpoint on [SQuAD1.1](https://rajpurkar.github.io/SQuAD-explorer), and distilled from the equivalent model [csarron/bert-base-uncased-squad-v1](https://huggingface.co/csarron/bert-base-uncased-squad-v1).
 This model is case-insensitive: it does not make a difference between english and English.
 
-## Pruning details
 A side-effect of the block pruning is that some of the attention heads are completely removed: {{sparsity.pruned_heads}} heads were removed on a total of {{sparsity.total_heads}} ({{"%.1f"|format(sparsity.pruned_heads / sparsity.total_heads * 100)}}%).
-
 Here is a detailed view on how the remaining heads are distributed in the network after pruning.
-
 <div class="graph">{{graphics.pruning_info.html}}</div>
 
-## Density plot
-{{density_html}}
-
-## Details
+## Details of the SQuAD1.1 dataset
 
 | Dataset  | Split | # samples |
 | -------- | ----- | --------- |
@@ -63,19 +58,19 @@ GPUs: 1 GeForce GTX 3090, with 24GiB memory
 GPU driver: 455.23.05, CUDA: 11.1
 ```
 
-
 ### Results
 
 **Pytorch model file size**: `{{packaging.pytorch_final_file_size // 1024//1024}}M` (original BERT: `438M`)
 
-| Metric | # Value   | # Original ([Table 2](https://www.aclweb.org/anthology/N19-1423.pdf))|
-| ------ | --------- | --------- |
-| **EM** | **{{"%.2f"|format(eval_metrics.exact_match)}}** | **80.8** |
-| **F1** | **{{"%.2f"|format(eval_metrics.f1)}}** | **88.5** |
+| Metric | # Value   | # Original ([Table 2](https://www.aclweb.org/anthology/N19-1423.pdf))| Variation |
+| ------ | --------- | --------- | --------- |
+| **EM** | **{{"%.2f"|format(eval_metrics.exact_match)}}** | **80.8** | **{{"%+.2f"|format(eval_metrics.exact_match - 80.8)}}**|
+| **F1** | **{{"%.2f"|format(eval_metrics.f1)}}** | **88.5** | **{{"%+.2f"|format(eval_metrics.f1 - 88.5)}}**|
 
 ## Example Usage
 
 ```python
+! pip install
 from transformers import pipeline
 from nn_pruning.inference_model_patcher import optimize_model
 
