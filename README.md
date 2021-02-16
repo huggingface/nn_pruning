@@ -34,7 +34,7 @@ The parameter count column is relative to linear layers, which contain most of t
     
 |                                        Model                                         |  Type   |method| Params  |   F1    | F1 diff | Speedup |
 |--------------------------------------------------------------------------------------|---------|------|---------|---------|---------|---------|
-|**[#1](https://huggingface.co/bert-large-uncased-whole-word-masking-finetuned-squad)**|**large**|**-** |**+166%**|**93.15**|**+4.65**|**0.35x**|
+|**[#1](https://huggingface.co/bert-large-uncased-whole-word-masking-finetuned-squad)**|**large**|**-** |**+0%**|**93.15**|**+4.65**|**0.35x**|
 |#2                                                                                    |large    |hybrid|-17%     |    91.03|+2.53    |0.92x    |
 |#3                                                                                    |large    |hybrid|-40%     |    90.16|+1.66    |1.03x    |
 |#4                                                                                    |base     |hybrid|-59%     |    88.72|+0.22    |1.84x    |
