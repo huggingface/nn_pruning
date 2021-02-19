@@ -68,9 +68,13 @@ GPU driver: 455.23.05, CUDA: 11.1
 | **F1** | **{{"%.2f"|format(eval_metrics.f1)}}** | **88.5** | **{{"%+.2f"|format(eval_metrics.f1 - 88.5)}}**|
 
 ## Example Usage
+Install nn_pruning: it contains the optimization script, which just pack the linear layers into smaller ones by removing empty rows/columns.
+
+`pip install git+https://github.com//huggingface/nn_pruning`
+
+Then you can use the `transformers library` almost as usual: you just have to call `optimize_model` when the pipeline has loaded.
 
 ```python
-! pip install
 from transformers import pipeline
 from nn_pruning.inference_model_patcher import optimize_model
 

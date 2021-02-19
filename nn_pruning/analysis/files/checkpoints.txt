@@ -1,2 +1,1 @@
-/data_2to/devel_data/nn_pruning/output/squad_test_large/large_regu_40/checkpoint-221320
-/data_2to/devel_data/nn_pruning/output/squad_test_large/large_regu_40_d0.25/checkpoint-220000
+/data_2to/devel_data/nn_pruning/output/squad_test_large/large_regu_60_d0.25/checkpoint-221320

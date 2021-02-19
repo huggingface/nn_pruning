@@ -17,7 +17,9 @@ import itertools
 
 
 class Plotter:
-    def __init__(self, dest_dir, dest_file_name, only_dots, draw_labels, limits, title, x_label, y_label):
+    def __init__(self, dest_dir, dest_file_name, only_dots, draw_labels, limits, title, x_label, y_label,
+                 accuracy_key,
+                 reference_accuracy):
         self.dest_dir = dest_dir
         self.dest_file_name = dest_file_name
         self.only_dots = only_dots
@@ -26,6 +28,8 @@ class Plotter:
         self.title = title
         self.x_label = x_label
         self.y_label = y_label
+        self.accuracy_key = accuracy_key
+        self.reference_accuracy = reference_accuracy
 
     @staticmethod
     def label_cleanup(label):
@@ -82,9 +86,9 @@ class MatplotlibPlotter(Plotter):
                             ax1.annotate(annotate, (x[i] + 0.005, y[i] + 0.005))
 
         for i in range(3):
-            f1 = 88.5 - i
+            f1 = self.reference_accuracy - i
             pyplot.plot(
-                [0, 10], [88.5 - i] * 2, label=f"original BERT-base {'' if i == 0 else str(-i) + '% '}(F1 = {f1})"
+                [0, 10], [self.reference_accuracy - i] * 2, label=f"original BERT-base {'' if i == 0 else str(-i) + '% '}({self.accuracy_key.capitalize()} = {self.reference_accuracy})"
             )
 
         legend_pos = self.limits[key]["legend_pos"]
@@ -113,7 +117,7 @@ class BokehPlot(BokehHelper):
             pos = pos.replace(s,d)
         return pos
 
-    def create_fig(self, plots, key, title, width, x_label, y_label, limits, only_dots):
+    def create_fig(self, plots, key, title, width, x_label, y_label, limits, only_dots, accuracy_key, reference_accuracy):
         # select a palette
         from bokeh.palettes import Dark2_5 as palette
 
@@ -153,14 +157,13 @@ class BokehPlot(BokehHelper):
             else:
                 fig.line(x, y, legend_label=label_text, line_width=2, color=color)
 
-            base_f1 = 88.5
             for i in range(3):
-                f1 = base_f1 - i
-                line_args = dict(legend_label=f"Reference f1={base_f1} BERT-base")
+                f1 = reference_accuracy - i
+                line_args = dict(legend_label=f"Reference {accuracy_key.capitalize()}={reference_accuracy} BERT-base")
 
                 fig.line(
-                    x = [0, max_x],
-                    y = [88.5 - i] * 2,
+                    x = [0, x_max],
+                    y = [reference_accuracy - i] * 2,
                     color="red",
                     alpha=0.5**(i + 2),
                     **line_args
@@ -198,7 +201,9 @@ class BokehPlotter(Plotter):
                               x_label=self.x_label,
                               y_label=self.y_label,
                               limits = self.limits,
-                              only_dots = self.only_dots)
+                              only_dots = self.only_dots,
+                              accuracy_key = self.accuracy_key,
+                              reference_accuracy = self.reference_accuracy)
 
         export_png(fig, filename=self.dest_dir / (self.dest_file_name + "_static.png"), width=WIDTH)
 
@@ -223,14 +228,18 @@ class TextFilePlotter(Plotter):
             label_for_file = self.label_cleanup(label_text)
             log_dir = self.dest_dir / "logs"
             log_dir.mkdir(exist_ok=True)
-            self.log_plot(log_dir / f"{self.dest_file_name}_{label_for_file}.jsonl", x, y, point, key, "f1")
+            self.log_plot(log_dir / f"{self.dest_file_name}_{label_for_file}.jsonl", x, y, point, key, self.accuracy_key)
 
 
 class PlotManager:
-    LIMITS = {
-        "speedup": dict(legend_pos="upper right", x_min=0.95, x_max=4.0, y_min=84, y_max=90),
-        "fill_rate": dict(legend_pos="lower right", x_min=0.0, x_max=0.75, y_min=84, y_max=90),
-    }
+    LIMITS = dict(squadv1 = dict(speedup= dict(legend_pos="upper right", x_min=0.95, x_max=4.0, y_min=84, y_max=90),
+                                 fill_rate= dict(legend_pos="lower right", x_min=0.0, x_max=0.75, y_min=84, y_max=90)),
+                  mnli=dict(speedup=dict(legend_pos="upper right", x_min=0.95, x_max=4.0, y_min=84, y_max=90),
+                               fill_rate=dict(legend_pos="lower right", x_min=0.0, x_max=0.75, y_min=84, y_max=90)),
+
+                  )
+
+    TASK_KEYS={"squadv1":"f1", "mnli":"matched"}
 
     def __init__(
         self,
@@ -263,7 +272,7 @@ class PlotManager:
         self.white_list = white_list
         self.black_list = black_list
 
-        self.limits = limits or self.LIMITS
+        self.limits = limits or self.LIMITS[task]
 
         self.reference_black_list = reference_black_list
         self.label_mapping = label_mapping or {}
@@ -274,17 +283,18 @@ class PlotManager:
             sgn = -1
         else:
             sgn = 1
-        key_margin_min = 0.001
+        key_margin_min = 0.00001
         sort_by_key = lambda x: sgn * x.get(key, 1.0)
         checkpoints.sort(key=sort_by_key, reverse=True)
         best_c = checkpoints[0]
 
         filtered_checkpoints = [best_c]
+        accuracy_key = self.TASK_KEYS[self.task]
         for checkpoint in checkpoints[1:]:
-            f1_margin = checkpoint["f1"] > filtered_checkpoints[-1]["f1"] * margin
+            f1_margin = checkpoint[accuracy_key] > filtered_checkpoints[-1][accuracy_key] * margin
             key_margin = abs(checkpoint[key] - filtered_checkpoints[-1][key])
             if key_margin < key_margin_min:
-                if checkpoint["f1"] > filtered_checkpoints[-1]["f1"]:
+                if checkpoint[accuracy_key] > filtered_checkpoints[-1][accuracy_key]:
                     filtered_checkpoints[-1] = checkpoint
             else:
                 if not filt or f1_margin:
@@ -332,24 +342,33 @@ class PlotManager:
 
         max_x = -math.inf
         plots = {}
+        accuracy_key = self.TASK_KEYS[self.task]
         for label, data in final_plots.items():
+            print(data, key)
             x0 = [e.get(key, 1.0) for e in data]
 
             if self.convex_envelop:  # and len(set(x0)) > 1:
                 data = self.convexity_filter_checkpoints(data, key=key, filt=len(set(x0)) > 1)
-
+            print(data, key)
             x = [e.get(key, 1.0) for e in data]
             max_x = max(max_x, max(x))
-            y = [e["f1"] for e in data]
+            print(accuracy_key, json.dumps(data, indent=4, sort_keys=True))
+            y = [e[accuracy_key] for e in data]
             annotate = [e.get("annotate","") for e in data]
 
             label_text = self.label_mapping.get(label, label.capitalize())
             plots[label_text] = {"x":x, "y":y, "annotate": annotate, "points":data}
 
         x_label = key.capitalize()
-        y_label = "F1"
+        y_label = accuracy_key.capitalize()
 
         title = "%s against %s (BERT-base reference)" % (y_label, x_label)
+
+        if task == "squadv1":
+            reference_accuracy = 88.5
+        elif task == "mnli":
+            # matched = 84.6, mismatched = 85.9
+            reference_accuracy = 84.6
 
         params = dict(dest_dir=dest_dir,
                       dest_file_name=dest_file_name,
@@ -358,7 +377,9 @@ class PlotManager:
                       limits=self.limits,
                       title=title,
                       x_label=x_label,
-                      y_label=y_label)
+                      y_label=y_label,
+                      accuracy_key=accuracy_key,
+                      reference_accuracy=reference_accuracy)
 
         constructors = [MatplotlibPlotter, TextFilePlotter, BokehPlotter]
 
@@ -431,16 +452,18 @@ class GeneralPlotter(PlotManager):
         )
 
 
-def multiplot(p, name):
+def multiplot(task, p, name):
     name = Plotter.label_cleanup(name)
-    dest = Path("graphs") / name
+    dest = Path("graphs") / task / name
+    dest.mkdir(exist_ok=True, parents=True)
+
     p.plot("speedup", dest, f"{name}_speedup")
     p.plot("fill_rate", dest, f"{name}_fill_rate")
 
 
 def draw_all_plots(input_file_name, task, cleanup_cache=False):
-    cache_dir = Path(__file__).parent / "cache"
-    cache_dir.mkdir(exist_ok=True)
+    cache_dir = Path(__file__).parent / task / "cache"
+    cache_dir.mkdir(exist_ok=True, parents=True)
     if cleanup_cache:
         xp_file = cache_dir / "experiments_squadv1.json"
         if xp_file.exists():
@@ -451,33 +474,37 @@ def draw_all_plots(input_file_name, task, cleanup_cache=False):
             cat_fun_names=["new_xp"],
             draw_labels=False,
             #reference_black_list=["local_movement_pruning"],
-            white_list=["Block/struct method, final fine tuned, s=[bl]", "Structured pruning",  "improved soft movement with distillation"],
+            white_list=["Block/struct method, final fine tuned, s=[bl]", "Structured pruning",  "improved soft movement with distillation",  "Block/struct method, bs= 32x32, v=1, s=[bl]"],
             label_mapping={
                 "Block/struct method, final fine tuned, s=l": "Hybrid pruning, BERT-large",
                 "Block/struct method, final fine tuned, s=b": "Hybrid pruning, BERT-base",
                 "Structured pruning": "Structured pruning, BERT-base",
                 "improved soft movement with distillation": "Improved soft movement, BERT-base",
                 "soft_movement_with_distillation" : "Original Soft Movement",
+                "mobile_bert_no_opt": "Mobile Bert (w/o opt)"
             },
         ),
         }
     for name, configuration in plots.items():
-        limits = {
-            "speedup": dict(legend_pos="upper right", x_min=0.75, x_max=4.0, y_min=None, y_max=None),
-            "fill_rate": dict(legend_pos="upper left", x_min=0.0, x_max=0.9, y_min=None, y_max=None),
-        }
+        limits = dict(squadv1=dict(speedup=dict(legend_pos="upper right", x_min=0.75, x_max=6.0, y_min=None, y_max=None),
+                                   fill_rate=dict(legend_pos="upper left", x_min=0.0, x_max=0.9, y_min=None, y_max=None)),
+                      mnli=dict(speedup=dict(legend_pos="upper right", x_min=0.75, x_max=6.0, y_min=79, y_max=86),
+                                fill_rate=dict(legend_pos="upper left", x_min=0.0, x_max=0.9, y_min=79, y_max=86))
+                      )
+
         p = GeneralPlotter(
             task,
             input_file_name,
-            limits=limits,
+            limits=limits[task],
             cluster=True,
             **configuration,
         )
-        multiplot(p, name)
+        multiplot(task, p, name)
 
 def copy_plots(task):
-    graph_path = (Path(__file__).parent / "graphs").resolve()
+    graph_path = (Path(__file__).parent / "graphs" / task).resolve()
     dest_dir = (Path(__file__).parent.parent.parent / "docs" / "assets" / "media" / task).resolve()
+    dest_dir.mkdir(exist_ok=True, parents=True)
 
     parts = ["summary"]
     suffixes = [".html", ".js", ".png"]
@@ -494,7 +521,9 @@ def copy_plots(task):
 if __name__ == "__main__":
     import sys
     input_file_name = sys.argv[1]
-    task = "squadv1"
+    task = sys.argv[2]
+
+    input_file_name += "_" + task + ".json"
 
     draw_all_plots(input_file_name, task, cleanup_cache=False)
     copy_plots(task)

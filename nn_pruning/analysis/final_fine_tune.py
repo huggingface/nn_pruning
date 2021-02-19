@@ -1,39 +1,27 @@
 import json
 from pathlib import Path
 import sys
-import nn_pruning.examples.question_answering.qa_sparse_xp as qa_sparse_xp
+from nn_pruning.examples.question_answering.qa_sparse_xp import QASparseXP
+from nn_pruning.examples.text_classification.glue_sparse_xp import GlueSparseXP
 import shutil
 
 
-def main(checkpoint_list_file):
+def main(checkpoint_list_file, task):
     checkpoint_list_file = Path(checkpoint_list_file)
     source_points = []
     lines = checkpoint_list_file.open().read().split("\n")
     for s in lines:
         if len(s) != 0:
             s = s.strip()
+            assert((task  + "_") in s)
             source_points.append(s)
-
-
-    if False:
-        source_points.sort(key=lambda x : x["speedup"])
-
-        last_speedup = 0
-        new_source_points = []
-        for s in source_points:
-            speedup = s["speedup"]
-            if speedup > last_speedup * 1.00:
-                new_source_points.append(s)
-                last_speedup = speedup
-
-        source_points = new_source_points
 
     print(f"SOURCE POINTS: {len(source_points)}")
     for source_point in source_points:
         print(source_point)
 
     for source_point in source_points:
-        src_path = Path(source_point) #Path(source_point["meta"]["path"])
+        src_path = Path(source_point)
         key = src_path.parent.name
         assert(key.startswith("hp_") or key.startswith("aws_") or key.startswith("large_"))
         dest_key = "fine_tuned_" + key
@@ -60,8 +48,15 @@ def main(checkpoint_list_file):
         with (dest_path / "source.txt").open("w") as f:
             f.write(str(src_path))
         large = key.startswith("large_")
-        qa_sparse_xp.QASparseXP.final_finetune(str(tmp_path), str(dest_path), large=large)
+
+        if task == "squad":
+            QASparseXP.final_finetune(str(tmp_path), str(dest_path), large=large)
+        elif task in ["mnli"]:
+            GlueSparseXP.final_finetune(str(tmp_path), str(dest_path), large=large, task=task)
+        else:
+            raise Exception(f"Unknown task {task}")
 
 if __name__ == "__main__":
     checkpoint_list_file = sys.argv[1]
-    main(checkpoint_list_file)
+    task = sys.argv[2]
+    main(checkpoint_list_file, task)

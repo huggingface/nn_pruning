@@ -107,7 +107,7 @@ class GlueXP(XP):
     SHORT_NAMER = TrialShortNamer
 
     @classmethod
-    def _model_init(self, model_args, model_config):
+    def _model_init(cls, model_args, model_config):
         model = AutoModelForSequenceClassification.from_pretrained(
             model_args.model_name_or_path,
             from_tf=bool(".ckpt" in model_args.model_name_or_path),
@@ -124,17 +124,23 @@ class GlueXP(XP):
         # download model & vocab.
         model_args = self.model_args
 
-        teacher = self.patch_coordinator.teacher
+        if hasattr(self, "patch_coordinator"):
+            teacher = self.patch_coordinator.teacher
+        else:
+            teacher = None
 
+        config_path = model_args.config_name if model_args.config_name else model_args.model_name_or_path
         if teacher is not None:
             id2label = teacher.config.id2label
             label2id = {v:k for k,v in id2label.items()}
             kwargs = dict(id2label=id2label, label2id=label2id)
         else:
-            kwargs = {}
+            with (Path(config_path) / "config.json").open() as f:
+                config = json.load(f)
+                kwargs =  dict(id2label=config["id2label"], label2id=config["label2id"])
 
         self.config = AutoConfig.from_pretrained(
-            model_args.config_name if model_args.config_name else model_args.model_name_or_path,
+            config_path,
             num_labels=self.num_labels,
             finetuning_task=self.data_args.task_name,
             cache_dir=model_args.cache_dir,
@@ -142,9 +148,6 @@ class GlueXP(XP):
         )
 
         return self.config
-
-    def model_init(self, trial=None):
-        return self._model_init(self.model_args, self.config)
 
     def create_dataset(self):
         # Get the datasets: you can either provide your own CSV/JSON training and evaluation files (see below)
@@ -362,35 +365,38 @@ class GlueXP(XP):
         self.trainer.additional_datasets = self.datasets
 
     @classmethod
-    def evaluate_model(cls, src_path, optimize_mode="dense"):
-        assert(False)
+    def evaluate_model(cls, src_path, task, optimize_mode="dense"):
         src_path = Path(src_path).resolve()
         src_path_str = str(src_path)
 
         parameters = {
             "model_name_or_path": src_path_str,
-            "dataset_name": "squad",
+            "task_name": task,
+            "dataset_cache_dir": "dataset_cache_dir",
             "do_train": 0,
             "do_eval": 1,
-            "per_device_train_batch_size": 16,
-            "max_seq_length": 384,
+            "per_device_eval_batch_size": 128,
+            "max_seq_length": 128,
             "doc_stride": 128,
             "output_dir": src_path_str,
             "logging_dir": src_path_str,
             "overwrite_cache": 0,
             "overwrite_output_dir": 0,
-            "per_device_eval_batch_size":128,
-            "optimize_model_before_eval":optimize_mode
+            "optimize_model_before_eval": optimize_mode
         }
 
         cls.run_from_dict(parameters)
 
-        with open(src_path / "checkpoint-0" / "evaluate_timing.json") as f:
-            j = json.load(f)
+        file_info = {"timings":"evaluate_timing_mnli",
+                     "timings_mm":"evaluate_timing_mnli-mm",
+                     "metrics":"eval_results_mnli",
+                     "metrics_mm": "eval_results_mnli-mm"}
 
-        with open(src_path / "checkpoint-0" / "eval_metrics.json") as f:
-            j2 = json.load(f)
+        ret = {}
+        for k, v in file_info.items():
+            with open(src_path / "checkpoint-0" / (v + ".json")) as f:
+                j = json.load(f)
+                ret[k] = j
 
-        ret = {"timings":j, "metrics":j2}
         return ret
 

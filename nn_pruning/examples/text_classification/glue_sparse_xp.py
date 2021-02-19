@@ -26,7 +26,7 @@ import torch
 from nn_pruning.inference_model_patcher import optimize_model
 
 from nn_pruning.hp_naming import TrialShortNamer
-from nn_pruning.modules.patch_coordinator import SparseTrainingArguments, ModelPatchingCoordinator
+from nn_pruning.modules.patch_coordinator import SparseTrainingArguments
 from .glue_sparse_train import GlueSparseTrainer
 from .glue_xp import (
     GlueXP,
@@ -37,6 +37,7 @@ from .glue_xp import (
 from transformers import AutoModelForSequenceClassification
 import tempfile
 from nn_pruning.modules.sparse_xp import SparseXP
+
 
 class SparseGlueShortNamer(TrialShortNamer):
     DEFAULTS = {
@@ -116,6 +117,8 @@ class SparseGlueShortNamer(TrialShortNamer):
         "use_fast_tokenizer": True,
         "warmup_steps": 5400,
         "weight_decay": 0.0,
+        'fp16_backend': 'auto',
+        'sharded_ddp': False,
     }
 
 
@@ -129,84 +132,38 @@ class GlueSparseXP(SparseXP, GlueXP):
     GLUE_TRAINER_CLASS = GlueSparseTrainer
     SHORT_NAMER = SparseGlueShortNamer
     CONSTRUCTOR = AutoModelForSequenceClassification
+    LOGIT_NAMES = ["logits"]
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.patch_coordinator = ModelPatchingCoordinator(
-            self.sparse_args,
-            self.training_args.device,
-            self.model_args.cache_dir,
-            logit_names=["logits"],
-            teacher_constructor=self.CONSTRUCTOR,
-        )
+    def __init__(self, params):
+        GlueXP.__init__(self, params)
+        SparseXP.__init__(self)
 
     def create_trainer(self, *args, **kwargs):
         super().create_trainer(*args, **kwargs)
-        self.trainer.set_patch_coordinator(self.patch_coordinator)
+        SparseXP.setup_trainer(self)
 
-    def unzero_parameters(self, model, epsilon=0.001):
-        # Used to avoid zero gradients when doing final finetune on sparse networks that we want to extend
-        # Make sure some parts are not completely zero
-        for k, v in model.named_parameters():
-            zero_mask = v == 0
-            with torch.no_grad():
-                new_values = torch.randn_like(v)
-                new_values *= v.std() * epsilon
-                new_values += v.mean()
-                new_values *= zero_mask
-                v.copy_(v + new_values)
-        return model
-
-    def model_init(self, trial=None):
-        if self.sparse_args.final_finetune:
-            model = self.compile_model(self.model_args.model_name_or_path)
-            model = optimize_model(model, "dense")
-            model = self.unzero_parameters(model)
+    @classmethod
+    def final_finetune(cls, src_path, dest_path, task, large:bool):
+        if large:
+            assert(False)
+            teacher = ""
         else:
-            model = super().model_init(trial)
-            self.patch_coordinator.patch_model(model, trial)
-        return model
+            teacher = "aloxatel/bert-base-mnli"
 
-    @classmethod
-    def fix_last_checkpoint_bug_checkpoint(cls, checkpoint_path):
-        # Special stuff : add link to compensate for bug
-        for link_name in [
-            "pytorch_model.bin",
-            "training_args.bin",
-            "vocab.txt",
-            "tokenizer_config.json",
-            "special_tokens_map.json",
-        ]:
-            filename = checkpoint_path / link_name
-            print(filename)
-            filename_parent = Path("..") / link_name
-            filename_absolute_parent = checkpoint_path.parent / link_name
-            if not filename.exists() and filename_absolute_parent.exists():
-                print(filename, filename_parent)
-                filename.symlink_to(filename_parent)
-
-    @classmethod
-    def fix_last_checkpoint_bug(cls, run_path):
-        run_path = Path(run_path)
-        for src_path in run_path.iterdir():
-            if src_path.name.startswith("checkpoint-"):
-                cls.fix_last_checkpoint_bug_checkpoint(src_path)
-
-    @classmethod
-    def final_finetune(cls, src_path, dest_path):
         param_dict = {
             "model_name_or_path": src_path,
-            "dataset_name": "squad",
+            "task_name": task,
+            "dataset_cache_dir": "dataset_cache_dir",
             "do_train": 1,
             "do_eval": 1,
-            "per_device_train_batch_size": 16,
+            "per_device_train_batch_size": 32,
             "per_device_eval_batch_size": 128,
-            "max_seq_length": 384,
+            "max_seq_length": 128,
             "doc_stride": 128,
-            "num_train_epochs": 4,
+            "num_train_epochs": 6,
             "logging_steps": 250,
-            "save_steps": 2500,
-            "eval_steps": 2500,
+            "save_steps": 5000,
+            "eval_steps": 5000,
             "save_total_limit": 50,
             "seed": 17,
             "evaluation_strategy": "steps",
@@ -218,14 +175,17 @@ class GlueSparseXP(SparseXP, GlueXP):
             "warmup_steps": 10,
             "initial_warmup": 0,
             "final_warmup": 0,
+            "mask_init": "constant",
+            "mask_scale": 0.0,
             "regularization": "",
             "regularization_final_lambda": 0,
-            "distil_teacher_name_or_path": "csarron/bert-base-uncased-squad-v1",
+            "distil_teacher_name_or_path":teacher,
             "distil_alpha_ce": 0.1,
-            "distil_alpha_teacher": 0.9,
-            "final_finetune": 1,
+            "distil_alpha_teacher": 0.90,
             "attention_output_with_dense": 0,
+            "final_finetune": 1,
         }
+
 
         glue = cls(param_dict)
         glue.run()

@@ -77,13 +77,8 @@ class QATrainer(XPTrainer):
         else:
             metrics = {}
 
-        self.control = self.callback_handler.on_evaluate(self.args, self.state, self.control, metrics)
 
         if self.is_world_process_zero():
-            checkpoint_dir = self.checkpoint_dir()
-            if not checkpoint_dir.exists():
-                checkpoint_dir.mkdir()
-
             logger.info("***** Eval results *****")
             for key, value in metrics.items():
                 logger.info(f"  {key} = {value}")
@@ -93,12 +88,7 @@ class QATrainer(XPTrainer):
             with open(os.path.join(checkpoint_dir, filename), "w") as f:
                 f.write(s)
 
-            for k, v in self.__dict__.items():
-                if k.endswith("_args") and k != "args":
-                    filename = k + ".json"
-                    s = json.dumps(v.__dict__, indent=4, sort_keys=True)
-                    with open(os.path.join(checkpoint_dir, filename), "w") as f:
-                        f.write(s)
+            super().finish_evaluate(checkpoint_dir, metrics)
 
         return metrics
 

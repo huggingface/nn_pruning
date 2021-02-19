@@ -90,9 +90,6 @@ class QAXP(XP):
         )
         return model
 
-    def model_init(self, trial=None):
-        return self._model_init(self.model_args, self.config)
-
     # Validation preprocessing
     def _prepare_validation_features(self, examples):
         # Tokenize our examples with truncation and maybe padding, but keep the overflows using a stride. This results
@@ -378,12 +375,14 @@ class QAXP(XP):
 
         cls.run_from_dict(parameters)
 
-        with open(src_path / "checkpoint-0" / "evaluate_timing.json") as f:
-            j = json.load(f)
+        file_info = {"timings": "evaluate_timing",
+                     "metrics": "eval_metrics"}
 
-        with open(src_path / "checkpoint-0" / "eval_metrics.json") as f:
-            j2 = json.load(f)
+        ret = {}
+        for k, v in file_info.items():
+            with open(src_path / "checkpoint-0" / (v + ".json")) as f:
+                j = json.load(f)
+                ret[k] = j
 
-        ret = {"timings":j, "metrics":j2}
         return ret
 

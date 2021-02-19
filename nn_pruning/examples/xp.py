@@ -159,7 +159,7 @@ class XP:
         arguments = copy.deepcopy(self.ARGUMENTS)
         self.arguments_names = list(arguments.keys())
         parser = HfArgumentParser(arguments.values())
-        parse_results = parser.parse_dict(param_dict, strict=True)
+        parse_results = parser.parse_dict(param_dict) #, strict=True)
 
         assert self.arguments_names[0] == "model"
         assert self.arguments_names[1] == "data"
@@ -174,6 +174,9 @@ class XP:
             if i < 3:
                 continue
             setattr(self, k + "_args", parse_results[i])
+
+    def model_init(self, trial=None):
+        return self._model_init(self.model_args, self.config)
 
     def get_all_args(self, exclude_base=False):
         # Extract the other arguments
@@ -285,7 +288,6 @@ class XP:
         self.trainer = None
         raise RuntimeError("Implement in subclass")
 
-
     def prepare(self):
         self.create_directories()
         self.setup_logging()
@@ -368,6 +370,26 @@ class XP:
             n_trials=n_trials,
         )
 
+    @classmethod
+    def fix_last_checkpoint_bug_checkpoint(cls, checkpoint_path):
+        # Special stuff : add link to compensate for bug
+        for link_name in ["pytorch_model.bin", "training_args.bin", "vocab.txt", "tokenizer_config.json",
+                          "special_tokens_map.json"]:
+            filename = checkpoint_path / link_name
+            print(filename)
+            filename_parent = Path("..") / link_name
+            filename_absolute_parent = checkpoint_path.parent / link_name
+            if not filename.exists() and filename_absolute_parent.exists():
+                print(filename, filename_parent)
+                filename.symlink_to(filename_parent)
+
+    @classmethod
+    def fix_last_checkpoint_bug(cls, run_path):
+        run_path = Path(run_path)
+        for src_path in run_path.iterdir():
+            if src_path.name.startswith("checkpoint-"):
+                cls.fix_last_checkpoint_bug_checkpoint(src_path)
+
 class XPTrainer(Trainer):
     def checkpoint_dir(self):
         # Save model checkpoint
@@ -420,3 +442,15 @@ class XPTrainer(Trainer):
             f.write(json.dumps({"eval_elapsed_time": evalTime, "cuda_eval_elapsed_time": cudaEvalTime}))
 
         self.model = self._model_save
+
+
+    def finish_evaluate(self, checkpoint_dir, metrics):
+        self.control = self.callback_handler.on_evaluate(self.args, self.state, self.control, metrics)
+
+        for k, v in self.__dict__.items():
+            if k.endswith("_args") and k != "args":
+                filename = k + ".json"
+                s = json.dumps(v.__dict__, indent=4, sort_keys=True)
+                with open(os.path.join(checkpoint_dir, filename), "w") as f:
+                    f.write(s)
+

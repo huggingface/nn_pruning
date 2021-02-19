@@ -1,8 +1,11 @@
-import pandas
-import json
-from pathlib import Path
-from collections import defaultdict
 import copy
+import json
+from collections import defaultdict
+from pathlib import Path
+from transformers import AutoModelForQuestionAnswering, AutoModelForSequenceClassification
+
+import pandas
+
 
 class PointProvider:
     CACHE = {}
@@ -33,6 +36,7 @@ class PointProvider:
                 json.dump(ret, f, indent=4, sort_keys=True)
         self.CACHE[filename] = ret
         return ret
+
 
 class ExperimentClassifier:
     def __init__(self):
@@ -89,9 +93,7 @@ class ExperimentClassifier:
         return "misc", "", "misc"
 
     def is_new_xp(self, xp):
-        compare = dict(
-            final_finetune=1
-        )
+        compare = dict(final_finetune=1)
         print(xp)
         sparse_args = xp["sparse_args"]
 
@@ -112,7 +114,7 @@ class ExperimentClassifier:
             dense_block_rows=1,
             dense_pruning_method="sigmoied_threshold:1d_alt",
             initial_warmup=1,
-            #final_warmup=10,
+            # final_warmup=10,
             regularization="l1",
         )
 
@@ -142,7 +144,7 @@ class ExperimentClassifier:
             attention_pruning_method="sigmoied_threshold",
             dense_pruning_method="sigmoied_threshold",
             initial_warmup=1,
-            #final_warmup=10,
+            # final_warmup=10,
             regularization="l1",
         )
 
@@ -176,7 +178,7 @@ class ExperimentClassifier:
             attention_pruning_method="sigmoied_threshold",
             dense_pruning_method="sigmoied_threshold",
             initial_warmup=1,
-            #final_warmup=10,
+            # final_warmup=10,
             regularization="l1",
         )
 
@@ -278,18 +280,24 @@ class Experiments(PointProvider):
         mtime = int(input_file_name.stat().st_mtime)
         h = input_file_name.name.split(".")[0] + "-" + str(mtime)
 
-        return self.__class__.__name__.lower() + "_" + task + "-" + h +".json"
+        return self.__class__.__name__.lower() + "_" + task + "-" + h + ".json"
 
-    def process_checkpoint(self, checkpoint):
+    def process_checkpoint(self, checkpoint, task):
         fill_rate = 1.0 - checkpoint["stats"]["linear_sparsity"] / 100
         if "large" in checkpoint["path"]:
             # Large BERT has more parameters
             fill_rate *= 8 / 3
 
-        ret = dict(fill_rate=fill_rate,
-                   f1=checkpoint["eval_metrics"]["f1"],
-                   speedup = checkpoint["speedup"],
-                   checkpoint=checkpoint)
+        ret = dict(fill_rate=fill_rate, speedup=checkpoint["speedup"], checkpoint=checkpoint)
+
+        if task == "squadv1":
+            additional = {"f1":checkpoint["eval_metrics"]["f1"]}
+        else:
+            additional = {"matched":checkpoint["eval_metrics"]["eval_accuracy"] * 100,
+                          "mismatched":checkpoint["eval_metrics_mm"]["eval_accuracy"] * 100}
+
+        ret.update(additional)
+
         return ret
 
     def points_(self, task):
@@ -300,7 +308,7 @@ class Experiments(PointProvider):
         for path, raw_point in raw_points.items():
             raw_point["path"] = path
             cat, annotation, cat_fun_name = ec.categorize(raw_point)
-            processed = self.process_checkpoint(raw_point)
+            processed = self.process_checkpoint(raw_point, task)
             processed["cat_fun_name"] = cat_fun_name
             processed["annotate"] = annotation
 
@@ -309,6 +317,7 @@ class Experiments(PointProvider):
             ret[cat].append(processed)
 
         return ret
+
 
 class HFModelStats:
     def __init__(self, model_name, model_class, white_list, black_list):
@@ -343,39 +352,49 @@ class HFModelStats:
 class DistilBert(PointProvider):
     def points_(self, task):
         if task == "squadv1":
-            from transformers import AutoModelForQuestionAnswering
-
             model_class = AutoModelForQuestionAnswering
-            sd = HFModelStats(
-                model_name="distilbert-base-uncased-distilled-squad",
-                model_class=model_class,
-                white_list=["weight"],
-                black_list=["embeddings", "layer_norm", "qa"],
-            )
+        elif task == "mnli":
+            model_class = AutoModelForSequenceClassification
 
-            total_distilbert = sd.model_part_size()
+        sd = HFModelStats(
+            model_name="distilbert-base-uncased-distilled-squad",
+            model_class=model_class,
+            white_list=["weight"],
+            black_list=["embeddings", "layer_norm", "qa"],
+        )
 
-            sb = HFModelStats(
-                model_name="csarron/bert-base-uncased-squad-v1",
-                model_class=model_class,
-                white_list=["weight"],
-                black_list=["embeddings", "LayerNorm", "qa"],
-            )
+        total_distilbert = sd.model_part_size()
 
-            total_bert = sb.model_part_size()
+        sb = HFModelStats(
+            model_name="csarron/bert-base-uncased-squad-v1",
+            model_class=model_class,
+            white_list=["weight"],
+            black_list=["embeddings", "LayerNorm", "qa"],
+        )
 
-            ret = [
-                {
-                    "f1": 86.9,
-                    "exact": 79.1,
-                    "fill_rate": total_distilbert / total_bert,
-                    "speedup": 1.63,
-                    "annotate": "DistilBERT",
-                }
-            ]
-            return dict(distilbert=ret)
+        total_bert = sb.model_part_size()
+
+        fill_rate = total_distilbert / total_bert
+
+        if task == "squadv1":
+            ret = {
+                "f1": 86.9,
+                "exact": 79.1,
+            }
+        elif task == "mnli":
+            # From https://arxiv.org/abs/1910.01108 and
+            # https://huggingface.co/huggingface/distilbert-base-uncased-finetuned-mnli
+            #
+            ret = {
+                "matched": 82.2,
+                #                    "mismatched": 0.8216, # to be checked : from https://huggingface.co/ishan/distilbert-base-uncased-mnli
+            }
         else:
             raise Exception(f"Unkwnon task {task}")
+
+        ret.update({"fill_rate": fill_rate, "annotate": "DistilBERT", "speedup": 1.63})
+
+        return dict(distilbert=[ret])
 
 
 class TinyBert(PointProvider):
@@ -414,12 +433,17 @@ class TinyBert(PointProvider):
 
         if task == "squadv1":
             # From https://arxiv.org/pdf/1910.01108.pdf
-            ret = [{"f1": 87.5, "exact": 79.7, "fill_rate": 0.5, "speedup": 2.0, "annotate": "TinyBERT6"}]
-            return dict(tinybert=ret)
+            ret = {"f1": 87.5, "exact": 79.7}
 
             # [{"f1":82.1, "exact": 72.7, "fill_rate": 0.5, "speedup": 9.4, "annotate":"TinyBERT4"}]
+        elif task == "mnli":
+            ret = {"matched": 84.6, "mismatched": 83.2}
         else:
             raise Exception(f"Unkwnon task {task}")
+
+        ret.update({"fill_rate": 0.5, "speedup": 2.0, "annotate": "TinyBERT6"})
+
+        return dict(tinybert=[ret])
 
 
 class Are16HeadsBetter(PointProvider):
@@ -436,9 +460,34 @@ class BertTiny(PointProvider):
 
 
 class MobileBert(PointProvider):
-    def points_(self, task):
-        "MobileBERTTINY"
+    # From https://arxiv.org/abs/2004.02984
+    """Network, Params SQuAD v1.1 EM F1 SQuAD v2.0  EM F1
+      MobileBERTTINY 15.1M 81.4 88.6 74.4 77.1
+      MobileBERT 25.3M 82.9 90.0 76.2 79.2
+    MobileBERT w/o OPT 25.3M 83.4 90.3 77.6 80.2"""
 
+    """ Network, Params #FLOPS Latency CoLA SST-2 MRPC STS-B QQP MNLI-m/mm QNLI RTE GLU
+    MobileBERTTINY 15.1M 3.1B 40 ms 46.7 91.7 87.9 80.1 68.9 81.5/81.6 89.5 65.1 75.8
+MobileBERT 25.3M 5.7B 62 ms 50.5 92.8 88.8 84.4 70.2 83.3/82.6 90.6 66.2 77.7
+MobileBERT w/o OPT 25.3M 5.7B 192 ms 51.1 92.6 88.8 84.8 70.5 84.3/83.4 91.6 70.4 78.5"""
+
+    def points_(self, task):
+        if task == "squadv1":
+            mobile_bert = {"f1": 90.0, "exact": 82.9}
+            mobile_bert_no_opt = {"f1": 90.3, "exact": 83.4}
+        elif task == "mnli":
+            mobile_bert = {"matched": 83.3, "mismatched": 82.6}
+            mobile_bert_no_opt = {"matched": 84.3, "mismatched": 83.4}
+        else:
+            raise Exception(f"Unkwnon task {task}")
+
+        # total_fill_rate = 25.3 / 109
+        fill_rate = 5.7 / 22.5
+        mobile_bert.update({"fill_rate": fill_rate, "speedup": 342 / 62, "annotate": "MobileBERT"})
+
+        mobile_bert_no_opt.update({"fill_rate": fill_rate, "speedup": 342 / 192, "annotate": "MobileBERT w/o OPT"})
+
+        return dict(mobile_bert_no_opt=[mobile_bert_no_opt]) # mobile_bert=[mobile_bert],
 
 class MovementPruning(PointProvider):
     SUBSETS = ["local_movement_pruning", "soft_movement_with_distillation"]
@@ -447,18 +496,20 @@ class MovementPruning(PointProvider):
         super().__init__(cache_dir)
 
     def points_(self, task):
-        assert task == "squadv1"
         defaults = dict(size=1, inner_sparsity=1, cols=1, rows=1, epochs=10)
         ret = {}
 
         xcel_file_name = Path(__file__).parent / "files" / "mvmt_pruning.xlsx"
-        xcel = pandas.read_excel(xcel_file_name, index_col=0, sheet_name="Details - SQuAD")
+        if task == "squad":
+            sheet_name = "SQuAD"
+        else:
+            sheet_name = "MNLI"
+        xcel = pandas.read_excel(xcel_file_name, index_col=0, sheet_name="Details - " + sheet_name)
         xcel = pandas.DataFrame(xcel)
         for i, (r, d) in enumerate(xcel.iterrows()):
             if i > 2:
                 if str(d[2]) != "nan":
                     name = d[2]
-                    name_parts = name.split("_")
                     if name.startswith("topK_1.0"):
                         key = "local_movement_pruning"
                     elif name.startswith("l1_with_distil"):
@@ -466,7 +517,12 @@ class MovementPruning(PointProvider):
                     else:
                         key = None
                     if key != None and key in self.SUBSETS:
-                        d = dict(name=name, fill_rate=d[3] / 100.0, exact=d[4], f1=d[5])
+                        if task == "squadv1":
+                            d = dict(name=name, fill_rate=d[3] / 100.0, exact=d[4], f1=d[5])
+                        elif task == "mnli":
+                            d = dict(name=name, fill_rate=d[3] / 100.0, matched=d[4] * 100, mismatched=d[6] * 100)
+                        else:
+                            raise ValueError(f"Unknown task {task}")
 
                         d.update(defaults)
                         if key not in ret:
@@ -482,10 +538,8 @@ class MultiProvider:
         ret.update(MovementPruning(cache_dir).points(task))
         ret.update(DistilBert(cache_dir).points(task))
         ret.update(TinyBert(cache_dir).points(task))
+        ret.update(MobileBert(cache_dir).points(task))
 
         xps = Experiments(cache_dir, analyze_result_file).points(task)
 
         return ret, xps
-
-
-

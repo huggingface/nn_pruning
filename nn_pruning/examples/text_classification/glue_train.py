@@ -17,7 +17,7 @@ A subclass of `Trainer` specific to Question-Answering tasks
 """
 
 import os
-from pathlib import Path
+import json
 
 from nn_pruning.examples.xp import XPTrainer
 from transformers.utils import logging
@@ -77,13 +77,14 @@ class GlueTrainer(XPTrainer):
             log_metrics = {f"eval_{task}_{k}": v for k, v in output.metrics.items()}
             self.log(log_metrics)
 
-            output_eval_file = os.path.join(checkpoint_dir, f"eval_results_{task}.txt")
+            output_eval_file = os.path.join(checkpoint_dir, f"eval_results_{task}.json")
             if self.is_world_process_zero():
+                logger.info(f"***** Eval results {task} *****")
+                for key, value in eval_results.items():
+                    logger.info(f"  {key} = {value}")
+
                 with open(output_eval_file, "w") as writer:
-                    logger.info(f"***** Eval results {task} *****")
-                    for key, value in eval_results.items():
-                        logger.info(f"  {key} = {value}")
-                        writer.write(f"{key} = {value}\n")
+                    json.dump(eval_results, writer, indent=4, sort_keys=True)
 
 
         logger.info("*** Test ***")
@@ -115,5 +116,7 @@ class GlueTrainer(XPTrainer):
                         else:
                             item = self.label_list[item]
                             writer.write(f"{index}\t{item}\n")
+
+        super().finish_evaluate(checkpoint_dir, output0.metrics)
 
         return output0.metrics

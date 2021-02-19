@@ -26,7 +26,7 @@ import torch
 from nn_pruning.inference_model_patcher import optimize_model
 
 from nn_pruning.hp_naming import TrialShortNamer
-from nn_pruning.modules.patch_coordinator import SparseTrainingArguments, ModelPatchingCoordinator
+from nn_pruning.modules.patch_coordinator import SparseTrainingArguments
 from nn_pruning.modules.sparse_xp import SparseXP
 from .qa_sparse_train import QASparseTrainer
 from .qa_xp import (
@@ -135,73 +135,15 @@ class QASparseXP(SparseXP, QAXP):
     QA_TRAINER_CLASS = QASparseTrainer
     SHORT_NAMER = SparseQAShortNamer
     CONSTRUCTOR = AutoModelForQuestionAnswering
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.patch_coordinator = self.create_patching_coordinator(self.sparse_args,
-                                                                  self.training_args.device,
-                                                                  self.model_args.cache_dir)
+    LOGIT_NAMES = ["start_logits", "end_logits"]
 
-    @classmethod
-    def create_patching_coordinator(cls, sparse_args, device, cache_dir):
-        return ModelPatchingCoordinator(sparse_args,
-                                        device=device,
-                                        cache_dir=cache_dir,
-                                        logit_names=["start_logits", "end_logits"],
-                                        teacher_constructor=cls.CONSTRUCTOR)
+    def __init__(self, params):
+        QAXP.__init__(self, params)
+        SparseXP.__init__(self)
 
     def create_trainer(self, *args, **kwargs):
         super().create_trainer(*args, **kwargs)
-        self.trainer.set_patch_coordinator(self.patch_coordinator)
-
-    def unzero_parameters(self, model, epsilon=0.01):
-        # Used to avoid zero gradients when doing final finetune on sparse networks that we want to extend
-        # Make sure some parts are not completely zero
-        for k, v in model.named_parameters():
-            if "bias" in k:
-                continue
-            zero_mask = v == 0
-            if zero_mask.sum() == 0:
-                continue
-
-            with torch.no_grad():
-                print("unzero_parameters", k, "sparsity=", zero_mask.sum() / zero_mask.numel(), zero_mask.shape)
-                new_values = torch.randn_like(v)
-                new_values *= v.std() * epsilon
-                new_values += v.mean()
-                new_values *= zero_mask
-                v.copy_(v + new_values)
-        return model
-
-    def model_init(self, trial=None):
-        if self.sparse_args.final_finetune:
-            model = self.compile_model(self.model_args.model_name_or_path)
-            model = optimize_model(model, "dense")
-            model = self.unzero_parameters(model)
-        else:
-            model = super().model_init(trial)
-            self.patch_coordinator.patch_model(model, trial)
-        return model
-
-
-    @classmethod
-    def fix_last_checkpoint_bug_checkpoint(cls, checkpoint_path):
-        # Special stuff : add link to compensate for bug
-        for link_name in ["pytorch_model.bin", "training_args.bin", "vocab.txt", "tokenizer_config.json",
-                          "special_tokens_map.json"]:
-            filename = checkpoint_path / link_name
-            print(filename)
-            filename_parent = Path("..") / link_name
-            filename_absolute_parent = checkpoint_path.parent / link_name
-            if not filename.exists() and filename_absolute_parent.exists():
-                print(filename, filename_parent)
-                filename.symlink_to(filename_parent)
-
-    @classmethod
-    def fix_last_checkpoint_bug(cls, run_path):
-        run_path = Path(run_path)
-        for src_path in run_path.iterdir():
-            if src_path.name.startswith("checkpoint-"):
-                cls.fix_last_checkpoint_bug_checkpoint(src_path)
+        SparseXP.setup_trainer(self)
 
     @classmethod
     def final_finetune(cls, src_path, dest_path, large: bool):

@@ -4,8 +4,56 @@ from pathlib import Path
 from types import SimpleNamespace
 import torch
 import tempfile
+from nn_pruning.modules.patch_coordinator import ModelPatchingCoordinator
 
 class SparseXP:
+    def __init__(self):
+        print("SPARSE XP INIT")
+        self.patch_coordinator = self.create_patching_coordinator(self.sparse_args,
+                                                                  self.training_args.device,
+                                                                  self.model_args.cache_dir)
+
+
+    @classmethod
+    def create_patching_coordinator(cls, sparse_args, device, cache_dir):
+        return ModelPatchingCoordinator(sparse_args,
+                                        device=device,
+                                        cache_dir=cache_dir,
+                                        logit_names=cls.LOGIT_NAMES,
+                                        teacher_constructor=cls.CONSTRUCTOR)
+
+    def setup_trainer(self, *args, **kwargs):
+        self.trainer.set_patch_coordinator(self.patch_coordinator)
+
+    def unzero_parameters(self, model, epsilon=0.01):
+        # Used to avoid zero gradients when doing final finetune on sparse networks that we want to extend
+        # Make sure some parts are not completely zero
+        for k, v in model.named_parameters():
+            if "bias" in k:
+                continue
+            zero_mask = v == 0
+            if zero_mask.sum() == 0:
+                continue
+
+            with torch.no_grad():
+                print("unzero_parameters", k, "sparsity=", zero_mask.sum() / zero_mask.numel(), zero_mask.shape)
+                new_values = torch.randn_like(v)
+                new_values *= v.std() * epsilon
+                new_values += v.mean()
+                new_values *= zero_mask
+                v.copy_(v + new_values)
+        return model
+
+    def model_init(self, trial=None):
+        if self.sparse_args.final_finetune:
+            model = self.compile_model(self.model_args.model_name_or_path)
+            model = optimize_model(model, "dense")
+            model = self.unzero_parameters(model)
+        else:
+            model = super().model_init(trial)
+            self.patch_coordinator.patch_model(model, trial)
+        return model
+
     @classmethod
     def compile_model(cls, src_path, dest_path=None):
         src_path = Path(src_path)
