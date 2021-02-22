@@ -1,7 +1,7 @@
 # Neural Networks Block Movement Pruning
 
 
-An interactive version of this site is available [here](http://madl.ag/nn_pruning).
+An interactive version of this site is available [here](https://huggingface.github.io/nn_pruning/).
 
 
 
