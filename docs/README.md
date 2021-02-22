@@ -82,6 +82,7 @@ Here is a selection of networks, with the same rules as for the SQuAd table:
 
 ### Comparison with state of the art 
 (This is WIP : Some more runs are needed to check the performance versus MobileBERT and TinyBert at same level of speed. Some better hyperparameters may help too.)
+
 From the following graphs, we see that the speed is a bit lower compared to TinyBERT, and roughly in line with MobileBERT.
 In terms of sparsity, the precision is a bit lower than MobileBERT and TinyBERT. 
 On both metrics it's better than DistilBERT by some significant margin.
