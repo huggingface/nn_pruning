@@ -56,6 +56,17 @@ class Packager:
         self.kind = kind
         self.task = task
 
+    @classmethod
+    def build_model_name_(cls, model_size, task, speedup, precision, linear_sparsity, kind, is_ampere, version):
+        density = int(100 - linear_sparsity)
+
+        name = f"bert-{model_size}-uncased-{task}-x{speedup:.2f}-f{precision:.1f}-d{density}-{kind}"
+        if is_ampere:
+            name += "-ampere"
+
+        name += f"-v{version}"
+        return name
+
     def build_model_name(self):
         checkpoint_info = self.checkpoint_info
         source_path = checkpoint_info.get("source_checkpoint")
@@ -73,15 +84,8 @@ class Packager:
         speedup = checkpoint_info["speedup"]
 
         f1 = checkpoint_info["eval_metrics"]["f1"]
-        if self.is_ampere:
-            self.sparsity /= 2
-        name = f"bert-{self.model_size}-uncased-{self.task}-x{speedup:.2f}-f{f1:.1f}-d{self.density}-{self.kind}"
-        if self.is_ampere:
-            name += "-ampere"
 
-        name += f"-v{self.version}"
-
-        return name
+        return self.build_model_name_(self.model_size, task, speedup, f1, stats["linear_sparsity"], self.kind, self.is_ampere, self.version)
 
     def load_info(self):
         with self.info_filepath.open() as f:

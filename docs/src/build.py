@@ -4,6 +4,7 @@ from io import StringIO
 from pytablewriter import MarkdownTableWriter
 from pprint import pprint
 import json
+from nn_pruning.analysis.create_model import Packager
 
 class DocBuilder:
     def __init__(self):
@@ -79,6 +80,8 @@ class DocBuilder:
 
         base_performance = self.BERT_BASE_PERFORMANCE
         values = []
+
+
         bert_large = [f"[#1]({base_performance['large']['url']})", "large", "-", base_performance["large"]["f1"], "%+0.2f" % (base_performance["large"]["f1"] - base_performance["base"]["f1"]), "+166%", "0.37x", "0.35x"]
         bert_large = self.bold_line(bert_large)
 
@@ -110,7 +113,17 @@ class DocBuilder:
             speedup = "%0.2fx" % speedup
             theo_speedup = "%0.1fx" % (1.0 / (1.0 - sparsity))
             sparsity = "-%d%%" % (100 * sparsity)
-            values.append([f"#{len(values) + 1}",  size, type, f1, perf, sparsity, theo_speedup, speedup])
+
+            name = Packager.build_model_name_(size, "squadv1", info["speedup"], info["f1"], 100 * (1.0 - info["fill_rate"]), info["type"], False, 1)
+            url = f"https://huggingface.co/madlag/{name}"
+
+            if info["url"] != None:
+                assert(url == info["url"])
+                index = f"**[#{len(values) + 1}]({url})**"
+            else:
+                index = f"#{len(values) + 1}"
+
+            values.append([index,  size, type, f1, perf, sparsity, theo_speedup, speedup])
 
         headers = self.reorder_squad_table_columns([headers])[0]
         values = self.reorder_squad_table_columns(values)

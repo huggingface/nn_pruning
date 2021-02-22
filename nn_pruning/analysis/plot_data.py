@@ -496,14 +496,16 @@ class MovementPruning(PointProvider):
         super().__init__(cache_dir)
 
     def points_(self, task):
-        defaults = dict(size=1, inner_sparsity=1, cols=1, rows=1, epochs=10)
+        defaults = dict(size=1, inner_sparsity=1, cols=1, rows=1, epochs=10, speedup=1.0)
         ret = {}
 
         xcel_file_name = Path(__file__).parent / "files" / "mvmt_pruning.xlsx"
-        if task == "squad":
+        if task == "squadv1":
             sheet_name = "SQuAD"
-        else:
+        elif task == "mnli":
             sheet_name = "MNLI"
+        else:
+            raise ValueError(f"Unkwnown task {task}")
         xcel = pandas.read_excel(xcel_file_name, index_col=0, sheet_name="Details - " + sheet_name)
         xcel = pandas.DataFrame(xcel)
         for i, (r, d) in enumerate(xcel.iterrows()):

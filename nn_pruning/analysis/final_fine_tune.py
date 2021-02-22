@@ -12,7 +12,14 @@ def main(checkpoint_list_file, task):
     lines = checkpoint_list_file.open().read().split("\n")
     for s in lines:
         if len(s) != 0:
-            s = s.strip()
+            if s[0] == "#":
+                continue
+            if str(checkpoint_list_file).endswith(".json"):
+                j = json.loads(s)
+                s = j["meta"]["checkpoint"]["path"]
+            else:
+                s = s.strip()
+
             assert((task  + "_") in s)
             source_points.append(s)
 
@@ -25,7 +32,7 @@ def main(checkpoint_list_file, task):
         key = src_path.parent.name
         assert(key.startswith("hp_") or key.startswith("aws_") or key.startswith("large_"))
         dest_key = "fine_tuned_" + key
-        dest_path = src_path.parent.parent.parent / "squad_test_final_fine_tune" / dest_key
+        dest_path = src_path.parent.parent.parent / f"{task}_test_final_fine_tune" / dest_key
         dest_path = dest_path.resolve()
         if dest_path.exists():
             print("SKIPPING", dest_path.name)

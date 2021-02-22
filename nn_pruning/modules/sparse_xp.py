@@ -5,10 +5,10 @@ from types import SimpleNamespace
 import torch
 import tempfile
 from nn_pruning.modules.patch_coordinator import ModelPatchingCoordinator
+from nn_pruning.inference_model_patcher import optimize_model
 
 class SparseXP:
     def __init__(self):
-        print("SPARSE XP INIT")
         self.patch_coordinator = self.create_patching_coordinator(self.sparse_args,
                                                                   self.training_args.device,
                                                                   self.model_args.cache_dir)

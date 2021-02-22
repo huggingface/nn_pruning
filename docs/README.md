@@ -30,18 +30,18 @@ The parameter count column is relative to linear layers, which contain most of t
 **F1 difference, speedups and parameters counts are all relative to BERT-base to ease practical comparison.**
 
     
-|                                        Model                                         |  Type   |method| Params  |   F1    | F1 diff | Speedup |
-|--------------------------------------------------------------------------------------|---------|------|---------|---------|---------|---------|
-|**[#1](https://huggingface.co/bert-large-uncased-whole-word-masking-finetuned-squad)**|**large**|**-** |**+166%**|**93.15**|**+4.65**|**0.35x**|
-|#2                                                                                    |large    |hybrid|-17%     |    91.03|+2.53    |0.92x    |
-|#3                                                                                    |large    |hybrid|-40%     |    90.16|+1.66    |1.03x    |
-|#4                                                                                    |base     |hybrid|-59%     |    88.72|+0.22    |1.84x    |
-|**[#5](https://huggingface.co/csarron/bert-base-uncased-squad-v1)**                   |**base** |**-** |**+0%**  |**88.5** |**+0.00**|**1.0x** |
-|#6                                                                                    |base     |hybrid|-65%     |    88.25|-0.25    |1.98x    |
-|#7                                                                                    |base     |hybrid|-67%     |    87.71|-0.79    |2.44x    |
-|#8                                                                                    |base     |hybrid|-73%     |    87.23|-1.27    |2.60x    |
-|#9                                                                                    |base     |hybrid|-74%     |    86.69|-1.81    |2.80x    |
-|#10                                                                                   |base     |struct|-86%     |    85.52|-2.98    |3.64x    |
+|                                              Model                                               |  Type   |   method    | Params  |   F1    | F1 diff | Speedup |
+|--------------------------------------------------------------------------------------------------|---------|-------------|---------|---------|---------|---------|
+|**[#1](https://huggingface.co/bert-large-uncased-whole-word-masking-finetuned-squad)**            |**large**|**-**        |**+166%**|**93.15**|**+4.65**|**0.35x**|
+|#2                                                                                                |large    |hybrid-filled|-17%     |    91.03|+2.53    |0.92x    |
+|#3                                                                                                |large    |hybrid-filled|-40%     |    90.16|+1.66    |1.03x    |
+|#4                                                                                                |base     |hybrid-filled|-59%     |    88.72|+0.22    |1.84x    |
+|**[#5](https://huggingface.co/csarron/bert-base-uncased-squad-v1)**                               |**base** |**-**        |**+0%**  |**88.5** |**+0.00**|**1.0x** |
+|#6                                                                                                |base     |hybrid-filled|-65%     |    88.25|-0.25    |1.98x    |
+|**[#7](https://huggingface.co/madlag/bert-base-uncased-squadv1-x2.44-f87.7-d26-hybrid-filled-v1)**|base     |hybrid-filled|-74%     |    87.71|-0.79    |2.44x    |
+|#8                                                                                                |base     |hybrid-filled|-73%     |    87.23|-1.27    |2.60x    |
+|#9                                                                                                |base     |hybrid-filled|-74%     |    86.69|-1.81    |2.80x    |
+|#10                                                                                               |base     |struct       |-86%     |    85.52|-2.98    |3.64x    |
 
 
 
@@ -64,8 +64,8 @@ The speedup here is measured on a 3090 RTX, using the HuggingFace transformers l
 ### Comparison with state of the art 
 If we plot the F1 of the full set of pruned networks against the speedup, we can see that we outperform fine-tuned TinyBERT and Distilbert by a large amount: 
 
-<div class="graph"><script src="assets/media/squadv1/summary_speedup.js" id="664ee56a-58e8-46b0-b6c2-a533b94672c2"></script></div>
+<div class="graph"><script src="assets/media/squadv1/summary_speedup.js" id="22ae379e-54b1-49ab-b3d2-d6a30bbe5210"></script></div>
 
 Even in terms of saved size, we get smaller networks for the same accuracy:
 
-<div class="graph"><script src="assets/media/squadv1/summary_fill_rate.js" id="246bef39-065f-4107-9c16-fc9169ecb060"></script></div>
+<div class="graph"><script src="assets/media/squadv1/summary_fill_rate.js" id="2171949f-ce04-4f39-a0d6-90a5e92844bd"></script></div>

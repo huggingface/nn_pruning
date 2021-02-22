@@ -234,6 +234,7 @@ class ModelAnalysis:
 
         # Create base report
         base_speed_report_file = Path(f"files/base_speed_report_file_{self.task}.json")
+        base_speed_report = None
         if base_speed_report_file.exists():
             base_speed_report = json.load(base_speed_report_file.open())
         else:

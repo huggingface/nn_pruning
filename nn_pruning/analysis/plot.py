@@ -452,16 +452,9 @@ class GeneralPlotter(PlotManager):
         )
 
 
-def multiplot(task, p, name):
-    name = Plotter.label_cleanup(name)
-    dest = Path("graphs") / task / name
-    dest.mkdir(exist_ok=True, parents=True)
-
-    p.plot("speedup", dest, f"{name}_speedup")
-    p.plot("fill_rate", dest, f"{name}_fill_rate")
 
 
-def draw_all_plots(input_file_name, task, cleanup_cache=False):
+def draw_all_plots(input_file_name, task, x_axis, cleanup_cache=False):
     cache_dir = Path(__file__).parent / task / "cache"
     cache_dir.mkdir(exist_ok=True, parents=True)
     if cleanup_cache:
@@ -469,12 +462,22 @@ def draw_all_plots(input_file_name, task, cleanup_cache=False):
         if xp_file.exists():
             xp_file.unlink()
 
+    if x_axis == "fill_rate":
+        reference_black_list = ["local_movement_pruning"]
+    else:
+        reference_black_list = ["local_movement_pruning", "soft_movement_with_distillation"]
+
+
     plots = {
         "summary": dict(
             cat_fun_names=["new_xp"],
             draw_labels=False,
-            #reference_black_list=["local_movement_pruning"],
-            white_list=["Block/struct method, final fine tuned, s=[bl]", "Structured pruning",  "improved soft movement with distillation",  "Block/struct method, bs= 32x32, v=1, s=[bl]"],
+            reference_black_list=reference_black_list,
+            white_list=["Block/struct method, final fine tuned, s=b",
+                        "Structured pruning",  "improved soft movement with distillation",
+                        #"Block/struct method, bs= 32x32, v=1, s=[bl]",
+
+                        ],
             label_mapping={
                 "Block/struct method, final fine tuned, s=l": "Hybrid pruning, BERT-large",
                 "Block/struct method, final fine tuned, s=b": "Hybrid pruning, BERT-base",
@@ -486,10 +489,10 @@ def draw_all_plots(input_file_name, task, cleanup_cache=False):
         ),
         }
     for name, configuration in plots.items():
-        limits = dict(squadv1=dict(speedup=dict(legend_pos="upper right", x_min=0.75, x_max=6.0, y_min=None, y_max=None),
-                                   fill_rate=dict(legend_pos="upper left", x_min=0.0, x_max=0.9, y_min=None, y_max=None)),
+        limits = dict(squadv1=dict(speedup=dict(legend_pos="upper right", x_min=0.75, x_max=3.25, y_min=None, y_max=None),
+                                   fill_rate=dict(legend_pos="upper left", x_min=0.0, x_max=0.65, y_min=None, y_max=None)),
                       mnli=dict(speedup=dict(legend_pos="upper right", x_min=0.75, x_max=6.0, y_min=79, y_max=86),
-                                fill_rate=dict(legend_pos="upper left", x_min=0.0, x_max=0.9, y_min=79, y_max=86))
+                                fill_rate=dict(legend_pos="upper left", x_min=0.0, x_max=0.75, y_min=79, y_max=86))
                       )
 
         p = GeneralPlotter(
@@ -499,7 +502,12 @@ def draw_all_plots(input_file_name, task, cleanup_cache=False):
             cluster=True,
             **configuration,
         )
-        multiplot(task, p, name)
+
+        plot_name = Plotter.label_cleanup(name)
+        dest = Path("graphs") / task / name
+        dest.mkdir(exist_ok=True, parents=True)
+
+        p.plot(x_axis, dest, f"{plot_name}_{x_axis}")
 
 def copy_plots(task):
     graph_path = (Path(__file__).parent / "graphs" / task).resolve()
@@ -521,12 +529,12 @@ def copy_plots(task):
 if __name__ == "__main__":
     import sys
     input_file_name = sys.argv[1]
-    task = sys.argv[2]
+    for task in ["mnli", "squadv1"]:
+        input_file_name_ = input_file_name + "_" + task + ".json"
+        for x_axis in ["speedup", "fill_rate"]:
+            draw_all_plots(input_file_name_, task, x_axis, cleanup_cache=False)
+        copy_plots(task)
 
-    input_file_name += "_" + task + ".json"
-
-    draw_all_plots(input_file_name, task, cleanup_cache=False)
-    copy_plots(task)
     import sys
 
     sys.exit()
