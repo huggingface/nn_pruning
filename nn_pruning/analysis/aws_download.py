@@ -11,8 +11,6 @@ def s3_get_meta_data(conn, bucket, key):
     meta_data = conn.head_object(Bucket=bucket, Key=key)
     return meta_data
 
-# s3://sagemaker-eu-west-1-854676674973/nn-pruning-v5-a16-l5--2021-01-17--14-55-26/output/model.tar.gz
-
 def s3_download(conn, bucket, key, dest_file_name, parallel_threads=10):
     start = time.time()
     print(f"Downloading {key} to {dest_file_name}")

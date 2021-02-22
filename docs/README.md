@@ -18,7 +18,7 @@ The experiments were done first on SQuAD v1.
 
 Two networks were tested: BERT-base, and BERT-large.
 
-Very significant speedups where obtained with limited drop in accuracy.
+Very significant speedups were obtained with limited drop in accuracy.
 
 Here is a selection of the networks that are obtained through the different variant method variants.
 
@@ -62,10 +62,27 @@ We kept here the comparison with BERT-base numbers as it's what matters on a pra
 The speedup here is measured on a 3090 RTX, using the HuggingFace transformers library, using Pytorch cuda timing features, and so is 100% in line with real-world speedup.
 
 ### Comparison with state of the art 
-If we plot the F1 of the full set of pruned networks against the speedup, we can see that we outperform fine-tuned TinyBERT and Distilbert by a large amount: 
+If we plot the F1 of the full set of pruned networks against the speedup, we can see that we outperform fine-tuned TinyBERT and Distilbert by some margin.
+MobileBert seems significantly better, even with the "no OPT" version presented here, which does not contain the LayerNorm optimization used in the much faster version of MobileBERT.
+An interesting future work will be to add those optimizations to the pruning tools.
 
 <div class="graph"><script src="assets/media/squadv1/summary_speedup.js" id="d8060930-915c-40bf-9090-bca29d84692a"></script></div>
 
-Even in terms of saved size, we get smaller networks for the same accuracy:
+Even in terms of saved size, we get smaller networks for the same accuracy (except for MobileBERT, which is better on size too):
 
 <div class="graph"><script src="assets/media/squadv1/summary_fill_rate.js" id="76bea915-f806-4071-8ed6-ee63b7174bbf"></script></div>
+
+### GLUE/MNLI 
+
+The experiments were done on BERT-base.
+Significant speedups were obtained, even if the results are a bit behing compared to the SQuAD results.
+Here is a selection of networks, with the same rules as for the SQuAd table:
+
+
+
+### Comparison with state of the art 
+
+<div class="graph"><script src="assets/media/mnli/summary_speedup.js" id="a1a9e72b-c57a-4672-b087-a55316070849"></script></div>
+
+
+<div class="graph"><script src="assets/media/mnli/summary_fill_rate.js" id="e3cbc37c-a02c-4eb2-bd04-8c69c976db95"></script></div>

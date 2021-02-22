@@ -20,7 +20,7 @@ The experiments were done first on SQuAD v1.
 
 Two networks were tested: BERT-base, and BERT-large.
 
-Very significant speedups where obtained with limited drop in accuracy.
+Very significant speedups were obtained with limited drop in accuracy.
 
 Here is a selection of the networks that are obtained through the different variant method variants.
 
@@ -64,10 +64,27 @@ We kept here the comparison with BERT-base numbers as it's what matters on a pra
 The speedup here is measured on a 3090 RTX, using the HuggingFace transformers library, using Pytorch cuda timing features, and so is 100% in line with real-world speedup.
 
 ### Comparison with state of the art 
-If we plot the F1 of the full set of pruned networks against the speedup, we can see that we outperform fine-tuned TinyBERT and Distilbert by a large amount: 
+If we plot the F1 of the full set of pruned networks against the speedup, we can see that we outperform fine-tuned TinyBERT and Distilbert by some margin.
+MobileBert seems significantly better, even with the "no OPT" version presented here, which does not contain the LayerNorm optimization used in the much faster version of MobileBERT.
+An interesting future work will be to add those optimizations to the pruning tools.
 
 ![SQuAD v1 speedup](docs/assets/media/squadv1/summary_speedup.png)
 
-Even in terms of saved size, we get smaller networks for the same accuracy:
+Even in terms of saved size, we get smaller networks for the same accuracy (except for MobileBERT, which is better on size too):
 
 ![SQuAD fill rate](docs/assets/media/squadv1/summary_fill_rate.png)
+
+### GLUE/MNLI 
+
+The experiments were done on BERT-base.
+Significant speedups were obtained, even if the results are a bit behing compared to the SQuAD results.
+Here is a selection of networks, with the same rules as for the SQuAd table:
+
+
+
+### Comparison with state of the art 
+
+![MNLI v1 speedup](docs/assets/media/mnli/summary_speedup.png)
+
+
+![MNLI fill rate](docs/assets/media/mnli/summary_fill_rate.png)

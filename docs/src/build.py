@@ -146,6 +146,15 @@ class DocBuilder:
                     summary_speedup=speedup_html,
                     summary_fill_rate=summary_fill_rate_html)
 
+    def build_mnli(self):
+
+        speedup_html = self.read_media_file("mnli/summary_speedup.html")
+        summary_fill_rate_html = self.read_media_file("mnli/summary_fill_rate.html")
+
+
+        return dict(summary_speedup=speedup_html,
+                    summary_fill_rate=summary_fill_rate_html)
+
     def run(self):
         template = jinja2.Template(self.open("README.jinja.md").read())
 
