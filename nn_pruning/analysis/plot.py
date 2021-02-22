@@ -473,7 +473,7 @@ def draw_all_plots(input_file_name, task, x_axis, cleanup_cache=False):
             cat_fun_names=["new_xp"],
             draw_labels=False,
             reference_black_list=reference_black_list,
-            white_list=["Block/struct method, final fine tuned, s=b",
+            white_list=["Block/struct method, final fine tuned, s=[bl]",
                         "Structured pruning",  "improved soft movement with distillation",
                         #"Block/struct method, bs= 32x32, v=1, s=[bl]",
 
