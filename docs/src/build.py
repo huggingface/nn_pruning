@@ -144,8 +144,8 @@ class DocBuilder:
         headers = self.reorder_squad_table_columns([headers])[0]
         values = self.reorder_squad_table_columns(values)
 
-        speedup_html = self.read_media_file("squadv1/summary_speedup.html")
-        summary_fill_rate_html = self.read_media_file("squadv1/summary_fill_rate.html")
+        speedup_html = self.read_media_file(f"{task}/summary_speedup.html")
+        summary_fill_rate_html = self.read_media_file(f"{task}/summary_fill_rate.html")
 
         return dict(table=self.markdown_table_string(task.capitalize(), headers, values),
                     large_reduction=large_reduction,

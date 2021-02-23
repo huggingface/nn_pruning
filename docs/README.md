@@ -97,7 +97,7 @@ From the following graphs, we see that the speed is a bit lower compared to Tiny
 In terms of sparsity, the precision is a bit lower than MobileBERT and TinyBERT. 
 On both metrics it's better than DistilBERT by some significant margin.
 
-<div class="graph"><script src="assets/media/mnli/summary_speedup.js" id="d8060930-915c-40bf-9090-bca29d84692a"></script></div>
+<div class="graph"><script src="assets/media/mnli/summary_speedup.js" id="a1a9e72b-c57a-4672-b087-a55316070849"></script></div>
 
 
-<div class="graph"><script src="assets/media/mnli/summary_fill_rate.js" id="76bea915-f806-4071-8ed6-ee63b7174bbf"></script></div>
+<div class="graph"><script src="assets/media/mnli/summary_fill_rate.js" id="e3cbc37c-a02c-4eb2-bd04-8c69c976db95"></script></div>
