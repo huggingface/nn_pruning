@@ -1,0 +1,2 @@
+{"url":"https://huggingface.co/bert-large-uncased-whole-word-masking-finetuned-squad", "type":"-", "fill_rate":2.66, "f1":93.15, "speedup":0.35}
+{"url":"https://huggingface.co/csarron/bert-base-uncased-squad-v1", "type":"-", "fill_rate":1.0 , "f1":88.5, "speedup": 1.0}

@@ -17,8 +17,12 @@ class DocBuilder:
     # From https://www.aclweb.org/anthology/N19-1423.pdf Table 2
     # From https://huggingface.co/csarron/bert-base-uncased-squad-v1
     # From https://huggingface.co/bert-large-uncased-whole-word-masking-finetuned-squad
-    BERT_BASE_PERFORMANCE = dict(large=dict(em=86.91, f1=93.15, url="https://huggingface.co/bert-large-uncased-whole-word-masking-finetuned-squad"),
-                                 base=dict(em=80.8, f1=88.5, url="https://huggingface.co/csarron/bert-base-uncased-squad-v1"))
+    BERT_BASE_PERFORMANCE = dict(squadv1=dict(large=dict(em=86.91, f1=93.15, url="https://huggingface.co/bert-large-uncased-whole-word-masking-finetuned-squad"),
+                                              base=dict(em=80.8, f1=88.5, url="https://huggingface.co/csarron/bert-base-uncased-squad-v1")),
+                                 mnli=dict(base=dict(matched=84.6))
+                                 )
+    TASK_METRICS = dict(squadv1=dict(f1="F1", em="Exact Match"),
+                        mnli= dict(matched="Accuracy"))
 
     def open(self, name):
         return (self.path / name).open()
@@ -53,13 +57,18 @@ class DocBuilder:
         return self.markdown_string(writer)
 
     def build_bert_performance(self):
-        headers = ["BERT version", "Exact Match", "F1"]
 
-        values = []
-        for k, v in self.BERT_BASE_PERFORMANCE.items():
-            values.append([k, v["em"], v["f1"]])
+        ret = {}
+        for task in ["squadv1", "mnli"]:
+            values = []
+            for k, v in self.BERT_BASE_PERFORMANCE[task].items():
+                vv = [k] + [v[tk] for tk in self.TASK_METRICS[task].keys()]
+                values.append(vv)
 
-        return self.markdown_table_string("BERT SQuAD v1 performance", headers, values)
+            headers = ["BERT version"] + list(self.TASK_METRICS[task].values())
+            ret[task]=self.markdown_table_string(f"BERT {task.capitalize()} performance", headers, values)
+        return ret
+
 
     def bold_line(self, line):
         return ["**" + str(v) + "**" for v in line]
@@ -73,87 +82,81 @@ class DocBuilder:
 
         return new_lines
 
+    def part_build(self, task):
+        infos = self.read_jsonl(f"results_{task}.jsonl")
+        reference_infos = self.read_jsonl(f"reference_{task}.jsonl")
+        accuracy_key = list(self.TASK_METRICS[task].keys())[0]
+        akey_display = self.TASK_METRICS[task][accuracy_key]
+        headers = ["Model", "Type", "method", akey_display, f"{akey_display} diff", "Params", "Theoretical<br>Speedup", "Speedup"]
 
-    def build_squadv1(self):
-        infos = self.read_jsonl("new_xp_v1_speedup_Block_struct_method__final_fine_tuned.jsonl")
-        headers = ["Model", "Type", "method", "F1", "F1 diff", "Params", "Theoretical<br>Speedup", "Speedup"]
+        for e in reference_infos:
+            e["reference"] = True
 
-        base_performance = self.BERT_BASE_PERFORMANCE
+        for e in infos:
+            e["reference"] = False
+
+        all_infos = infos + reference_infos
+        all_infos.sort(key=lambda e : e[accuracy_key], reverse=True)
+
+        base_performance = self.BERT_BASE_PERFORMANCE[task]
         values = []
 
-
-        bert_large = [f"[#1]({base_performance['large']['url']})", "large", "-", base_performance["large"]["f1"], "%+0.2f" % (base_performance["large"]["f1"] - base_performance["base"]["f1"]), "+166%", "0.37x", "0.35x"]
-        bert_large = self.bold_line(bert_large)
-
-        values.append(bert_large)
-
-        bert_base = ["base",  "-", base_performance["base"]["f1"], "+0.00", "+0%", "1.0x", "1.0x", ]
-        bert_base = self.bold_line(bert_base)
-
-        base_added = False
-        for info in infos:
-            path = info["path"]
+        large_reduction = None
+        for info in all_infos:
+            path = info.get("path", info.get("url"))
             size = "large" if "large" in path else "base"
             type = info["type"]
 
-            f1 = info["f1"]
-            if f1 <  base_performance["base"]["f1"] and not base_added:
-                values.append([f"**[#{len(values) + 1}]({base_performance['base']['url']})**"] + bert_base)
-                base_added = True
+            accuracy = info[accuracy_key]
 
-
-            f1_diff = info["f1"] - base_performance["base"]["f1"]
+            accuracy_diff = info[accuracy_key] - base_performance["base"][accuracy_key]
             speedup = info["speedup"]
             sparsity = 1.0 - info["fill_rate"]
 
             if size == "large":
                 large_reduction = "%d%%" % (100 * (1.0 - (info["fill_rate"] * 3 / 8)))
 
-            perf = "%+.2f" % f1_diff
+            perf = "%+.2f" % accuracy_diff
             speedup = "%0.2fx" % speedup
             theo_speedup = "%0.1fx" % (1.0 / (1.0 - sparsity))
-            sparsity = "-%d%%" % (100 * sparsity)
+            sparsity = "%+d%%" % (-100 * sparsity)
 
-            name = Packager.build_model_name_(size, "squadv1", info["speedup"], info["f1"], 100 * (1.0 - info["fill_rate"]), info["type"], False, 1)
-            url = f"https://huggingface.co/madlag/{name}"
-
-            if info["url"] != None:
-                assert(url == info["url"])
-                index = f"**[#{len(values) + 1}]({url})**"
+            if info.get("reference"):
+                url = info["url"]
+                index = f"[#{len(values) + 1}]({url})"
             else:
-                index = f"#{len(values) + 1}"
+                name = Packager.build_model_name_(size, task, info["speedup"], info[accuracy_key],
+                                                  100 * (1.0 - info["fill_rate"]), info["type"], False, 1)
+                url = f"https://huggingface.co/madlag/{name}"
 
-            values.append([index,  size, type, f1, perf, sparsity, theo_speedup, speedup])
+                if info["url"] != None:
+                    assert(url == info["url"])
+                    index = f"**[#{len(values) + 1}]({url})**"
+                else:
+                    index = f"#{len(values) + 1}"
+
+            v = [index,  size, type, accuracy, perf, sparsity, theo_speedup, speedup]
+            if info.get("reference"):
+                v = self.bold_line(v)
+
+            values.append(v)
 
         headers = self.reorder_squad_table_columns([headers])[0]
         values = self.reorder_squad_table_columns(values)
 
-        #p = grapher.MyPlotter()
-        #graph_js, graph_html = p.run()
-
-        #graph_html = graph_html.replace("$$JS_SOURCE$$", "media/graph.js")
-
-        #with open(self.docs_path / "media" / "graph.js", "w") as output:
-        #    output.write(graph_js)
-
-
         speedup_html = self.read_media_file("squadv1/summary_speedup.html")
         summary_fill_rate_html = self.read_media_file("squadv1/summary_fill_rate.html")
 
-
-        return dict(table=self.markdown_table_string("Squad V1", headers, values),
+        return dict(table=self.markdown_table_string(task.capitalize(), headers, values),
                     large_reduction=large_reduction,
                     summary_speedup=speedup_html,
                     summary_fill_rate=summary_fill_rate_html)
 
+    def build_squadv1(self):
+        return self.part_build("squadv1")
+
     def build_mnli(self):
-
-        speedup_html = self.read_media_file("mnli/summary_speedup.html")
-        summary_fill_rate_html = self.read_media_file("mnli/summary_fill_rate.html")
-
-
-        return dict(summary_speedup=speedup_html,
-                    summary_fill_rate=summary_fill_rate_html)
+        return self.part_build("mnli")
 
     def run(self):
         template = jinja2.Template(self.open("README.jinja.md").read())

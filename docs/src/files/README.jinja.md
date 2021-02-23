@@ -30,9 +30,9 @@ The "BERT version" column shows which base network was pruned.
 The parameter count column is relative to linear layers, which contain most of the model parameters (with the embeddings being most of the remaining parameters).
 
 **F1 difference, speedups and parameters counts are all relative to BERT-base to ease practical comparison.**
-
     
 {{ squadv1.table }}
+
 ### Main takeaways
 - network #2: pruned from BERT-large, it's significantly more accurate than BERT-base, but have a similar size and speed.
 - network #3: pruned from BERT-large, it is finally 40% smaller but significantly better than a BERT-base, and still as fast.
@@ -66,6 +66,7 @@ The experiments were done on BERT-base.
 Significant speedups were obtained, even if the results are a bit behing compared to the SQuAD results.
 Here is a selection of networks, with the same rules as for the SQuAd table:
 
+{{ mnli.table }}
 
 
 ### Comparison with state of the art 

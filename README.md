@@ -30,7 +30,6 @@ The "BERT version" column shows which base network was pruned.
 The parameter count column is relative to linear layers, which contain most of the model parameters (with the embeddings being most of the remaining parameters).
 
 **F1 difference, speedups and parameters counts are all relative to BERT-base to ease practical comparison.**
-
     
 |                                              Model                                               |  Type   |   method    | Params  |   F1    | F1 diff | Speedup |
 |--------------------------------------------------------------------------------------------------|---------|-------------|---------|---------|---------|---------|
@@ -38,12 +37,13 @@ The parameter count column is relative to linear layers, which contain most of t
 |#2                                                                                                |large    |hybrid-filled|-17%     |    91.03|+2.53    |0.92x    |
 |#3                                                                                                |large    |hybrid-filled|-40%     |    90.16|+1.66    |1.03x    |
 |#4                                                                                                |base     |hybrid-filled|-59%     |    88.72|+0.22    |1.84x    |
-|**[#5](https://huggingface.co/csarron/bert-base-uncased-squad-v1)**                               |**base** |**-**        |**+0%**  |**88.5** |**+0.00**|**1.0x** |
+|**[#5](https://huggingface.co/csarron/bert-base-uncased-squad-v1)**                               |**base** |**-**        |**+0%**  |**88.5** |**+0.00**|**1.00x**|
 |#6                                                                                                |base     |hybrid-filled|-65%     |    88.25|-0.25    |1.98x    |
 |**[#7](https://huggingface.co/madlag/bert-base-uncased-squadv1-x2.44-f87.7-d26-hybrid-filled-v1)**|base     |hybrid-filled|-74%     |    87.71|-0.79    |2.44x    |
 |#8                                                                                                |base     |hybrid-filled|-73%     |    87.23|-1.27    |2.60x    |
 |#9                                                                                                |base     |hybrid-filled|-74%     |    86.69|-1.81    |2.80x    |
 |#10                                                                                               |base     |struct       |-86%     |    85.52|-2.98    |3.64x    |
+
 
 
 
@@ -79,6 +79,16 @@ Even in terms of saved size, we get smaller networks for the same accuracy (exce
 The experiments were done on BERT-base.
 Significant speedups were obtained, even if the results are a bit behing compared to the SQuAD results.
 Here is a selection of networks, with the same rules as for the SQuAd table:
+
+|                         Model                          |  Type  |   method    |Params |Accuracy|Accuracy diff| Speedup |
+|--------------------------------------------------------|--------|-------------|-------|--------|-------------|---------|
+|**[#1](https://huggingface.co/aloxatel/bert-base-mnli)**|**base**|**-**        |**+0%**|**84.6**|**+0.00**    |**1.00x**|
+|#2                                                      |base    |hybrid-filled|-65%   |   83.71|-0.89        |2.00x    |
+|#3                                                      |base    |hybrid-filled|-74%   |   83.05|-1.55        |2.40x    |
+|#4                                                      |base    |hybrid-filled|-81%   |   82.69|-1.91        |2.86x    |
+|#5                                                      |base    |hybrid-filled|-87%   |   81.03|-3.57        |3.44x    |
+
+
 
 
 
