@@ -177,10 +177,16 @@ class DocBuilder:
 
         variables = {}
 
+        def remove_empty_lines(s):
+            s = s.split("\n")
+            s = filter(lambda x : len(x) != 0, s)
+            return "\n".join(s)
+
         def graph_create(title, part, name):
             media_path = variables["media_path"]
             html = variables[part][name.replace("/", "_")]
-            html = html.replace("$$JS_PATH$$", f"{media_path}/{part}/{name}.js")[1:]
+            html = html.replace("$$JS_PATH$$", f"{media_path}/{part}/{name}.js")
+            html = remove_empty_lines(html)
 
             if variables["github_readme"]:
                 ret = f"![{title}]({media_path}/{part}/{name}.png)"

@@ -63,11 +63,9 @@ The speedup here is measured on a 3090 RTX, using the HuggingFace transformers l
 
 ### Example Network
 
-<div class="graph">script src="assets/media/network_filled/pruning.js" id="fe9802b2-75e3-4a81-8223-20bbb356840f"></script>
-</div>
+<div class="graph"><script src="assets/media/network_filled/pruning.js" id="fe9802b2-75e3-4a81-8223-20bbb356840f"></script></div>
 
-<div class="graph">script src="assets/media/network_filled/density.js" id="f1b3b976-6293-4b1d-854d-570656edbeb2"></script>
-</div>
+<div class="graph"><script src="assets/media/network_filled/density.js" id="f1b3b976-6293-4b1d-854d-570656edbeb2"></script></div>
 
 ### Comparison with state of the art 
 If we plot the F1 of the full set of pruned networks against the speedup, we can see that we outperform fine-tuned TinyBERT and Distilbert by some margin.
