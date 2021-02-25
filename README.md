@@ -5,14 +5,14 @@ An interactive version of this site is available [here](https://huggingface.gith
 
 
 
-**[Movement](https://arxiv.org/abs/2005.07683) [pruning](https://github.com/huggingface/transformers/tree/master/examples/research_projects/movement-pruning)** *has been proved as a **very efficient
+***[Movement](https://arxiv.org/abs/2005.07683) [pruning](https://github.com/huggingface/transformers/tree/master/examples/research_projects/movement-pruning)** has been proved as a **very efficient
 method to prune networks in a unstructured manner**. High levels of sparsity can be reached with a minimal of accuracy loss. 
 The resulting sparse networks can be **compressed heavily**,
 saving a lot of permanent storage space on servers or devices, and bandwidth, an important advantage for edge devices.
 **But efficient inference with unstructured sparsity is hard.**
 Some degree of structure is necessary to use the intrinsic parallel nature of today hardware.
-**Block Movement Pruning** work extends the original method and explore **semi-structured and structured variants** of Movement Pruning.*
-
+**Block Movement Pruning** work extends the original method and explore **semi-structured and structured variants** of Movement Pruning.
+You can read more about block sparsity and why it matters for performance on these [blog](https://medium.com/huggingface/is-the-future-of-neural-networks-sparse-an-introduction-1-n-d03923ecbd70) [posts](https://medium.com/huggingface/sparse-neural-networks-2-n-gpu-performance-b8bc9ce950fc).*
 ## Results
 
 ### Squad V1
@@ -103,3 +103,7 @@ On both metrics it's better than DistilBERT by some significant margin.
 
 
 ![MNLI fill rate](docs/assets/media/mnli/summary_fill_rate.png)
+
+## Related work
+[pytorch_block_sparse](htpps://github.com/huggingface/pytorch_block_sparse) is a CUDA Implementation of block sparse kernels for linear layer forward and backward propagation.
+It's not needed to run the models pruned by the nn_pruning tools, as it's not fast enough yet to be competitive with dense linear layers: just pruning heads is faster, even if those heads still contain some inner sparsity.  
