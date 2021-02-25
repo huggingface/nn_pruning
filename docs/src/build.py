@@ -150,8 +150,8 @@ class DocBuilder:
 
         return dict(table=self.markdown_table_string(task.capitalize(), headers, values),
                     large_reduction=large_reduction,
-                    summary_speedup=speedup_html,
-                    summary_fill_rate=summary_fill_rate_html)
+                    graphs_summary_speedup=speedup_html,
+                    graphs_summary_fill_rate=summary_fill_rate_html)
 
     def build_squadv1(self):
         return self.part_build("squadv1")
@@ -179,7 +179,7 @@ class DocBuilder:
 
         def graph_create(title, part, name):
             media_path = variables["media_path"]
-            html = variables[part][name]
+            html = variables[part][name.replace("/", "_")]
             html = html.replace("$$JS_PATH$$", f"{media_path}/{part}/{name}.js")[1:]
 
             if variables["github_readme"]:

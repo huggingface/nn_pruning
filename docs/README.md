@@ -74,11 +74,11 @@ If we plot the F1 of the full set of pruned networks against the speedup, we can
 MobileBert seems significantly better, even with the "no OPT" version presented here, which does not contain the LayerNorm optimization used in the much faster version of MobileBERT.
 An interesting future work will be to add those optimizations to the pruning tools.
 
-<div class="graph"><script src="assets/media/squadv1/summary_speedup.js" id="d3228ebf-cc8d-4a31-97a5-684e125740ed"></script></div>
+<div class="graph"><script src="assets/media/squadv1/graphs/summary_speedup.js" id="d3228ebf-cc8d-4a31-97a5-684e125740ed"></script></div>
 
 Even in terms of saved size, we get smaller networks for the same accuracy (except for MobileBERT, which is better on size too):
 
-<div class="graph"><script src="assets/media/squadv1/summary_fill_rate.js" id="5e56c9d5-14c4-4e64-aea9-0a7b0806d334"></script></div>
+<div class="graph"><script src="assets/media/squadv1/graphs/summary_fill_rate.js" id="5e56c9d5-14c4-4e64-aea9-0a7b0806d334"></script></div>
 
 ### GLUE/MNLI 
 
@@ -105,10 +105,10 @@ From the following graphs, we see that the speed is a bit lower compared to Tiny
 In terms of sparsity, the precision is a bit lower than MobileBERT and TinyBERT. 
 On both metrics it's better than DistilBERT by some significant margin.
 
-<div class="graph"><script src="assets/media/mnli/summary_speedup.js" id="5696ec83-874f-4690-a6ff-9521a97c5ddc"></script></div>
+<div class="graph"><script src="assets/media/mnli/graphs/summary_speedup.js" id="5696ec83-874f-4690-a6ff-9521a97c5ddc"></script></div>
 
 
-<div class="graph"><script src="assets/media/mnli/summary_fill_rate.js" id="b5167afe-0888-4aa6-a478-194e220ad189"></script></div>
+<div class="graph"><script src="assets/media/mnli/graphs/summary_fill_rate.js" id="b5167afe-0888-4aa6-a478-194e220ad189"></script></div>
 
 ## Related work
 [pytorch_block_sparse](https://github.com/huggingface/pytorch_block_sparse) is a CUDA Implementation of block sparse kernels for linear layer forward and backward propagation.

@@ -74,11 +74,11 @@ If we plot the F1 of the full set of pruned networks against the speedup, we can
 MobileBert seems significantly better, even with the "no OPT" version presented here, which does not contain the LayerNorm optimization used in the much faster version of MobileBERT.
 An interesting future work will be to add those optimizations to the pruning tools.
 
-![SQuAD v1 speedup](docs/assets/media/squadv1/summary_speedup.png)
+![SQuAD v1 speedup](docs/assets/media/squadv1/graphs/summary_speedup.png)
 
 Even in terms of saved size, we get smaller networks for the same accuracy (except for MobileBERT, which is better on size too):
 
-![SQuAD fill rate](docs/assets/media/squadv1/summary_fill_rate.png)
+![SQuAD fill rate](docs/assets/media/squadv1/graphs/summary_fill_rate.png)
 
 ### GLUE/MNLI 
 
@@ -105,10 +105,10 @@ From the following graphs, we see that the speed is a bit lower compared to Tiny
 In terms of sparsity, the precision is a bit lower than MobileBERT and TinyBERT. 
 On both metrics it's better than DistilBERT by some significant margin.
 
-![MNLI v1 speedup](docs/assets/media/mnli/summary_speedup.png)
+![MNLI v1 speedup](docs/assets/media/mnli/graphs/summary_speedup.png)
 
 
-![MNLI fill rate](docs/assets/media/mnli/summary_fill_rate.png)
+![MNLI fill rate](docs/assets/media/mnli/graphs/summary_fill_rate.png)
 
 ## Related work
 [pytorch_block_sparse](https://github.com/huggingface/pytorch_block_sparse) is a CUDA Implementation of block sparse kernels for linear layer forward and backward propagation.

@@ -514,7 +514,7 @@ def draw_all_plots(input_file_name, task, x_axis, cleanup_cache=False):
 
 def copy_plots(task):
     graph_path = (Path(__file__).parent / "graphs" / task).resolve()
-    dest_dir = (Path(__file__).parent.parent.parent / "docs" / "assets" / "media" / task).resolve()
+    dest_dir = (Path(__file__).parent.parent.parent / "docs" / "assets" / "media" / task / "graphs").resolve()
     dest_dir.mkdir(exist_ok=True, parents=True)
 
     parts = ["summary"]
