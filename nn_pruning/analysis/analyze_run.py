@@ -26,7 +26,7 @@ class ModelStatsExtractBase:
         else:
             self.dest_path = None
 
-        if self.task == "squad":
+        if self.task == "squadv1":
             cls = QASparseXP
         elif self.task == "mnli":
             cls = GlueSparseXP
@@ -139,7 +139,7 @@ class ModelSpeedEvaluate(ModelStatsExtractBase):
         super().__init__(path, filename, task, copy_to_tmp_path=True)
 
     def run_(self, model):
-        if self.task == "squad":
+        if self.task == "squadv1":
             ret = QAXP.evaluate_model(src_path=self.dest_path, optimize_mode=self.optimize_mode)
         elif self.task == "mnli":
             ret = GlueXP.evaluate_model(src_path=self.dest_path, optimize_mode=self.optimize_mode, task=self.task)
@@ -171,7 +171,7 @@ class ModelAddBasicReport:
         final_eval_metrics = checkpoint.get("eval_metrics")
         # We retrieve the non-optimized networks metrics (they may differ because bias pruning was not implemented at first)
 
-        if self.task == "squad":
+        if self.task == "squadv1":
             # Special check for squad, as there was a 'bug' initially: bias where not pruned, resulting in a drop in F1
             eval_metrics = json.load(open(p / "eval_metrics.json"))
 
@@ -208,7 +208,7 @@ class ModelAddBasicReport:
 
 
 class ModelAnalysis:
-    TASK_EVAL_INFO = {"squad":{"key":"eval_metrics.f1", "files":["eval_metrics"], "min":85},
+    TASK_EVAL_INFO = {"squadv1":{"key":"eval_metrics.f1", "files":["eval_metrics"], "min":85},
                       "mnli":{"key":"eval_results_mnli.eval_accuracy", "files":["eval_results_mnli", "eval_results_mnli-mm"], "min":0.7}}
 
     def __init__(self,
@@ -319,9 +319,9 @@ class ModelAnalysis:
         for i in range(2):
             if i == 0:
                 for root_dir in self.path.iterdir():
-                    if not root_dir.name.startswith(self.task + "_"):
+                    task_prefix = "squad" if self.task == "squadv1" else self.task
+                    if not root_dir.name.startswith(task_prefix + "_"):
                         continue
-                    print(root_dir)
                     for name in root_dir.iterdir():
                         if self.check_prefix(name.name):
                             new_checkpoints, base_speed_report = self.analyze_run(name.resolve(), force_speed=self.force_speed)

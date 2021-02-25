@@ -1,0 +1,1 @@
+{"speedup": 1.0, "f1": 89.508140874387, "meta": {"cols": 1, "epochs": 10, "exact": 82.6300851466414, "f1": 89.508140874387, "fill_rate": 0.934228131753319, "inner_sparsity": 1, "name": "l1_with_distil_0._0.1_1_2_l1_*_3e-5_1e-2_sigmoied_threshold_constant_0._10_epochs", "rows": 1, "size": 1, "speedup": 1.0}}

@@ -21,13 +21,13 @@ class PointProvider:
     def get_filename(self, task):
         return self.__class__.__name__.lower() + "_" + task + ".json"
 
-    def points(self, task):
+    def points(self, task, force = False):
         filename = self.get_filename(task)
         if filename in self.CACHE:
             return self.CACHE[filename]
 
         full_path = self.cache_dir / filename
-        if full_path.exists():
+        if full_path.exists() and not force:
             with full_path.open() as f:
                 ret = json.load(f)
         else:
@@ -97,7 +97,8 @@ class ExperimentClassifier:
         print(xp)
         sparse_args = xp["sparse_args"]
 
-        large = "large" in sparse_args["distil_teacher_name_or_path"] or "large" in str(xp["path"])
+        large_teacher = "large" in sparse_args["distil_teacher_name_or_path"]
+        large = "large" in xp["config"]["_name_or_path"] or "large" in xp.get("source_checkpoint", "")
         size = "l" if large else "b"
         compare_different = {}
         if self.check(sparse_args, compare, compare_different):
@@ -105,7 +106,8 @@ class ExperimentClassifier:
             # annotate += ", fw=" + str(sparse_args["final_warmup"])
 
             # annotate += ", ver=" + str(0 if sparse_args.get('attention_output_with_dense', True) else 1)
-            annotate = ""
+            annotate = "%d" % (100 - xp["stats"]["linear_sparsity"])
+
             return ret, annotate
 
         compare = dict(
@@ -133,7 +135,11 @@ class ExperimentClassifier:
                 ret = f"Block/struct method, bs= {rows}x{cols}, v={ver}, s={size}"
                 # ret += ", fw=" + str(sparse_args["final_warmup"])
 
-            annotate = self.get_lambdas_annotation(sparse_args)
+            if not large and large_teacher:
+                ret += ", t=l"
+
+#            annotate = self.get_lambdas_annotation(sparse_args)
+            annotate = "%d" % (100 - xp["stats"]["linear_sparsity"])
             # annotate += ", fw=" + str(sparse_args["final_warmup"])
 
             # annotate += ", ver=" + str(0 if sparse_args.get('attention_output_with_dense', True) else 1)
@@ -169,6 +175,7 @@ class ExperimentClassifier:
             # ret += ", fw=" + str(sparse_args["final_warmup"])
 
             annotate = self.get_lambdas_annotation(sparse_args)
+            annotate = "%d" % (100 - xp["stats"]["linear_sparsity"])
 
             ret += ", dl=" + str(sparse_args.get("dense_lambda", 1.0))
             return ret, annotate
@@ -221,8 +228,10 @@ class ExperimentClassifier:
         compare_different = dict(distil_teacher_name_or_path=None)
 
         sparse_args = xp["sparse_args"]
+        annotate = "%d" % (100 - xp["stats"]["linear_sparsity"])
+
         if self.check(sparse_args, compare, compare_different):
-            return "improved soft movement with distillation"
+            return "improved soft movement with distillation", annotate
         else:
             return None
 
@@ -542,6 +551,6 @@ class MultiProvider:
         ret.update(TinyBert(cache_dir).points(task))
         ret.update(MobileBert(cache_dir).points(task))
 
-        xps = Experiments(cache_dir, analyze_result_file).points(task)
+        xps = Experiments(cache_dir, analyze_result_file).points(task, force=False)
 
         return ret, xps

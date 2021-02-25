@@ -7,6 +7,8 @@ import re
 import shutil
 import plot_data
 import math
+from collections import defaultdict
+import copy
 
 import bokeh
 from nn_pruning.analysis.graph_util import BokehHelper
@@ -82,8 +84,8 @@ class MatplotlibPlotter(Plotter):
                 for i, txt in enumerate(x):
                     if x_min is None or x[i] >= x_min and x[i] <= x_max:
                         if y_min is None or y[i] >= y_min and y[i] <= y_max:
-                            annotate = annotate or label_text
-                            ax1.annotate(annotate, (x[i] + 0.005, y[i] + 0.005))
+                            a = annotate[i] or label_text
+                            ax1.annotate(a, (x[i] + 0.005, y[i] + 0.005))
 
         for i in range(3):
             f1 = self.reference_accuracy - i
@@ -232,28 +234,17 @@ class TextFilePlotter(Plotter):
 
 
 class PlotManager:
-    LIMITS = dict(squadv1 = dict(speedup= dict(legend_pos="upper right", x_min=0.95, x_max=4.0, y_min=84, y_max=90),
-                                 fill_rate= dict(legend_pos="lower right", x_min=0.0, x_max=0.75, y_min=84, y_max=90)),
-                  mnli=dict(speedup=dict(legend_pos="upper right", x_min=0.95, x_max=4.0, y_min=84, y_max=90),
-                               fill_rate=dict(legend_pos="lower right", x_min=0.0, x_max=0.75, y_min=84, y_max=90)),
-
-                  )
-
     TASK_KEYS={"squadv1":"f1", "mnli":"matched"}
 
     def __init__(
         self,
         task,
         input_filename,
-        cat_fun_names=None,
         print_misc=True,
         draw_labels=False,
         convex_envelop=True,
         only_dots=False,
         fontsize=15,
-        white_list=None,
-        black_list=None,
-        reference_black_list=None,
         limits=None,
         label_mapping=None,
     ):
@@ -261,24 +252,19 @@ class PlotManager:
         self.cache_dir.mkdir(exist_ok=True)
 
         self.task = task
-
         self.input_filename = input_filename
-        self.cat_fun_names = cat_fun_names or []
         self.print_misc = print_misc
         self.draw_labels = draw_labels
         self.convex_envelop = convex_envelop
         self.only_dots = only_dots or not convex_envelop
         self.fontsize = fontsize
-        self.white_list = white_list
-        self.black_list = black_list
 
-        self.limits = limits or self.LIMITS[task]
+        self.limits = limits[task]
 
-        self.reference_black_list = reference_black_list
-        self.label_mapping = label_mapping or {}
+        self.label_mapping = label_mapping
 
     def convexity_filter_checkpoints(self, checkpoints, key="speedup", filt=True):
-        margin = 1.0001
+        margin = 1.0005
         if key == "fill_rate":
             sgn = -1
         else:
@@ -304,12 +290,14 @@ class PlotManager:
 
         return filtered_checkpoints
 
-    def match_regexp_list(self, key, regexps):
-        for r in regexps:
+    def match_regexp_dict(self, key, regexps):
+        for r, (i, value) in regexps.items():
             if re.fullmatch(r, key):
-                return True
-        return False
-
+                if value is True:
+                    return i, key.capitalize()
+                else:
+                    return i, value
+        return None, None
 
     def plot(self, key, dest_dir, dest_file_name):
         dest_dir = Path(dest_dir)
@@ -319,45 +307,51 @@ class PlotManager:
 
         final_plots = {}
 
-        reference_black_list = self.reference_black_list
-        for k, v in references.items():
-            if reference_black_list is not None and k in reference_black_list:
-                continue
+        label_mapping = {k:(i,v) for i, (k,v) in enumerate(self.label_mapping.items())}
 
-            final_plots[k] = v
+        indexed_labels= defaultdict(list)
 
-        for k, v in checkpoints.items():
-            if self.white_list is not None and not self.match_regexp_list(k, self.white_list):
-                print(f"Rejected (WL) {k}")
-                for c in v:
-                    print(" " * 4, c["checkpoint"]["path"])
-                continue
-            if self.black_list is not None and self.match_regexp_list(k, self.black_list):
-                print(f"Rejected (BL) {k}")
-                for c in v:
-                    print(" " * 4, c["checkpoint"]["path"])
-                continue
-            v = checkpoints[k]
-            final_plots[k] = v
+        for inputs in references, checkpoints:
+            for k, v in inputs.items():
+                index, label = self.match_regexp_dict(k, label_mapping)
+                if index is None:
+                    print(f"Rejected (WL) {k}")
+                    for c in v:
+                        if "checkpoint" in c:
+                            print(" " * 4, c["checkpoint"]["path"])
+                    continue
+                indexed_labels[index].append(k)
+                final_plots[k] = v
 
         max_x = -math.inf
         plots = {}
         accuracy_key = self.TASK_KEYS[self.task]
-        for label, data in final_plots.items():
-            print(data, key)
-            x0 = [e.get(key, 1.0) for e in data]
 
-            if self.convex_envelop:  # and len(set(x0)) > 1:
-                data = self.convexity_filter_checkpoints(data, key=key, filt=len(set(x0)) > 1)
-            print(data, key)
-            x = [e.get(key, 1.0) for e in data]
-            max_x = max(max_x, max(x))
-            print(accuracy_key, json.dumps(data, indent=4, sort_keys=True))
-            y = [e[accuracy_key] for e in data]
-            annotate = [e.get("annotate","") for e in data]
+        indexed_labels = [(k,v) for k,v in indexed_labels.items()]
+        indexed_labels.sort(key=lambda x:x[0])
 
-            label_text = self.label_mapping.get(label, label.capitalize())
-            plots[label_text] = {"x":x, "y":y, "annotate": annotate, "points":data}
+        for _, labels in indexed_labels:
+            for label in labels:
+                data = final_plots[label]
+
+                print(data, key)
+                x0 = [e.get(key, 1.0) for e in data]
+
+                if self.convex_envelop:  # and len(set(x0)) > 1:
+                    data = self.convexity_filter_checkpoints(data, key=key, filt=len(set(x0)) > 1)
+                print(data, key)
+                x = [e.get(key, 1.0) for e in data]
+                max_x = max(max_x, max(x))
+                print(accuracy_key, json.dumps(data, indent=4, sort_keys=True))
+                y = [e[accuracy_key] for e in data]
+                annotate = [e.get("annotate","") for e in data]
+
+                _, label_text  = self.match_regexp_dict(label, label_mapping)
+                if label_text is None:
+                    print(label)
+                assert(label_text is not None)
+    #            label_text = self.label_mapping.get(label, label.capitalize())
+                plots[label_text] = {"x":x, "y":y, "annotate": annotate, "points":data}
 
         x_label = key.capitalize()
         y_label = accuracy_key.capitalize()
@@ -390,70 +384,6 @@ class PlotManager:
 
 
 
-class GeneralPlotter(PlotManager):
-    #    select = ['block_sparse', 'improved soft movement with distillation', 'misc', 'new method, attention pruned with rows', 'new method, longer final warmup (15 instead of 10)', 'new xp, block_size= 16x16', 'new xp, block_size= 32x32', 'new xp, block_size= 64x32', 'small_epoch']
-
-    CAT_FUN_NAMES = [
-        "new_xp",
-        "full_block",
-        "improved_mvmt_pruning",
-        "longer_final_warmup",
-        "attention_rows",
-        "short_final_warmup",
-        "block_unstructured",
-    ]
-    BLACK_LIST = ["misc"]  # "small_epoch", "new method, attention pruned with rows",
-    WHITE_LIST = [
-        "improved soft movement with distillation",
-        "Structured pruning",
-        "Block/struct method, bs= 32x32, v=0",
-        "Block/struct method, bs= 32x32, v=1",
-        "Block/struct method, bs= 16x16, v=1",
-        "Full block method, bs= 32x32, v=1",
-        "new xp, block_size= 64x768",
-    ]
-    REFERENCE_BLACK_LIST = ["local_movement_pruning", "soft_movement_with_distillation"]
-
-    def __init__(
-        self,
-        task,
-        input_file_name,
-        cat_fun_names=None,
-        cluster=False,
-        white_list=False,
-        black_list=False,
-        reference_black_list=None,
-        **kwargs
-    ):
-        cat_fun_names = cat_fun_names or self.CAT_FUN_NAMES
-        if white_list is False:
-            white_list = None
-        else:
-            white_list = white_list or self.WHITE_LIST
-        if black_list is False:
-            black_list = None
-        else:
-            black_list = black_list or self.BLACK_LIST
-
-        self.cluster = cluster
-        if reference_black_list is False:
-            reference_black_list = None
-        else:
-            reference_black_list = reference_black_list or self.REFERENCE_BLACK_LIST
-
-        super().__init__(
-            task,
-            input_file_name,
-            cat_fun_names=cat_fun_names,
-            white_list=white_list,
-            black_list=black_list,
-            reference_black_list=reference_black_list,
-            **kwargs,
-        )
-
-
-
-
 def draw_all_plots(input_file_name, task, x_axis, cleanup_cache=False):
     cache_dir = Path(__file__).parent / task / "cache"
     cache_dir.mkdir(exist_ok=True, parents=True)
@@ -462,44 +392,117 @@ def draw_all_plots(input_file_name, task, x_axis, cleanup_cache=False):
         if xp_file.exists():
             xp_file.unlink()
 
-    if x_axis == "fill_rate":
-        reference_black_list = ["local_movement_pruning"]
-    else:
-        reference_black_list = ["local_movement_pruning", "soft_movement_with_distillation"]
-
-
     plots = {
         "summary": dict(
-            cat_fun_names=["new_xp"],
             draw_labels=False,
-            reference_black_list=reference_black_list,
-            white_list=["Block/struct method, final fine tuned, s=[bl]",
-                        "Structured pruning",  "improved soft movement with distillation",
-                        #"Block/struct method, bs= 32x32, v=1, s=[bl]",
-
-                        ],
             label_mapping={
+                "distilbert" : "DistilBERT",
+                "tinybert" : "TinyBERT",
+                "mobile_bert_no_opt": "Mobile Bert (w/o opt)",
                 "Block/struct method, final fine tuned, s=l": "Hybrid pruning, BERT-large",
                 "Block/struct method, final fine tuned, s=b": "Hybrid pruning, BERT-base",
                 "Structured pruning": "Structured pruning, BERT-base",
                 "improved soft movement with distillation": "Improved soft movement, BERT-base",
                 "soft_movement_with_distillation" : "Original Soft Movement",
-                "mobile_bert_no_opt": "Mobile Bert (w/o opt)"
             },
+            limits=dict(
+                squadv1=dict(speedup=dict(legend_pos="upper right", x_min=0.75, x_max=4, y_min=None, y_max=None),
+                             fill_rate=dict(legend_pos="lower right", x_min=0.0, x_max=0.65, y_min=None, y_max=None)),
+                mnli=dict(speedup=dict(legend_pos="upper right", x_min=0.75, x_max=6.0, y_min=79, y_max=86),
+                          fill_rate=dict(legend_pos="lower right", x_min=0.0, x_max=0.75, y_min=79, y_max=86))
+            )
         ),
-        }
-    for name, configuration in plots.items():
-        limits = dict(squadv1=dict(speedup=dict(legend_pos="upper right", x_min=0.75, x_max=3.25, y_min=None, y_max=None),
-                                   fill_rate=dict(legend_pos="upper left", x_min=0.0, x_max=0.65, y_min=None, y_max=None)),
-                      mnli=dict(speedup=dict(legend_pos="upper right", x_min=0.75, x_max=6.0, y_min=79, y_max=86),
-                                fill_rate=dict(legend_pos="upper left", x_min=0.0, x_max=0.75, y_min=79, y_max=86))
-                      )
+        "summary_with_blocks": dict(
+            draw_labels=False,
+            label_mapping={
+                "distilbert": "DistilBERT",
+                "tinybert": "TinyBERT",
+                "mobile_bert_no_opt": "Mobile Bert (w/o opt)",
+                "Block/struct method, final fine tuned, s=l": "Hybrid filled, BERT-large",
+                "Block/struct method, final fine tuned, s=b": "Hybrid filled, BERT-base",
+                "Block/struct method, bs= 32x32, v=1, s=b": "Hybrid, BERT-base",
+                "Block/struct method, bs= 32x32, v=1, s=l": "Hybrid, BERT-large",
+                "Block/struct method, bs= 32x32, v=1, s=b, t=l": "Hybrid, BERT-base, large teacher",
+                "Structured pruning": "Structured pruning, BERT-base",
+                "improved soft movement with distillation": "Improved soft movement, BERT-base",
+                "soft_movement_with_distillation": "Original Soft Movement",
+            },
+            limits=dict(
+                squadv1=dict(speedup=dict(legend_pos="upper right", x_min=0.75, x_max=4, y_min=None, y_max=None),
+                             fill_rate=dict(legend_pos="lower right", x_min=0.0, x_max=0.65, y_min=None, y_max=None)),
+                mnli=dict(speedup=dict(legend_pos="upper right", x_min=0.75, x_max=6.0, y_min=79, y_max=86),
+                          fill_rate=dict(legend_pos="lower right", x_min=0.0, x_max=0.75, y_min=79, y_max=86))
+            )
+        ),
+        "full_block_size_influence_raw": dict(
+            draw_labels=False,
+            label_mapping={
+                "distilbert": "DistilBERT",
+                "tinybert": "TinyBERT",
+                "mobile_bert_no_opt": "Mobile Bert (w/o opt)",
+                "improved soft movement with distillation": "Improved soft movement, BERT-base",
+                "soft_movement_with_distillation": "Original Soft Movement",
+                #"Full block method, bs= 32x32+.*": True,
+                #"Full block method, bs= 16x16+.*": True,
+                "Full block method, bs= 8x8+.*": True,
+                #"Full block method, bs= 4x4+.*": True,
+                "Block/struct method, bs= 32x32, v=1, s=b": "Hybrid, BERT-base",
+            },
+            limits=dict(
+                squadv1=dict(speedup=dict(legend_pos="upper right", x_min=0.75, x_max=3.25, y_min=None, y_max=None),
+                             fill_rate=dict(legend_pos="lower right", x_min=0.0, x_max=0.65, y_min=None, y_max=None)),
+                mnli=dict(speedup=dict(legend_pos="upper right", x_min=0.75, x_max=6.0, y_min=79, y_max=86),
+                          fill_rate=dict(legend_pos="lower right", x_min=0.0, x_max=0.75, y_min=79, y_max=86))
+            )
+        ),
+        "full_block_size_influence": dict(
+            draw_labels=False,
+            label_mapping={
+                "distilbert": "DistilBERT",
+                "tinybert": "TinyBERT",
+                "mobile_bert_no_opt": "Mobile Bert (w/o opt)",
+                "improved soft movement with distillation": "Improved soft movement, BERT-base",
+                "soft_movement_with_distillation": "Original Soft Movement",
+                "Full block method, bs= 32x32+.*": "Full block, bs= 32x32",
+                "Full block method, bs= 16x16+.*": "Full block, bs= 16x16",
+                "Full block method, bs= 8x8+.*": "Full block, bs= 8x8",
+                "Full block method, bs= 4x4+.*": "Full block, bs= 4x4",
+                "Block/struct method, bs= 32x32, v=1, s=b": "Hybrid, BERT-base",
+            },
+            limits=dict(
+                squadv1=dict(speedup=dict(legend_pos="upper right", x_min=0.75, x_max=3.25, y_min=None, y_max=None),
+                             fill_rate=dict(legend_pos="lower right", x_min=0.0, x_max=0.65, y_min=None, y_max=None)),
+                mnli=dict(speedup=dict(legend_pos="upper right", x_min=0.75, x_max=6.0, y_min=79, y_max=86),
+                          fill_rate=dict(legend_pos="lower right", x_min=0.0, x_max=0.75, y_min=79, y_max=86))
+            )
+        ),
+        "block_size_influence_basic": dict(
+            draw_labels=True,
+            label_mapping={
+                "improved soft movement with distillation": "Unstructured Soft Movement Pruning",
+                "Full block method, bs= 32x32+.*": "Block, bs= 32x32",
+                "Full block method, bs= 16x16+.*": "Block, bs= 16x16",
+                "Full block method, bs= 8x8+.*": "Block, bs= 8x8",
+                "Full block method, bs= 4x4+.*": "Block, bs= 4x4",
+                "Block/struct method, bs= 32x32, v=1, s=b": "Hybrid, abs=32x32",
+                "Block/struct method, final fine tuned, s=b": "Hybrid filled, abs=32x32",
+            },
+            limits=dict(
+                squadv1=dict(speedup=dict(legend_pos="upper right", x_min=0.75, x_max=3.25, y_min=None, y_max=None),
+                             fill_rate=dict(legend_pos="lower right", x_min=0.0, x_max=0.65, y_min=None, y_max=None)),
+                mnli=dict(speedup=dict(legend_pos="upper right", x_min=0.75, x_max=6.0, y_min=79, y_max=86),
+                          fill_rate=dict(legend_pos="lower right", x_min=0.0, x_max=0.75, y_min=79, y_max=86))
+            )
+        ),
 
-        p = GeneralPlotter(
+    }
+    for name, configuration in plots.items():
+#        if name not in ["block_size_influence_basic"]:
+#            continue
+
+        p = PlotManager(
             task,
             input_file_name,
-            limits=limits[task],
-            cluster=True,
             **configuration,
         )
 
@@ -538,6 +541,19 @@ if __name__ == "__main__":
     import sys
 
     sys.exit()
+
+    #    select = ['block_sparse', 'improved soft movement with distillation', 'misc', 'new method, attention pruned with rows', 'new method, longer final warmup (15 instead of 10)', 'new xp, block_size= 16x16', 'new xp, block_size= 32x32', 'new xp, block_size= 64x32', 'small_epoch']
+
+    CAT_FUN_NAMES = [
+        "new_xp",
+        "full_block",
+        "improved_mvmt_pruning",
+        "longer_final_warmup",
+        "attention_rows",
+        "short_final_warmup",
+        "block_unstructured",
+    ]
+
 
     white_list = [  # "Block/struct method, bs= [0-9]+x[0-9]+, v=1",
         "Block/struct method, bs= 32x32, v=1",

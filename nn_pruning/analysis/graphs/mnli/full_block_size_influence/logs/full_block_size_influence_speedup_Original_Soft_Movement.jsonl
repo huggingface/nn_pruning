@@ -1,0 +1,1 @@
+{"speedup": 1.0, "matched": 84.9414161996943, "meta": {"cols": 1, "epochs": 10, "fill_rate": 0.906903863388052, "inner_sparsity": 1, "matched": 84.9414161996943, "mismatched": 85.15052888527251, "name": "l1_with_distil_0._0.1_1_1_l1_*_3e-5_1e-2_sigmoied_threshold_constant_0._6_epochs", "rows": 1, "size": 1, "speedup": 1.0}}

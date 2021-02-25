@@ -63,7 +63,7 @@ Even in terms of saved size, we get smaller networks for the same accuracy (exce
 ### GLUE/MNLI 
 
 The experiments were done on BERT-base.
-Significant speedups were obtained, even if the results are a bit behing compared to the SQuAD results.
+Significant speedups were obtained, even if the results are a bit behind compared to the SQuAD results.
 Here is a selection of networks, with the same rules as for the SQuAd table:
 
 {{ mnli.table }}

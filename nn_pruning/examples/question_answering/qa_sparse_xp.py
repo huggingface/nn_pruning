@@ -122,6 +122,8 @@ class SparseQAShortNamer(TrialShortNamer):
         "version_2_with_negative": False,
         "warmup_steps": 5400,
         "weight_decay": 0.0,
+        'tokenizer_name': None,
+        'use_fast_tokenizer': True
     }
 
 
