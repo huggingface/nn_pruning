@@ -155,8 +155,8 @@ class DocBuilder:
 
     def _build_network(self, base_info, name, model_name):
         network_path = self.models_path / "madlag" / name / "model_card"
-        base_info[f"models_{name}_pruning"] = self.read_media_file(f"squadv1/models/{name}/pruning_info.html")
-        base_info[f"models_{name}_density"] = self.read_media_file(f"squadv1/models/{name}/density_info.html")
+        base_info[f"models_{name}_pruning_info"] = self.read_media_file(f"squadv1/models/{name}/pruning_info.html")
+        base_info[f"models_{name}_density_info"] = self.read_media_file(f"squadv1/models/{name}/density_info.html")
 
 
     def build_squadv1(self):
