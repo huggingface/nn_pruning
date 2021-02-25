@@ -105,5 +105,5 @@ On both metrics it's better than DistilBERT by some significant margin.
 ![MNLI fill rate](docs/assets/media/mnli/summary_fill_rate.png)
 
 ## Related work
-[pytorch_block_sparse](htpps://github.com/huggingface/pytorch_block_sparse) is a CUDA Implementation of block sparse kernels for linear layer forward and backward propagation.
+[pytorch_block_sparse](https://github.com/huggingface/pytorch_block_sparse) is a CUDA Implementation of block sparse kernels for linear layer forward and backward propagation.
 It's not needed to run the models pruned by the nn_pruning tools, as it's not fast enough yet to be competitive with dense linear layers: just pruning heads is faster, even if those heads still contain some inner sparsity.  
