@@ -153,24 +153,19 @@ class DocBuilder:
                     graphs_summary_speedup=speedup_html,
                     graphs_summary_fill_rate=summary_fill_rate_html)
 
+    def _build_network(self, base_info, name, model_name):
+        network_path = self.models_path / "madlag" / name / "model_card"
+        base_info[f"{name}_pruning"] = self.read_media_file(f"squadv1/models/{name}/pruning_info.html")
+        base_info[f"{name}_density"] = self.read_media_file(f"squadv1/models/{name}/density_info.html")
+
+
     def build_squadv1(self):
-        return self.part_build("squadv1")
+        ret = self.part_build("squadv1")
+        self._build_network(ret, "network_filled", "bert-base-uncased-squadv1-x2.44-f87.7-d26-hybrid-filled-v1")
+        return ret
 
     def build_mnli(self):
         return self.part_build("mnli")
-
-
-    def _build_network(self, name, model_name):
-        network_path = self.models_path / "madlag" / name / "model_card"
-        ret = {}
-
-        ret["pruning"] = self.read_media_file(f"squadv1/models/{name}/pruning_info.html")
-        ret["density"] = self.read_media_file(f"squadv1/models/{name}/density_info.html")
-
-        return ret
-
-    def build_network_filled(self):
-        return self._build_network("network_filled", "bert-base-uncased-squadv1-x2.44-f87.7-d26-hybrid-filled-v1")
 
     def run(self):
         template = jinja2.Template(self.open("README.jinja.md").read())
@@ -184,7 +179,7 @@ class DocBuilder:
 
         def graph_create(title, part, name):
             media_path = variables["media_path"]
-            html = variables[part][name.replace("/", "_")]
+            html = variables[part.replace("/", "_")][name.replace("/", "_")]
             html = html.replace("$$JS_PATH$$", f"{media_path}/{part}/{name}.js")
             html = remove_empty_lines(html)
 

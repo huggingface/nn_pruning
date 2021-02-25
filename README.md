@@ -65,9 +65,9 @@ The speedup here is measured on a 3090 RTX, using the HuggingFace transformers l
 
 ### Example Network
 
-![Hybrid Filled Head Pruning](docs/assets/media/network_filled/pruning.png)
+![Hybrid Filled Head Pruning](docs/assets/media/squadv1/network_filled/pruning.png)
 
-![Hybrid Filled Density](docs/assets/media/network_filled/density.png)
+![Hybrid Filled Density](docs/assets/media/squadv1/network_filled/density.png)
 
 ### Comparison with state of the art 
 If we plot the F1 of the full set of pruned networks against the speedup, we can see that we outperform fine-tuned TinyBERT and Distilbert by some margin.
