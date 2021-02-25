@@ -61,11 +61,21 @@ We kept here the comparison with BERT-base numbers as it's what matters on a pra
 - The "theoretical speedup" is a speedup of linear layers (actual number of flops), something that seems to be equivalent to the measured speedup in some papers. 
 The speedup here is measured on a 3090 RTX, using the HuggingFace transformers library, using Pytorch cuda timing features, and so is 100% in line with real-world speedup.
 
-### Example Network
+### Example "Hybrid filled" Network
+
+Here are some visualizations of the pruned network [#7](https://huggingface.co/madlag/bert-base-uncased-squadv1-x2.44-f87.7-d26-hybrid-filled-v1).
+It is using the "Hybrid filled" method:
+- Hybrid : prune using blocks for attention and rows/columns for the two large FFNs. 
+- Filled : remove empty heads and empty rows/columns of the FFNs, then re-finetune the previous network, letting the zeros in non-empty attention heads evolve and so regain some accuracy while keeping the same network speed. 
+
+You can see that the results linear layers are all actually "dense" (hover on the graph to visualize them).
+
+<div class="graph"><script src="assets/media/squadv1/models/network_filled/density_info.js" id="f1b3b976-6293-4b1d-854d-570656edbeb2"></script></div>
+
+You can see here the pruned heads for each layer:
 
 <div class="graph"><script src="assets/media/squadv1/models/network_filled/pruning_info.js" id="fe9802b2-75e3-4a81-8223-20bbb356840f"></script></div>
 
-<div class="graph"><script src="assets/media/squadv1/models/network_filled/density_info.js" id="f1b3b976-6293-4b1d-854d-570656edbeb2"></script></div>
 
 ### Comparison with state of the art 
 If we plot the F1 of the full set of pruned networks against the speedup, we can see that we outperform fine-tuned TinyBERT and Distilbert by some margin.
