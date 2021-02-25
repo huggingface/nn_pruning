@@ -10,6 +10,7 @@ class DocBuilder:
     def __init__(self):
         self.docs_path = Path(__file__).parent.parent
         self.git_path = self.docs_path.parent
+        self.models_path = self.git_path.parent / "models"
         self.media_path = self.docs_path / "assets" / "media"
         self.path = Path(__file__).parent / "files"
         print(self.docs_path)
@@ -144,8 +145,8 @@ class DocBuilder:
         headers = self.reorder_squad_table_columns([headers])[0]
         values = self.reorder_squad_table_columns(values)
 
-        speedup_html = self.read_media_file(f"{task}/summary_speedup.html")
-        summary_fill_rate_html = self.read_media_file(f"{task}/summary_fill_rate.html")
+        speedup_html = self.read_media_file(f"{task}/graphs/summary_speedup.html")
+        summary_fill_rate_html = self.read_media_file(f"{task}/graphs/summary_fill_rate.html")
 
         return dict(table=self.markdown_table_string(task.capitalize(), headers, values),
                     large_reduction=large_reduction,
@@ -157,6 +158,19 @@ class DocBuilder:
 
     def build_mnli(self):
         return self.part_build("mnli")
+
+
+    def _build_network(self, name, model_name):
+        network_path = self.models_path / "madlag" / name / "model_card"
+        ret = {}
+
+        ret["pruning"] = self.read_media_file(f"squadv1/models/{name}/pruning_info.html")
+        ret["density"] = self.read_media_file(f"squadv1/models/{name}/density_info.html")
+
+        return ret
+
+    def build_network_filled(self):
+        return self._build_network("network_filled", "bert-base-uncased-squadv1-x2.44-f87.7-d26-hybrid-filled-v1")
 
     def run(self):
         template = jinja2.Template(self.open("README.jinja.md").read())

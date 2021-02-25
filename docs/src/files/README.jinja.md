@@ -49,6 +49,12 @@ We kept here the comparison with BERT-base numbers as it's what matters on a pra
 - The "theoretical speedup" is a speedup of linear layers (actual number of flops), something that seems to be equivalent to the measured speedup in some papers. 
 The speedup here is measured on a 3090 RTX, using the HuggingFace transformers library, using Pytorch cuda timing features, and so is 100% in line with real-world speedup.
 
+### Example Network
+
+{{ graph("Hybrid Filled Head Pruning", "network_filled", "pruning") }}
+
+{{ graph("Hybrid Filled Density", "network_filled", "density") }}
+
 ### Comparison with state of the art 
 If we plot the F1 of the full set of pruned networks against the speedup, we can see that we outperform fine-tuned TinyBERT and Distilbert by some margin.
 MobileBert seems significantly better, even with the "no OPT" version presented here, which does not contain the LayerNorm optimization used in the much faster version of MobileBERT.
