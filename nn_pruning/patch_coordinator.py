@@ -26,7 +26,7 @@ from dataclasses import dataclass, field
 from collections import defaultdict
 
 from nn_pruning.model_structure import BertStructure
-from .masked_nn import (
+from .modules.masked_nn import (
     ChannelPruningModulePatcher,
     JointPruningModulePatcher,
     LinearPruningModulePatcher,
