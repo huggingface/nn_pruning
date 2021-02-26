@@ -22,7 +22,7 @@ from transformers.trainer import Trainer
 from transformers.trainer_utils import (
     PREFIX_CHECKPOINT_DIR,
 )
-from nn_pruning.modules.sparse_trainer import TimingModule
+from nn_pruning.sparse_trainer import TimingModule
 from transformers.trainer_utils import (
     HPSearchBackend,
 )

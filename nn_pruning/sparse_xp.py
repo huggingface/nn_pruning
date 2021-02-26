@@ -4,7 +4,7 @@ from pathlib import Path
 from types import SimpleNamespace
 import torch
 import tempfile
-from nn_pruning.modules.patch_coordinator import ModelPatchingCoordinator
+from nn_pruning.patch_coordinator import ModelPatchingCoordinator
 from nn_pruning.inference_model_patcher import optimize_model
 
 class SparseXP:

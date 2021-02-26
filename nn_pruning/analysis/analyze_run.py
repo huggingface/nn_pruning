@@ -10,7 +10,7 @@ import torch
 from collections import defaultdict
 import tempfile
 from nn_pruning.inference_model_patcher import optimize_model
-from nn_pruning.modules.sparse_xp import SparseXP
+from nn_pruning.sparse_xp import SparseXP
 
 class ModelStatsExtractBase:
     def __init__(self, path, output_name, task, copy_to_tmp_path = False):

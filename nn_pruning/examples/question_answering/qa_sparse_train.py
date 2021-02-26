@@ -17,7 +17,7 @@ Sparse Fine-tuning the library models for question answering.
 """
 # You can also adapt this script on your own question answering task. Pointers for this are left as comments.
 
-from nn_pruning.modules.sparse_trainer import SparseTrainer
+from nn_pruning.sparse_trainer import SparseTrainer
 from .qa_train import QATrainer
 
 # SparseTrainer should appear first in the base classes, as its functions must override QATrainer and its base classes (Trainer)

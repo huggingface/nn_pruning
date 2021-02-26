@@ -26,7 +26,7 @@ import torch
 from nn_pruning.inference_model_patcher import optimize_model
 
 from nn_pruning.hp_naming import TrialShortNamer
-from nn_pruning.modules.patch_coordinator import SparseTrainingArguments
+from nn_pruning.patch_coordinator import SparseTrainingArguments
 from .glue_sparse_train import GlueSparseTrainer
 from .glue_xp import (
     GlueXP,
@@ -36,7 +36,7 @@ from .glue_xp import (
 )
 from transformers import AutoModelForSequenceClassification
 import tempfile
-from nn_pruning.modules.sparse_xp import SparseXP
+from nn_pruning.sparse_xp import SparseXP
 
 
 class SparseGlueShortNamer(TrialShortNamer):
