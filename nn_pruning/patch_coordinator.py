@@ -179,7 +179,7 @@ class ModelPatchingCoordinator:
 
     def __init__(self, sparse_args, device, cache_dir, logit_names, teacher_constructor):
         # logit_names is ["start_logits", "end_logits"] for qa, ["logits"] for glue etc
-        # teacher modle is AutoModelForQuestionAnswering for qa, AutoModelForSequenceClassification for glue etc
+        # teacher model is AutoModelForQuestionAnswering for qa, AutoModelForSequenceClassification for glue etc
         self.sparse_args = sparse_args
         self.patcher_context = PatcherContext()
         self.teacher_constructor = teacher_constructor
@@ -194,9 +194,6 @@ class ModelPatchingCoordinator:
             return parts[0], "default"
         else:
             raise RuntimeError("Could not parse pruning method")
-
-    def patch_model(self, model, trial):
-        raise NotImplementedError("Implement in subclass")
 
     def log(self):
         logs = {}
@@ -431,13 +428,8 @@ class ModelPatchingCoordinator:
 
         return optimizer_grouped_parameters
 
-    def compile_model(self, model):
-        self.schedule_threshold()
-        compiler = MaskedLinearModelCompiler()
-        compiler.patch(model)
 
-    def patch_model(self, model, trial):
-        assert trial is None or len(trial.params) == 0
+    def patch_model(self, model, trial = None):
         attention_pruning_method_parts = self.parse_pruning_method(self.sparse_args.attention_pruning_method)
 
         if hasattr(self.sparse_args, "bias_mask"):
@@ -509,5 +501,11 @@ class ModelPatchingCoordinator:
         assert ((patcher.stats["patched"] % 72) == 0)
 
         return patcher
+
+
+    def compile_model(self, model):
+        self.schedule_threshold()
+        compiler = MaskedLinearModelCompiler()
+        compiler.patch(model)
 
 
