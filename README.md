@@ -13,6 +13,9 @@ saving a lot of permanent storage space on servers or devices, and bandwidth, an
 Some degree of structure is necessary to use the intrinsic parallel nature of today hardware.
 **Block Movement Pruning** work extends the original method and explore **semi-structured and structured variants** of Movement Pruning.
 You can read more about block sparsity and why it matters for performance on these [blog](https://medium.com/huggingface/is-the-future-of-neural-networks-sparse-an-introduction-1-n-d03923ecbd70) [posts](https://medium.com/huggingface/sparse-neural-networks-2-n-gpu-performance-b8bc9ce950fc).*
+## Using in your workflow
+The documentation is [here](documentation/README.md)
+
 ## Results
 
 ### Squad V1
