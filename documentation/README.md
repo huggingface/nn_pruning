@@ -20,6 +20,13 @@ It's not a subclass a trainer, as it's more intended to be added as a "Mixin" of
 
 where QATrainer *is* a subclass of Trainer.
 
+So if you don't have you own Trainer class, you can probably use simply a dummy class:
+
+```
+class MyTrainer(SparseTrainer, transformers.Trainer):
+   pass
+```
+
 
 ## Using without a Trainer
 
