@@ -14,12 +14,11 @@ def main(checkpoint_list_file, task):
         if len(s) != 0:
             if s[0] == "#":
                 continue
-            if str(checkpoint_list_file).endswith(".json"):
+            if str(checkpoint_list_file).endswith(".jsonl"):
                 j = json.loads(s)
                 s = j["meta"]["checkpoint"]["path"]
             else:
                 s = s.strip()
-
             assert((task  + "_") in s)
             source_points.append(s)
 
@@ -54,12 +53,15 @@ def main(checkpoint_list_file, task):
         dest_path.mkdir(exist_ok=True)
         with (dest_path / "source.txt").open("w") as f:
             f.write(str(src_path))
-        large = key.startswith("large_")
+
+        with open(src_path / "sparse_args.json") as f:
+            sparse_args = json.load(f)
+            teacher = sparse_args["distil_teacher_name_or_path"]
 
         if task == "squad":
-            QASparseXP.final_finetune(str(tmp_path), str(dest_path), large=large)
+            QASparseXP.final_finetune(str(tmp_path), str(dest_path), teacher=teacher)
         elif task in ["mnli"]:
-            GlueSparseXP.final_finetune(str(tmp_path), str(dest_path), large=large, task=task)
+            GlueSparseXP.final_finetune(str(tmp_path), str(dest_path), teacher=teacher)
         else:
             raise Exception(f"Unknown task {task}")
 

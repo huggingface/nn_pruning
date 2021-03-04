@@ -214,7 +214,6 @@ class InferenceModelPatcher(ModelPatcher):
 
         super().patch(model)
 
-
 def optimize_model(model, mode, clone=True):
     """mode in ["dense", "heads", "block_sparse"]"""
     import copy
@@ -255,4 +254,10 @@ def optimize_model(model, mode, clone=True):
     )
 
     mp.patch_model(model)
+
+    if hasattr(model.config, "layer_norm_type") and model.config.layer_norm_type == "no_norm":
+        from nn_pruning.modules.nonorm import NoNormPatcher
+        nnc = NoNormPatcher()
+        nnc.patch(model)
+
     return model

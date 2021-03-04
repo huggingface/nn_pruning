@@ -176,7 +176,14 @@ class XP:
             setattr(self, k + "_args", parse_results[i])
 
     def model_init(self, trial=None):
-        return self._model_init(self.model_args, self.config)
+        model =  self._model_init(self.model_args, self.config)
+        if hasattr(model.config, "layer_norm_type") and model.config.layer_norm_type == "no_norm":
+            from nn_pruning.modules.nonorm import NoNormPatcher
+            nnc = NoNormPatcher()
+            nnc.patch(model)
+
+        return model
+
 
     def get_all_args(self, exclude_base=False):
         # Extract the other arguments

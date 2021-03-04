@@ -399,6 +399,7 @@ def draw_all_plots(input_file_name, task, x_axis, cleanup_cache=False):
                 "distilbert" : "DistilBERT",
                 "tinybert" : "TinyBERT",
                 "mobile_bert_no_opt": "Mobile Bert (w/o opt)",
+                "Block/struct method, final fine tuned, s=b, t=l": "Hybrid filled, BERT-base, large teacher",
                 "Block/struct method, final fine tuned, s=l": "Hybrid pruning, BERT-large",
                 "Block/struct method, final fine tuned, s=b": "Hybrid pruning, BERT-base",
                 "Structured pruning": "Structured pruning, BERT-base",
@@ -420,12 +421,30 @@ def draw_all_plots(input_file_name, task, x_axis, cleanup_cache=False):
                 "mobile_bert_no_opt": "Mobile Bert (w/o opt)",
                 "Block/struct method, final fine tuned, s=l": "Hybrid filled, BERT-large",
                 "Block/struct method, final fine tuned, s=b": "Hybrid filled, BERT-base",
+                "Block/struct method, final fine tuned, s=b, t=l": "Hybrid filled, BERT-base, large teacher",
                 "Block/struct method, bs= 32x32, v=1, s=b": "Hybrid, BERT-base",
                 "Block/struct method, bs= 32x32, v=1, s=l": "Hybrid, BERT-large",
                 "Block/struct method, bs= 32x32, v=1, s=b, t=l": "Hybrid, BERT-base, large teacher",
+                "Block/struct method, bs= 32x32, v=1, s=b, t=l, nonorm=1": "Hybrid, BERT-base, large teacher, NoNorm",
                 "Structured pruning": "Structured pruning, BERT-base",
                 "improved soft movement with distillation": "Improved soft movement, BERT-base",
                 "soft_movement_with_distillation": "Original Soft Movement",
+            },
+            limits=dict(
+                squadv1=dict(speedup=dict(legend_pos="upper right", x_min=0.75, x_max=4, y_min=None, y_max=None),
+                             fill_rate=dict(legend_pos="lower right", x_min=0.0, x_max=0.65, y_min=None, y_max=None)),
+                mnli=dict(speedup=dict(legend_pos="upper right", x_min=0.75, x_max=6.0, y_min=79, y_max=86),
+                          fill_rate=dict(legend_pos="lower right", x_min=0.0, x_max=0.75, y_min=79, y_max=86))
+            )
+        ),
+        "comparison_large_teacher": dict(
+            draw_labels=False,
+            label_mapping={
+                "distilbert": "DistilBERT",
+                "tinybert": "TinyBERT",
+                "mobile_bert_no_opt": "Mobile Bert (w/o opt)",
+                "Block/struct method, final fine tuned, s=b": "BERT-base teacher",
+                "Block/struct method, final fine tuned, s=b, t=l": "BERT-large teacher",
             },
             limits=dict(
                 squadv1=dict(speedup=dict(legend_pos="upper right", x_min=0.75, x_max=4, y_min=None, y_max=None),

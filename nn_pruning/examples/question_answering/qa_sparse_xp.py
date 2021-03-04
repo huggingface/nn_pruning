@@ -123,7 +123,9 @@ class SparseQAShortNamer(TrialShortNamer):
         "warmup_steps": 5400,
         "weight_decay": 0.0,
         'tokenizer_name': None,
-        'use_fast_tokenizer': True
+        'use_fast_tokenizer': True,
+        'layer_norm_patch': False,
+        'gelu_patch':False,
     }
 
 
@@ -148,11 +150,7 @@ class QASparseXP(SparseXP, QAXP):
         SparseXP.setup_trainer(self)
 
     @classmethod
-    def final_finetune(cls, src_path, dest_path, large: bool):
-        if large:
-            teacher = "bert-large-uncased-whole-word-masking-finetuned-squad"
-        else:
-            teacher = "csarron/bert-base-uncased-squad-v1"
+    def final_finetune(cls, src_path, dest_path, teacher):
         param_dict = {
             "model_name_or_path": src_path,
             "dataset_name": "squad",

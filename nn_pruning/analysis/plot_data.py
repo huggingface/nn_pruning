@@ -100,13 +100,21 @@ class ExperimentClassifier:
         large_teacher = "large" in sparse_args["distil_teacher_name_or_path"]
         large = "large" in xp["config"]["_name_or_path"] or "large" in xp.get("source_checkpoint", "")
         size = "l" if large else "b"
+        no_norm = "layer_norm_patch" in sparse_args and sparse_args["layer_norm_patch"]
+
         compare_different = {}
         if self.check(sparse_args, compare, compare_different):
             ret = f"Block/struct method, final fine tuned, s={size}"
+
+            if not large and large_teacher:
+                ret += ", t=l"
             # annotate += ", fw=" + str(sparse_args["final_warmup"])
 
             # annotate += ", ver=" + str(0 if sparse_args.get('attention_output_with_dense', True) else 1)
             annotate = "%d" % (100 - xp["stats"]["linear_sparsity"])
+
+            if no_norm:
+                ret += ", nonorm=1"
 
             return ret, annotate
 
@@ -137,6 +145,9 @@ class ExperimentClassifier:
 
             if not large and large_teacher:
                 ret += ", t=l"
+
+            if no_norm:
+                ret += ", nonorm=1"
 
 #            annotate = self.get_lambdas_annotation(sparse_args)
             annotate = "%d" % (100 - xp["stats"]["linear_sparsity"])

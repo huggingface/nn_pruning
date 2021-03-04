@@ -33,6 +33,7 @@ from .modules.masked_nn import (
     LinearPruningArgs,
     MaskedLinearModelCompiler
 )
+from .modules.nonorm import NoNormCompiler
 from nn_pruning.training_patcher import (
     BertLinearModelPatcher,
     PatcherContext,
@@ -173,6 +174,21 @@ class SparseTrainingArguments:
             "help": "Run a final fine tune pass on the network"
         },
     )
+
+    layer_norm_patch: bool = field(
+        default=False,
+        metadata={
+            "help": "Transform the LayerNorms in a MobileBert NoNorm"
+        },
+    )
+
+    gelu_patch: bool = field(
+        default=False,
+        metadata={
+            "help": "Transform the GeLU in ReLU"
+        },
+    )
+
 
 class ModelPatchingCoordinator:
     MODEL_STRUCTURE = BertStructure
@@ -393,7 +409,7 @@ class ModelPatchingCoordinator:
 
     def create_optimizer_groups(self, model, args, sparse_args):
         # Prepare optimizer and schedule (linear warmup and decay)
-        no_decay = ["bias", "LayerNorm.weight"]
+        no_decay = ["bias", "LayerNorm.weight", "NoNorm.weight", "LayerNorm.bias", "NoNorm.bias"]
 
         mask_params = []
         no_decay_params = []
@@ -496,9 +512,27 @@ class ModelPatchingCoordinator:
             output_dense=p_dense,
         )
 
-        patcher = BertLinearModelPatcher(module_patchers)
+        if hasattr(self.sparse_args, "layer_norm_patch"):
+            layer_norm_patch = self.sparse_args.layer_norm_patch
+        else:
+            layer_norm_patch = False
+
+        if hasattr(self.sparse_args, "gelu_patch"):
+            gelu_patch = self.sparse_args.gelu_patch
+        else:
+            gelu_patch = False
+
+        patcher = BertLinearModelPatcher(module_patchers,
+                                         layer_norm_patch=layer_norm_patch,
+                                         gelu_patch = gelu_patch)
         patcher.patch(model)
-        assert ((patcher.stats["patched"] % 72) == 0)
+        print("LAYER NORM PATCH", patcher.stats)
+        if layer_norm_patch:
+            patched_count = 97
+        else:
+            patched_count = 72
+
+        assert ((patcher.stats["patched"] % patched_count) == 0)
 
         return patcher
 
@@ -507,5 +541,11 @@ class ModelPatchingCoordinator:
         self.schedule_threshold()
         compiler = MaskedLinearModelCompiler()
         compiler.patch(model)
+
+        if self.sparse_args.layer_norm_patch:
+            nnc = NoNormCompiler()
+            nnc.patch(model)
+            model.config.layer_norm_type = "no_norm"
+
 
 

@@ -143,13 +143,7 @@ class GlueSparseXP(SparseXP, GlueXP):
         SparseXP.setup_trainer(self)
 
     @classmethod
-    def final_finetune(cls, src_path, dest_path, task, large:bool):
-        if large:
-            assert(False)
-            teacher = ""
-        else:
-            teacher = "aloxatel/bert-base-mnli"
-
+    def final_finetune(cls, src_path, dest_path, task, teacher):
         param_dict = {
             "model_name_or_path": src_path,
             "task_name": task,

@@ -98,6 +98,9 @@ class SparseXP:
 
         if dest_path is not None:
             shutil.copytree(src_path, dest_path, dirs_exist_ok=True)
+            # Save the config (may have been modified by compile_model to add layer_norm=no_norm )
+            model.config.save_pretrained(dest_path)
+            # Override the
             state_dict = model.state_dict()
             torch.save(state_dict, dest_path / model_bin_name)
 
