@@ -1,11 +1,11 @@
 import torch.nn as nn
 import torch
-import torch.nn.functional as F
 from nn_pruning.model_patcher import ModelPatcher
 
 
 class Layer2NoNorm(nn.Module):
-    def __init__(self, layerNorm):
+    # TODO: make interpolating factor external instead of fixed at layer construction using steps
+    def __init__(self, layerNorm, steps = 20000):
         super().__init__()
         self.normalized_shape = layerNorm.normalized_shape
         self.eps = layerNorm.eps
@@ -13,22 +13,19 @@ class Layer2NoNorm(nn.Module):
         assert(self.elementwise_affine)
         self.weight = nn.Parameter(layerNorm.weight.detach().clone())
         self.bias = nn.Parameter(layerNorm.bias.detach().clone())
-        # Accumulators are for mean and std, and delta normalization
+        # Accumulators are for mean and std, and accumulator normalization factor
+        self.steps = steps
         self.register_buffer("accumulator", torch.zeros(3, device=layerNorm.weight.device))
         self.delta = 0.99
         self.final_delta = 1.0
-        STEPS = 20000
-        self.delta_step = (self.final_delta - self.delta) / STEPS
+        self.delta_step = (self.final_delta - self.delta) / self.steps
         self.mix = 1.0
-        self.mix_step = 1 / STEPS
+        self.mix_step = 1 / self.steps
 
     def forward(self, batch):
-        #return F.layer_norm(batch, self.normalized_shape, self.weight, self.bias, self.eps)
-#        if self.training:
-
         accumulator = self.accumulator.clone()
         if self.training:
-            mean = batch.mean(-1, keepdim=True)  # .detach()
+            mean = batch.mean(-1, keepdim=True)
             var = batch.var(-1, unbiased=False, keepdim=True)
 
             one = torch.tensor(1.0, device=var.device)
@@ -45,7 +42,6 @@ class Layer2NoNorm(nn.Module):
         ret = (batch - mean) / (var + self.eps).sqrt()
         ret = ret * self.weight + self.bias
 
-        #self.delta = min(0.99, self.delta + 0.0001)
         if self.training:
             self.accumulator = accumulator.detach()
             self.mix = max(0.0, self.mix - self.mix_step)
