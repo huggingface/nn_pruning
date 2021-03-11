@@ -6,12 +6,12 @@ def readme():
         return f.read()
 
 extras = {}
-extras["examples"] = ["numpy>=1.2.0", "datasets>=1.4.1", "ipywidgets"]
+extras["examples"] = ["numpy>=1.2.0", "datasets>=1.4.1", "ipywidgets>=7.6.3", "matplotlib>=3.3.4"]
 
 setup(
     name="nn_pruning",
     version="0.1",
-    description="nn_pruning is a python package for ...",
+    description="nn_pruning is a Python package for pruning Transformers",
     long_description=readme(),
     classifiers=[
         "Development Status :: 3 - Alpha",
