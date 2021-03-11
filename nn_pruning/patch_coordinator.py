@@ -31,7 +31,9 @@ from .modules.masked_nn import (
     JointPruningModulePatcher,
     LinearPruningModulePatcher,
     LinearPruningArgs,
-    MaskedLinearModelCompiler
+    MaskedLinear,
+    MaskedLinearModelCompiler,
+    GenericLinearPruningContextModule
 )
 from .modules.nonorm import NoNormCompiler
 from nn_pruning.training_patcher import (
@@ -297,27 +299,21 @@ class ModelPatchingCoordinator:
             threshold = self.patcher_context.get_context_data("threshold")
 
         for name, module in model.named_modules():
+            module_regu = 0
+            module_nnz_info = {"nnz":0, "numel":0}
+            nummod = 1
             if mode not in regul_modes:
                 if isinstance(module, nn.Linear):
                     weight = module.weight
-                    module_regu = 0
-                    module_nnz = (weight != 0).sum()
-                    numel = weight.numel()
+                    module_nnz_info["nnz"] = (weight != 0).sum()
+                    module_nnz_info["numel"] = weight.numel()
                 else:
                     continue
-            elif isinstance(module, PatcherContextModule):
-                param = module.mask_scores
-                numel = param.numel()
-
-                if mode == "l1":
-                    module_regu = torch.norm(torch.sigmoid(param), p=1) / numel
-                    module_nnz = (torch.sigmoid(param) > threshold).sum().item()
-                elif mode == "l0":
-                    assert(False)
-                    module_regu = torch.sigmoid(param - 2 / 3 * np.log(0.1 / 1.1)).sum() / numel
-                    module_nnz = (torch.sigmoid(param - 2 / 3 * np.log(0.1 / 1.1)) > threshold).sum().item()
-                else:
-                    assert(False)
+            elif isinstance(module, GenericLinearPruningContextModule):
+                module_regu = module.regularization(mode, threshold)
+            elif isinstance(module, MaskedLinear):
+                module_nnz_info = module.get_sparsity_info()
+                nummod = 0
             else:
                 continue
             # TEMPORARY : use model info to perform this dispatch
@@ -335,14 +331,14 @@ class ModelPatchingCoordinator:
 
             key_info = info[key]
             key_info["regu"] += module_regu
-            key_info["nnz"] += float(module_nnz)
-            key_info["numel"] += numel
-            key_info["nummod"] += 1
+            key_info["nummod"] += nummod
+
+            for k,v in module_nnz_info.items():
+                key_info[k] += float(v)
 
         if mode not in regul_modes:
             lamb = 0
-            lambdas = dict(attention=0,
-                           dense=0)
+            lambdas = dict(attention=0, dense=0)
         else:
             lamb = self.patcher_context.get_context_data("regu_lambda")
 
@@ -355,7 +351,7 @@ class ModelPatchingCoordinator:
             if key == "total":
                 continue
             for k, v in value.items():
-                if k in ["numel", "nnz"]:
+                if k == "numel" or "nnz" in k:
                     info["total"][k] += v
 
         for key, value in info.items():

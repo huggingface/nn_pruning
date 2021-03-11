@@ -5,7 +5,7 @@ from nn_pruning.model_patcher import ModelPatcher
 
 class Layer2NoNorm(nn.Module):
     # TODO: make interpolating factor external instead of fixed at layer construction using steps
-    def __init__(self, layerNorm, steps = 20000):
+    def __init__(self, layerNorm, steps = 5000):
         super().__init__()
         self.normalized_shape = layerNorm.normalized_shape
         self.eps = layerNorm.eps

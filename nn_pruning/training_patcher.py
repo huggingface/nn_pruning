@@ -10,7 +10,6 @@ from nn_pruning.modules.nonorm import Layer2NoNorm
 class PatcherContextModule(nn.Module):
     pass
 
-
 class PatcherContext:
     def __init__(self):
         self.context_modules: Dict = {}

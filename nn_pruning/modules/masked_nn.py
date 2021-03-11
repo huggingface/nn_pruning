@@ -40,6 +40,7 @@ from nn_pruning.training_patcher import (
 )
 
 from .binarizer import MagnitudeBinarizer, ThresholdBinarizer, TopKBinarizer
+import numpy
 
 sparse_patterns = None
 
@@ -87,6 +88,17 @@ class GenericLinearPruningContextModule(PatcherContextModule):
         elif mask_init == "kaiming":
             init.kaiming_uniform_(mask_scores, a=math.sqrt(5))
 
+    def regularization(self, method, threshold):
+        mask_scores = self.mask_scores
+        numel = mask_scores.numel()
+        if method == "l1":
+            module_regu = torch.norm(torch.sigmoid(mask_scores), p=1) / numel
+        elif method == "l0":
+            module_regu = torch.sigmoid(mask_scores - 2 / 3 * numpy.log(0.1 / 1.1)).sum() / numel
+        else:
+            assert (False)
+
+        return module_regu
 
 class LinearPruningContextModule(GenericLinearPruningContextModule):
     def __init__(self, shape, args: LinearPruningArgs):
@@ -304,15 +316,23 @@ class MaskedLinear(ReplacementModule):
             self.ampere_module = AmpereMaskModule(ampere_context_module, args)
         self.args = args
 
+    def nnz(self, m):
+        return int((m != 0).sum().item())
+
     def get_masked_weights_bias(self):
         threshold = self.get_context_data("threshold")
         mask = self.mask_module(self.weight, threshold)
+        self.mask_nnz = self.nnz(mask)
+
         if self.args.ampere_method != "disabled":
             ampere_temperature = self.get_context_data("ampere_temperature")
             ampere_mask = self.ampere_module(ampere_temperature)
             if mask.shape != ampere_mask.shape:
                 raise Exception("Shape mismatch")
+            self.ampere_nnz = self.nnz(ampere_mask)
             mask = mask * ampere_mask
+            self.base_mask_nnz = self.mask_nnz
+            self.mask_nnz = self.nnz(mask)
 
         masked_weights = mask * self.weight
 
@@ -327,6 +347,15 @@ class MaskedLinear(ReplacementModule):
         masked_weights, bias = self.get_masked_weights_bias()
         # Compute output (linear layer) with masked weights
         return F.linear(input, masked_weights, bias)
+
+    def get_sparsity_info(self):
+        ret = {"numel": self.weight.numel(),
+               "nnz":self.mask_nnz}
+
+        if self.args.ampere_method != "disabled":
+            ret.update({"base_nnz":self.base_mask_nnz,
+                        "ampere_nnz":self.ampere_nnz})
+        return ret
 
     def compile(self):
         masked_weights, bias = self.get_masked_weights_bias()
