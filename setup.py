@@ -6,7 +6,7 @@ def readme():
         return f.read()
 
 extras = {}
-extras["examples"] = ["numpy>=1.2.0", "datasets>=1.4.1", "ipywidgets>=7.6.3", "matplotlib>=3.3.4"]
+extras["examples"] = ["numpy>=1.2.0", "datasets>=1.4.1", "ipywidgets>=7.6.3", "matplotlib>=3.3.4", "pandase>=1.2.3"]
 
 setup(
     name="nn_pruning",
