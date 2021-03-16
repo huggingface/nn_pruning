@@ -35,7 +35,9 @@ from .modules.masked_nn import (
     MaskedLinearModelCompiler,
     GenericLinearPruningContextModule
 )
-from .modules.nonorm import NoNormCompiler
+from .modules.nonorm import NoNormCompiler, Layer2NoNormPatcher
+from .modules.gelu2relu import GeLU2ReLUModelPatcher
+
 from nn_pruning.training_patcher import (
     BertLinearModelPatcher,
     PatcherContext,
@@ -183,6 +185,19 @@ class SparseTrainingArguments:
             "help": "Transform the LayerNorms in a MobileBert NoNorm"
         },
     )
+    layer_norm_patch_steps: int = field(
+        default=50000,
+        metadata={
+            "help": "Number of steps for the transition from LayerNorm to NoNorm"
+        },
+    )
+
+    layer_norm_patch_start_delta: int = field(
+        default=0.99,
+        metadata={
+            "help": "Starting smoothing factor for transition from LayerNorm to NoNorm (final is 1.0)."
+        },
+    )
 
     gelu_patch: bool = field(
         default=False,
@@ -191,6 +206,12 @@ class SparseTrainingArguments:
         },
     )
 
+    gelu_patch_steps: int = field(
+        default=50000,
+        metadata={
+            "help": "Number of steps for the transition from GeLU to ReLU"
+        },
+    )
 
 class ModelPatchingCoordinator:
     MODEL_STRUCTURE = BertStructure
@@ -282,9 +303,32 @@ class ModelPatchingCoordinator:
 
         context_data = dict(
             threshold=threshold,
-            ampere_temperature=ampere_temperature,
             regu_lambda=regu_lambda,
+            ampere_temperature = ampere_temperature
         )
+
+        def interp(a,b, interpf):
+            return a * interpf + (1.0 - interpf) * b
+
+        if sparse_args.layer_norm_patch:
+            interpf = 0.0
+            layer_norm_patch_steps = sparse_args.layer_norm_patch_steps
+            if step < layer_norm_patch_steps:
+                interpf = 1.0 - (step / layer_norm_patch_steps)
+
+            delta = interp(sparse_args.layer_norm_patch_start_delta, 1.0, interpf)
+            mix = interpf
+
+            context_data["layernorm_to_nonorm_delta"] = delta
+            context_data["layernorm_to_nonorm_mix"] = mix
+
+        if sparse_args.gelu_patch:
+            interpf = 0.0
+            gelu_patch_steps = sparse_args.gelu_patch_steps
+            if step < gelu_patch_steps:
+                interpf = 1.0 - (step / gelu_patch_steps)
+
+            context_data["gelu_to_relu_mix"] = interpf
 
         self.patcher_context.set_context_data_dict(context_data)
 
@@ -372,7 +416,7 @@ class ModelPatchingCoordinator:
         teacher = self.teacher
 
         if teacher == None:
-            return ce_loss
+            return ce_loss, 0.0
 
         temperature = sparse_args.distil_temperature
 
@@ -442,6 +486,7 @@ class ModelPatchingCoordinator:
 
 
     def patch_model(self, model, trial = None):
+        layers_count = model.config.num_hidden_layers
         attention_pruning_method_parts = self.parse_pruning_method(self.sparse_args.attention_pruning_method)
 
         if hasattr(self.sparse_args, "bias_mask"):
@@ -518,17 +563,34 @@ class ModelPatchingCoordinator:
         else:
             gelu_patch = False
 
-        patcher = BertLinearModelPatcher(module_patchers,
-                                         layer_norm_patch=layer_norm_patch,
-                                         gelu_patch = gelu_patch)
-        patcher.patch(model)
-        print("LAYER NORM PATCH", patcher.stats)
-        if layer_norm_patch:
-            patched_count = 97
-        else:
-            patched_count = 72
+        patcher = BertLinearModelPatcher(module_patchers)
 
-        assert ((patcher.stats["patched"] % patched_count) == 0)
+        patcher.patch(model)
+
+        patched_count = 6 * layers_count
+
+        assert (patcher.stats["patched"] == patched_count)
+
+        if layer_norm_patch:
+            def schedule_callback():
+                mix = self.patcher_context.get_context_data("layernorm_to_nonorm_mix")
+                delta = self.patcher_context.get_context_data("layernorm_to_nonorm_delta")
+                return dict(mix=mix, delta=delta)
+
+            layer_norm_patcher = Layer2NoNormPatcher(schedule_callback=schedule_callback)
+            layer_norm_patcher.patch(model)
+            layer_norm_patched_count = 2 * layers_count + 1
+            assert (layer_norm_patcher.stats["patched"] == layer_norm_patched_count)
+
+        if gelu_patch:
+            def schedule_callback():
+                mix = self.patcher_context.get_context_data("gelu_to_relu_mix")
+                return dict(mix=mix)
+
+            gelu_patcher = GeLU2ReLUModelPatcher(schedule_callback=schedule_callback)
+            gelu_patcher.patch(model)
+            gelu_patcher_count = layers_count
+            assert (gelu_patcher.stats["patched"] == gelu_patcher_count)
 
         return patcher
 

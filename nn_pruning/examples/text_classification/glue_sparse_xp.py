@@ -119,7 +119,12 @@ class SparseGlueShortNamer(TrialShortNamer):
         "weight_decay": 0.0,
         'fp16_backend': 'auto',
         'sharded_ddp': False,
-    }
+        'layer_norm_patch': False,
+        'layer_norm_patch_steps': 50000,
+        'layer_norm_patch_start_delta': 0.99,
+        'gelu_patch': False,
+        'gelu_patch_steps': 50000,
+        }
 
 
 class GlueSparseXP(SparseXP, GlueXP):
