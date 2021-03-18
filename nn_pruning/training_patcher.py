@@ -109,7 +109,8 @@ class ModelDispatchingPatcher(ModelPatcher):
         super().add_pattern(pattern, patch_info)
 
     def new_child_module(self, child_module_name: str, child_module: nn.Module, patch_info: Dict):
-        return patch_info["patcher"].patch_and_connect(child_module_name, child_module)
+        if patch_info.get("patcher") is not None:
+            return patch_info["patcher"].patch_and_connect(child_module_name, child_module)
 
     def is_patchable(self, module_name, module, raiseError):
         return isinstance(module, nn.Linear)

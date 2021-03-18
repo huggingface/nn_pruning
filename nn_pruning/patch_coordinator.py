@@ -60,7 +60,7 @@ class SparseTrainingArguments:
 
     ampere_pruning_method: str = field(
         default="disabled",
-        metadata={"help": "Ampere sparse method ('disabled' for no ampere sparsity)"},
+        metadata={"help": "Ampere sparse method ('disabled' for no ampere sparsity, topK, annealing, sigmoied_threshold, threshold)"},
     )
 
     attention_output_with_dense: bool = field(
@@ -354,7 +354,7 @@ class ModelPatchingCoordinator:
                 else:
                     continue
             elif isinstance(module, GenericLinearPruningContextModule):
-                module_regu = module.regularization(mode, threshold)
+                module_regu = module.regularization(mode)
             elif isinstance(module, MaskedLinear):
                 module_nnz_info = module.get_sparsity_info()
                 nummod = 0
@@ -399,15 +399,22 @@ class ModelPatchingCoordinator:
                     info["total"][k] += v
 
         for key, value in info.items():
-            value["nnz_perc"] = value["nnz"] / value["numel"]
-            del value["nnz"]
-            del value["numel"]
+            if value["numel"] != 0:
+                # No patching (no pruning) -> no information on nnz -> dense linear layers
+                value["nnz_perc"] = value["nnz"] / value["numel"]
+            else:
+                value["nnz_perc"] = 1.0
+            for k in "nnz", "numel":
+                if k in value:
+                    del value[k]
             if key == "total":
                 continue
-            value["regu_loss"] = value["regu"] * lambdas[key] / value["nummod"]
-            info["total"]["regu_loss"] += value["regu_loss"]
-            del value["regu"]
-            del value["nummod"]
+            if value["nummod"] != 0:
+                value["regu_loss"] = value["regu"] * lambdas[key] / value["nummod"]
+                info["total"]["regu_loss"] += value["regu_loss"]
+            for k in "regu", "nummod":
+                if k in value:
+                    del value[k]
 
         return info["total"]["regu_loss"], lamb, info
 
@@ -494,50 +501,55 @@ class ModelPatchingCoordinator:
         else:
             bias_mask = False
 
-        args_attention = LinearPruningArgs(
-            method=attention_pruning_method_parts[0],
-            submethod=attention_pruning_method_parts[1],
-            ampere_method=self.sparse_args.ampere_pruning_method,
-            block_rows=self.sparse_args.attention_block_rows,
-            block_cols=self.sparse_args.attention_block_cols,
-            bias_mask=bias_mask
-        )
+        patcher_context = self.patcher_context
 
-        args_attention_t = LinearPruningArgs(
-            method=attention_pruning_method_parts[0],
-            submethod=attention_pruning_method_parts[1],
-            ampere_method=self.sparse_args.ampere_pruning_method,
-            block_rows=self.sparse_args.attention_block_cols,
-            block_cols=self.sparse_args.attention_block_rows,
-            bias_mask=bias_mask
-        )
+        if attention_pruning_method_parts[0] != "disabled" or self.sparse_args.ampere_pruning_method != "disabled":
+            args_attention = LinearPruningArgs(
+                method=attention_pruning_method_parts[0],
+                submethod=attention_pruning_method_parts[1],
+                ampere_method=self.sparse_args.ampere_pruning_method,
+                block_rows=self.sparse_args.attention_block_rows,
+                block_cols=self.sparse_args.attention_block_cols,
+                bias_mask=bias_mask
+            )
+
+            args_attention_t = LinearPruningArgs(
+                method=attention_pruning_method_parts[0],
+                submethod=attention_pruning_method_parts[1],
+                ampere_method=self.sparse_args.ampere_pruning_method,
+                block_rows=self.sparse_args.attention_block_cols,
+                block_cols=self.sparse_args.attention_block_rows,
+                bias_mask=bias_mask
+            )
+            if args_attention.submethod == "joint":
+                p_attention = JointPruningModulePatcher(patcher_context, args_attention, suffix=".attention")
+                p_attention_t = JointPruningModulePatcher(patcher_context, args_attention_t, suffix=".attention")
+            else:
+                p_attention = LinearPruningModulePatcher(patcher_context, args_attention)
+                p_attention_t = LinearPruningModulePatcher(patcher_context, args_attention_t)
+        else:
+            p_attention = None
+            p_attention_t = None
 
         dense_pruning_method_parts = self.parse_pruning_method(self.sparse_args.dense_pruning_method)
 
-        args_dense = LinearPruningArgs(
-            method=dense_pruning_method_parts[0],
-            submethod=dense_pruning_method_parts[1],
-            ampere_method=self.sparse_args.ampere_pruning_method,
-            block_rows=self.sparse_args.dense_block_rows,
-            block_cols=self.sparse_args.dense_block_cols,
-            bias_mask=bias_mask
-        )
-
-        patcher_context = self.patcher_context
-
-        if args_attention.submethod == "joint":
-            p_attention = JointPruningModulePatcher(patcher_context, args_attention, suffix=".attention")
-            p_attention_t = JointPruningModulePatcher(patcher_context, args_attention_t, suffix=".attention")
-        else:
-            p_attention = LinearPruningModulePatcher(patcher_context, args_attention)
-            p_attention_t = LinearPruningModulePatcher(patcher_context, args_attention_t)
-
-        if args_dense.submethod.startswith("1d"):
-            p_dense = ChannelPruningModulePatcher(
-                patcher_context, args_dense, self.MODEL_STRUCTURE, suffix="dense"
+        if dense_pruning_method_parts[0] != "disabled" or self.sparse_args.ampere_pruning_method != "disabled":
+            args_dense = LinearPruningArgs(
+                method=dense_pruning_method_parts[0],
+                submethod=dense_pruning_method_parts[1],
+                ampere_method=self.sparse_args.ampere_pruning_method,
+                block_rows=self.sparse_args.dense_block_rows,
+                block_cols=self.sparse_args.dense_block_cols,
+                bias_mask=bias_mask
             )
+            if args_dense.submethod.startswith("1d"):
+                p_dense = ChannelPruningModulePatcher(
+                    patcher_context, args_dense, self.MODEL_STRUCTURE, suffix="dense"
+                )
+            else:
+                p_dense = LinearPruningModulePatcher(patcher_context, args_dense)
         else:
-            p_dense = LinearPruningModulePatcher(patcher_context, args_dense)
+            p_dense = None
 
         if not hasattr(self.sparse_args, "attention_output_with_dense") or self.sparse_args.attention_output_with_dense:
             p_att_dense = p_dense
@@ -567,7 +579,12 @@ class ModelPatchingCoordinator:
 
         patcher.patch(model)
 
-        patched_count = 6 * layers_count
+        patched_count = 0
+        if attention_pruning_method_parts[0] != "disabled" or self.sparse_args.ampere_pruning_method != "disabled":
+            patched_count += 4 * layers_count
+
+        if dense_pruning_method_parts[0] != "disabled" or self.sparse_args.ampere_pruning_method != "disabled":
+            patched_count += 2 * layers_count
 
         assert (patcher.stats["patched"] == patched_count)
 
