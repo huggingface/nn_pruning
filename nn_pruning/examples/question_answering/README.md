@@ -14,227 +14,122 @@ See the License for the specific language governing permissions and
 limitations under the License.
 -->
 
-## SQuAD
-
-Based on the script [`run_qa.py`](https://github.com/huggingface/transformers/blob/master/examples/question-answering/run_qa.py).
-
-**Note:** This script only works with models that have a fast tokenizer (backed by the 🤗 Tokenizers library) as it
-uses special features of those tokenizers. You can check if your favorite model has a fast tokenizer in
-[this table](https://huggingface.co/transformers/index.html#bigtable), if it doesn't you can still use the old version
-of the script.
-
-The old version of this script can be found [here](https://github.com/huggingface/transformers/blob/master/examples/contrib/legacy/question-answering/run_squad.py).
-
 #### Fine-tuning BERT on SQuAD1.0
 
-This example code fine-tunes BERT on the SQuAD1.0 dataset. It runs in 24 min (with BERT-base) or 68 min (with BERT-large)
-on a single tesla V100 16GB.
+First install the nn_pruning repository, then you can use the `nn_pruning_run` command:
 
-```bash
-python run_qa.py \
-  --model_name_or_path bert-base-uncased \
-  --dataset_name squad \
-  --do_train \
-  --do_eval \
-  --per_device_train_batch_size 12 \
-  --learning_rate 3e-5 \
-  --num_train_epochs 2 \
-  --max_seq_length 384 \
-  --doc_stride 128 \
-  --output_dir /tmp/debug_squad/
+nn_pruning_run examples fine-prune \[OPTIONS\] squadv1 OUTPUT_DIR
+
+In \[OPTIONS\], the parameters are, by decreasing order of importance:
+
+**--model-name-or-path** Default is a BERT-base `bert-base-uncased` but you can try `bert-large-uncased` too 
+
+**--regularization-final-lambda** You can try values between ~2.5 and ~40 to select different levels of sparsity with
+different levels of precision. 2.5 will give the most precise network with low level of sparsity,
+ 40 a high level of sparsity with lower precision.
+ 
+**--distil-teacher-name-or-path** The default value is a BERT-large network `bert-large-uncased-whole-word-masking-finetuned-squad`,
+ if you don't have enough memory you can use `csarron/bert-base-uncased-squad-v1` which is a BERT-base network.
+ 
+**--per-device-train-batch-size** To adjust batch size according to your available memory
+
+**--dense-lambda** If >1, it will increases FFn layers sparsity, if <1, it will decrease it.
+You may want to try different lambdas to have slightly different networks, but 1 is usually a good choice.
+
+**--parameters** If you want to change any other parameters, you can pass a json file containing all the parameters you want.
+ All other options will be the ignored, except of course `OUTPUT_DIR`.  The name of the parameters and their types and values are defined in 
+`nn_pruning.patch_coordinator.SparseTrainingArguments`, and in `nn_pruning.examples.xp` with the `ModelArguments`,
+`DataTrainingArguments` and `XPTrainingArguments` dataclasses.
+
+A json with all parameters that leads to a very good network:
 ```
-
-Training with the previously defined hyper-parameters yields the following results:
-
-```bash
-f1 = 88.52
-exact_match = 81.22
-```
-
-#### Distributed training
-
-
-Here is an example using distributed training on 8 V100 GPUs and Bert Whole Word Masking uncased model to reach a F1 > 93 on SQuAD1.1:
-
-```bash
-python -m torch.distributed.launch --nproc_per_node=8 ./examples/question-answering/run_squad.py \
-    --model_name_or_path bert-large-uncased-whole-word-masking \
-    --dataset_name squad \
-    --do_train \
-    --do_eval \
-    --learning_rate 3e-5 \
-    --num_train_epochs 2 \
-    --max_seq_length 384 \
-    --doc_stride 128 \
-    --output_dir ./examples/models/wwm_uncased_finetuned_squad/ \
-    --per_device_eval_batch_size=3   \
-    --per_device_train_batch_size=3   \
-```
-
-Training with the previously defined hyper-parameters yields the following results:
-
-```bash
-f1 = 93.15
-exact_match = 86.91
-```
-
-This fine-tuned model is available as a checkpoint under the reference
-[`bert-large-uncased-whole-word-masking-finetuned-squad`](https://huggingface.co/bert-large-uncased-whole-word-masking-finetuned-squad).
-
-#### Fine-tuning XLNet with beam search on SQuAD
-
-This example code fine-tunes XLNet on both SQuAD1.0 and SQuAD2.0 dataset.
-
-##### Command for SQuAD1.0:
-
-```bash
-python run_qa_beam_search.py \
-    --model_name_or_path xlnet-large-cased \
-    --dataset_name squad \
-    --do_train \
-    --do_eval \
-    --learning_rate 3e-5 \
-    --num_train_epochs 2 \
-    --max_seq_length 384 \
-    --doc_stride 128 \
-    --output_dir ./wwm_cased_finetuned_squad/ \
-    --per_device_eval_batch_size=4  \
-    --per_device_train_batch_size=4   \
-    --save_steps 5000
-```
-
-##### Command for SQuAD2.0:
-
-```bash
-export SQUAD_DIR=/path/to/SQUAD
-
-python run_qa_beam_search.py \
-    --model_name_or_path xlnet-large-cased \
-    --dataset_name squad_v2 \
-    --do_train \
-    --do_eval \
-    --version_2_with_negative \
-    --learning_rate 3e-5 \
-    --num_train_epochs 4 \
-    --max_seq_length 384 \
-    --doc_stride 128 \
-    --output_dir ./wwm_cased_finetuned_squad/ \
-    --per_device_eval_batch_size=2  \
-    --per_device_train_batch_size=2   \
-    --save_steps 5000
-```
-
-Larger batch size may improve the performance while costing more memory.
-
-##### Results for SQuAD1.0 with the previously defined hyper-parameters:
-
-```python
 {
-"exact": 85.45884578997162,
-"f1": 92.5974600601065,
-"total": 10570,
-"HasAns_exact": 85.45884578997162,
-"HasAns_f1": 92.59746006010651,
-"HasAns_total": 10570
-}
+        "adam_beta1": 0.9,
+        "adam_beta2": 0.999,
+        "adam_epsilon": 1e-08,
+        "ampere_pruning_method": "disabled",
+        "attention_block_cols": 32,
+        "attention_block_rows": 32,
+        "attention_lambda": 1.0,
+        "attention_output_with_dense": 0,
+        "attention_pruning_method": "sigmoied_threshold",
+        "bias_mask": True,
+        "dataloader_drop_last": False,
+        "dataloader_num_workers": 0,
+        "dataset_cache_dir": "dataset_cache",
+        "dataset_name": "squad",
+        "debug": False,
+        "dense_block_cols": 1,
+        "dense_block_rows": 1,
+        "dense_lambda": 1.0,
+        "dense_pruning_method": "sigmoied_threshold:1d_alt",
+        "disable_tqdm": False,
+        "distil_alpha_ce": 0.1,
+        "distil_alpha_teacher": 0.9,
+        "distil_teacher_name_or_path": "bert-large-uncased-whole-word-masking-finetuned-squad",
+        "distil_temperature": 2.0,
+        "doc_stride": 128,
+        "do_eval": 1,
+        "do_predict": False,
+        "do_train": 1,
+        "evaluation_strategy": "epoch",
+        "eval_steps": 500,
+        "final_ampere_temperature": 20.0,
+        "final_finetune": 0,
+        "final_threshold": 0.1,
+        "final_warmup": 10,
+        "fp16": False,
+        "fp16_opt_level": "O1",
+        "fp16_backend": "auto",
+        "gradient_accumulation_steps": 1,
+        "ignore_data_skip": False,
+        "initial_ampere_temperature": 0.0,
+        "initial_threshold": 0,
+        "initial_warmup": 1,
+        "learning_rate": 3e-05,
+        "load_best_model_at_end": False,
+        "local_rank": -1,
+        "logging_first_step": False,
+        "logging_steps": 500,
+        "mask_init": "constant",
+        "mask_scale": 0.0,
+        "mask_scores_learning_rate": 0.01,
+        "max_answer_length": 30,
+        "max_grad_norm": 1.0,
+        "max_seq_length": 384,
+        "max_steps": -1,
+        "model_name_or_path": "bert-base-uncased",
+        "model_parallel": False,
+        "n_best_size": 20,
+        "no_cuda": False,
+        "null_score_diff_threshold": 0.0,
+        "num_train_epochs": 20,
+        "optimize_model_before_eval": "disabled",
+        "overwrite_cache": 0,
+        "overwrite_output_dir": 1,
+        "pad_to_max_length": True,
+        "past_index": -1,
+        "per_device_eval_batch_size": 32,
+        "per_device_train_batch_size": 16,
+        "prediction_loss_only": False,
+        "regularization": "l1",
+        "regularization_final_lambda": 10.0,
+        "remove_unused_columns": True,
+        "save_steps": 5000,
+        "save_total_limit": 50,
+        "seed": 17,
+        "sharded_ddp": False,
+        "tpu_metrics_debug": False,
+        "version_2_with_negative": False,
+        "warmup_steps": 5400,
+        "weight_decay": 0.0,
+        'tokenizer_name': None,
+        'use_fast_tokenizer': True,
+        'layer_norm_patch': False,
+        'gelu_patch':False,
+    }
 ```
-
-##### Results for SQuAD2.0 with the previously defined hyper-parameters:
-
-```python
-{
-"exact": 80.4177545691906,
-"f1": 84.07154997729623,
-"total": 11873,
-"HasAns_exact": 76.73751686909581,
-"HasAns_f1": 84.05558584352873,
-"HasAns_total": 5928,
-"NoAns_exact": 84.0874684608915,
-"NoAns_f1": 84.0874684608915,
-"NoAns_total": 5945
-}
-```
-
-#### Fine-tuning BERT on SQuAD1.0 with relative position embeddings
-
-The following examples show how to fine-tune BERT models with different relative position embeddings. The BERT model 
-`bert-base-uncased` was pretrained with default absolute position embeddings. We provide the following pretrained 
-models which were pre-trained on the same training data (BooksCorpus and English Wikipedia) as in the BERT model 
-training, but with different relative position embeddings. 
-
-* `zhiheng-huang/bert-base-uncased-embedding-relative-key`, trained from scratch with relative embedding proposed by 
-Shaw et al., [Self-Attention with Relative Position Representations](https://arxiv.org/abs/1803.02155)
-* `zhiheng-huang/bert-base-uncased-embedding-relative-key-query`, trained from scratch with relative embedding method 4 
-in Huang et al. [Improve Transformer Models with Better Relative Position Embeddings](https://arxiv.org/abs/2009.13658)
-* `zhiheng-huang/bert-large-uncased-whole-word-masking-embedding-relative-key-query`, fine-tuned from model 
-`bert-large-uncased-whole-word-masking` with 3 additional epochs with relative embedding method 4 in Huang et al. 
-[Improve Transformer Models with Better Relative Position Embeddings](https://arxiv.org/abs/2009.13658)
+ 
 
 
-##### Base models fine-tuning
 
-```bash
-export CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7
-python -m torch.distributed.launch --nproc_per_node=8 ./examples/question-answering/run_squad.py \
-    --model_name_or_path zhiheng-huang/bert-base-uncased-embedding-relative-key-query \
-    --dataset_name squad \
-    --do_train \
-    --do_eval \
-    --learning_rate 3e-5 \
-    --num_train_epochs 2 \
-    --max_seq_length 512 \
-    --doc_stride 128 \
-    --output_dir relative_squad \
-    --per_device_eval_batch_size=60 \
-    --per_device_train_batch_size=6
-```
-Training with the above command leads to the following results. It boosts the BERT default from f1 score of 88.52 to 90.54.
-
-```bash
-'exact': 83.6802270577105, 'f1': 90.54772098174814
-```
-
-The change of `max_seq_length` from 512 to 384 in the above command leads to the f1 score of 90.34. Replacing the above 
-model `zhiheng-huang/bert-base-uncased-embedding-relative-key-query` with 
-`zhiheng-huang/bert-base-uncased-embedding-relative-key` leads to the f1 score of 89.51. The changing of 8 gpus to one 
-gpu training leads to the f1 score of 90.71.
-
-##### Large models fine-tuning
-
-```bash
-export CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7
-python -m torch.distributed.launch --nproc_per_node=8 ./examples/question-answering/run_squad.py \
-    --model_name_or_path zhiheng-huang/bert-large-uncased-whole-word-masking-embedding-relative-key-query \
-    --dataset_name squad \
-    --do_train \
-    --do_eval \
-    --learning_rate 3e-5 \
-    --num_train_epochs 2 \
-    --max_seq_length 512 \
-    --doc_stride 128 \
-    --output_dir relative_squad \
-    --per_gpu_eval_batch_size=6 \
-    --per_gpu_train_batch_size=2 \
-    --gradient_accumulation_steps 3
-```
-Training with the above command leads to the f1 score of 93.52, which is slightly better than the f1 score of 93.15 for 
-`bert-large-uncased-whole-word-masking`.
-
-## SQuAD with the Tensorflow Trainer
-
-```bash
-python run_tf_squad.py \
-    --model_name_or_path bert-base-uncased \
-    --output_dir model \
-    --max_seq_length 384 \
-    --num_train_epochs 2 \
-    --per_gpu_train_batch_size 8 \
-    --per_gpu_eval_batch_size 16 \
-    --do_train \
-    --logging_dir logs \    
-    --logging_steps 10 \
-    --learning_rate 3e-5 \
-    --doc_stride 128    
-```
-
-For the moment evaluation is not available in the Tensorflow Trainer only the training.

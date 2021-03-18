@@ -34,8 +34,10 @@ class ThresholdBinarizer(autograd.Function):
     """
 
     @staticmethod
-    def forward(ctx, inputs: torch.tensor, threshold: float, sigmoid: bool):
+    def forward(ctx, inputs: torch.tensor, threshold: float, sigmoid: bool, min_elements: float=0.005):
         """
+        We limit by default the pruning so that at least 0.5% (half a percent) of the weights are remaining (min_elements)
+        If you set min_elements to zero, no minimal number of elements will be enforced.
         Args:
             inputs (`torch.FloatTensor`)
                 The input matrix from which the binarizer computes the binary mask.
@@ -50,13 +52,15 @@ class ThresholdBinarizer(autograd.Function):
                 retained, 0 - the associated weight is pruned).
         """
         nb_elems = inputs.numel()
-        nb_min = int(0.005 * nb_elems) + 1
+        if min_elements != 0:
+            nb_min = int(min_elements * nb_elems) + 1
+        else:
+            nb_min = 0
         if sigmoid:
             mask = (torch.sigmoid(inputs) > threshold).type(inputs.type())
         else:
             mask = (inputs > threshold).type(inputs.type())
         if mask.sum() < nb_min:
-            # We limit the pruning so that at least 0.5% (half a percent) of the weights are remaining
             k_threshold = inputs.flatten().kthvalue(max(nb_elems - nb_min, 1)).values
             mask = (inputs > k_threshold).type(inputs.type())
         return mask

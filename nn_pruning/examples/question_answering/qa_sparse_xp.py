@@ -125,8 +125,10 @@ class SparseQAShortNamer(TrialShortNamer):
         'tokenizer_name': None,
         'use_fast_tokenizer': True,
         'layer_norm_patch': False,
+        'layer_norm_patch_steps': 50000,
+        'layer_norm_patch_start_delta': 0.99,
         'gelu_patch':False,
-    }
+        'gelu_patch_steps': 50000}
 
 
 class QASparseXP(SparseXP, QAXP):

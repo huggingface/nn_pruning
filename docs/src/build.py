@@ -7,13 +7,13 @@ import json
 from nn_pruning.analysis.create_model import Packager
 
 class DocBuilder:
-    def __init__(self):
+    def __init__(self, file_name):
         self.docs_path = Path(__file__).parent.parent
         self.git_path = self.docs_path.parent
         self.models_path = self.git_path.parent / "models"
         self.media_path = self.docs_path / "assets" / "media"
         self.path = Path(__file__).parent / "files"
-        print(self.docs_path)
+        self.file_name = file_name
 
     # From https://www.aclweb.org/anthology/N19-1423.pdf Table 2
     # From https://huggingface.co/csarron/bert-base-uncased-squad-v1
@@ -57,8 +57,63 @@ class DocBuilder:
         )
         return self.markdown_string(writer)
 
-    def build_bert_performance(self):
 
+    def _build_network(self, base_info, name, model_name):
+        network_path = self.models_path / "madlag" / name / "model_card"
+        base_info[f"models_{name}_pruning_info"] = self.read_media_file(f"squadv1/models/{name}/pruning_info.html")
+        base_info[f"models_{name}_density_info"] = self.read_media_file(f"squadv1/models/{name}/density_info.html")
+
+
+    def run(self):
+        template = jinja2.Template(self.open(self.file_name + ".jinja.md").read())
+
+        variables = {}
+
+        def remove_empty_lines(s):
+            s = s.split("\n")
+            s = filter(lambda x : len(x) != 0, s)
+            return "\n".join(s)
+
+        def graph_create(title, part, name):
+            media_path = variables["media_path"]
+            html = variables[part.replace("/", "_")][name.replace("/", "_")]
+            html = html.replace("$$JS_PATH$$", f"{media_path}/{part}/{name}.js")
+            html = remove_empty_lines(html)
+
+            if variables["github_readme"]:
+                ret = f"![{title}]({media_path}/{part}/{name}.png)"
+            else:
+                ret = f'<div class="graph">{html}</div>'
+
+            return ret
+
+        template.globals['graph'] = graph_create
+
+        prefix = "build_"
+        report = {}
+        for name in dir(self):
+            if name.startswith(prefix):
+                key = name[len(prefix):]
+                report[key] = getattr(self, name)()
+
+        variations = [dict(path=self.git_path, github_readme=True, media_path="docs/assets/media"),
+                      dict(path=self.docs_path, github_readme=False, media_path="assets/media")]
+
+        for variation in variations:
+            with (variation["path"] / (self.file_name + ".md")).open("w") as readme_file:
+                variables.clear()
+                variables.update(variation)
+                variables.update(report)
+                variables["file_name"] = self.file_name
+                ret = template.render(**variables)
+                readme_file.write(ret)
+
+
+class ReadmeDocBuilder(DocBuilder):
+    def __init__(self):
+        super().__init__(file_name = "README")
+
+    def build_bert_performance(self):
         ret = {}
         for task in ["squadv1", "mnli"]:
             values = []
@@ -69,7 +124,6 @@ class DocBuilder:
             headers = ["BERT version"] + list(self.TASK_METRICS[task].values())
             ret[task]=self.markdown_table_string(f"BERT {task.capitalize()} performance", headers, values)
         return ret
-
 
     def bold_line(self, line):
         return ["**" + str(v) + "**" for v in line]
@@ -153,12 +207,6 @@ class DocBuilder:
                     graphs_summary_speedup=speedup_html,
                     graphs_summary_fill_rate=summary_fill_rate_html)
 
-    def _build_network(self, base_info, name, model_name):
-        network_path = self.models_path / "madlag" / name / "model_card"
-        base_info[f"models_{name}_pruning_info"] = self.read_media_file(f"squadv1/models/{name}/pruning_info.html")
-        base_info[f"models_{name}_density_info"] = self.read_media_file(f"squadv1/models/{name}/density_info.html")
-
-
     def build_squadv1(self):
         ret = self.part_build("squadv1")
         self._build_network(ret, "network_filled", "bert-base-uncased-squadv1-x2.44-f87.7-d26-hybrid-filled-v1")
@@ -167,51 +215,12 @@ class DocBuilder:
     def build_mnli(self):
         return self.part_build("mnli")
 
-    def run(self):
-        template = jinja2.Template(self.open("README.jinja.md").read())
-
-        variables = {}
-
-        def remove_empty_lines(s):
-            s = s.split("\n")
-            s = filter(lambda x : len(x) != 0, s)
-            return "\n".join(s)
-
-        def graph_create(title, part, name):
-            media_path = variables["media_path"]
-            html = variables[part.replace("/", "_")][name.replace("/", "_")]
-            html = html.replace("$$JS_PATH$$", f"{media_path}/{part}/{name}.js")
-            html = remove_empty_lines(html)
-
-            if variables["github_readme"]:
-                ret = f"![{title}]({media_path}/{part}/{name}.png)"
-            else:
-                ret = f'<div class="graph">{html}</div>'
-
-            return ret
-
-        template.globals['graph'] = graph_create
-
-        prefix = "build_"
-        report = {}
-        for name in dir(self):
-            if name.startswith(prefix):
-                key = name[len(prefix):]
-                report[key] = getattr(self, name)()
-
-        variations = [dict(path=self.git_path, github_readme=True, media_path="docs/assets/media"),
-                      dict(path=self.docs_path, github_readme=False, media_path="assets/media")]
-
-        for variation in variations:
-            with (variation["path"] / "README.md").open("w") as readme_file:
-                variables.clear()
-                variables.update(variation)
-                variables.update(report)
-                ret = template.render(**variables)
-                readme_file.write(ret)
+class ResearchReportDocBuilder(DocBuilder):
+    def __init__(self):
+        super().__init__(file_name = "RESEARCH_REPORT")
 
 
 if __name__ == "__main__":
-    db = DocBuilder()
-    db.run()
+    ReadmeDocBuilder().run()
+    ResearchReportDocBuilder().run()
 

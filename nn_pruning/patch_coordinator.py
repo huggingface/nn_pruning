@@ -31,9 +31,13 @@ from .modules.masked_nn import (
     JointPruningModulePatcher,
     LinearPruningModulePatcher,
     LinearPruningArgs,
-    MaskedLinearModelCompiler
+    MaskedLinear,
+    MaskedLinearModelCompiler,
+    GenericLinearPruningContextModule
 )
-from .modules.nonorm import NoNormCompiler
+from .modules.nonorm import NoNormCompiler, Layer2NoNormPatcher
+from .modules.gelu2relu import GeLU2ReLUModelPatcher
+
 from nn_pruning.training_patcher import (
     BertLinearModelPatcher,
     PatcherContext,
@@ -56,7 +60,7 @@ class SparseTrainingArguments:
 
     ampere_pruning_method: str = field(
         default="disabled",
-        metadata={"help": "Ampere sparse method ('disabled' for no ampere sparsity)"},
+        metadata={"help": "Ampere sparse method ('disabled' for no ampere sparsity, topK, annealing, sigmoied_threshold, threshold)"},
     )
 
     attention_output_with_dense: bool = field(
@@ -181,6 +185,19 @@ class SparseTrainingArguments:
             "help": "Transform the LayerNorms in a MobileBert NoNorm"
         },
     )
+    layer_norm_patch_steps: int = field(
+        default=50000,
+        metadata={
+            "help": "Number of steps for the transition from LayerNorm to NoNorm"
+        },
+    )
+
+    layer_norm_patch_start_delta: int = field(
+        default=0.99,
+        metadata={
+            "help": "Starting smoothing factor for transition from LayerNorm to NoNorm (final is 1.0)."
+        },
+    )
 
     gelu_patch: bool = field(
         default=False,
@@ -189,6 +206,12 @@ class SparseTrainingArguments:
         },
     )
 
+    gelu_patch_steps: int = field(
+        default=50000,
+        metadata={
+            "help": "Number of steps for the transition from GeLU to ReLU"
+        },
+    )
 
 class ModelPatchingCoordinator:
     MODEL_STRUCTURE = BertStructure
@@ -280,9 +303,32 @@ class ModelPatchingCoordinator:
 
         context_data = dict(
             threshold=threshold,
-            ampere_temperature=ampere_temperature,
             regu_lambda=regu_lambda,
+            ampere_temperature = ampere_temperature
         )
+
+        def interp(a,b, interpf):
+            return a * interpf + (1.0 - interpf) * b
+
+        if sparse_args.layer_norm_patch:
+            interpf = 0.0
+            layer_norm_patch_steps = sparse_args.layer_norm_patch_steps
+            if step < layer_norm_patch_steps:
+                interpf = 1.0 - (step / layer_norm_patch_steps)
+
+            delta = interp(sparse_args.layer_norm_patch_start_delta, 1.0, interpf)
+            mix = interpf
+
+            context_data["layernorm_to_nonorm_delta"] = delta
+            context_data["layernorm_to_nonorm_mix"] = mix
+
+        if sparse_args.gelu_patch:
+            interpf = 0.0
+            gelu_patch_steps = sparse_args.gelu_patch_steps
+            if step < gelu_patch_steps:
+                interpf = 1.0 - (step / gelu_patch_steps)
+
+            context_data["gelu_to_relu_mix"] = interpf
 
         self.patcher_context.set_context_data_dict(context_data)
 
@@ -297,27 +343,21 @@ class ModelPatchingCoordinator:
             threshold = self.patcher_context.get_context_data("threshold")
 
         for name, module in model.named_modules():
+            module_regu = 0
+            module_nnz_info = {"nnz":0, "numel":0}
+            nummod = 1
             if mode not in regul_modes:
                 if isinstance(module, nn.Linear):
                     weight = module.weight
-                    module_regu = 0
-                    module_nnz = (weight != 0).sum()
-                    numel = weight.numel()
+                    module_nnz_info["nnz"] = (weight != 0).sum()
+                    module_nnz_info["numel"] = weight.numel()
                 else:
                     continue
-            elif isinstance(module, PatcherContextModule):
-                param = module.mask_scores
-                numel = param.numel()
-
-                if mode == "l1":
-                    module_regu = torch.norm(torch.sigmoid(param), p=1) / numel
-                    module_nnz = (torch.sigmoid(param) > threshold).sum().item()
-                elif mode == "l0":
-                    assert(False)
-                    module_regu = torch.sigmoid(param - 2 / 3 * np.log(0.1 / 1.1)).sum() / numel
-                    module_nnz = (torch.sigmoid(param - 2 / 3 * np.log(0.1 / 1.1)) > threshold).sum().item()
-                else:
-                    assert(False)
+            elif isinstance(module, GenericLinearPruningContextModule):
+                module_regu = module.regularization(mode)
+            elif isinstance(module, MaskedLinear):
+                module_nnz_info = module.get_sparsity_info()
+                nummod = 0
             else:
                 continue
             # TEMPORARY : use model info to perform this dispatch
@@ -335,14 +375,14 @@ class ModelPatchingCoordinator:
 
             key_info = info[key]
             key_info["regu"] += module_regu
-            key_info["nnz"] += float(module_nnz)
-            key_info["numel"] += numel
-            key_info["nummod"] += 1
+            key_info["nummod"] += nummod
+
+            for k,v in module_nnz_info.items():
+                key_info[k] += float(v)
 
         if mode not in regul_modes:
             lamb = 0
-            lambdas = dict(attention=0,
-                           dense=0)
+            lambdas = dict(attention=0, dense=0)
         else:
             lamb = self.patcher_context.get_context_data("regu_lambda")
 
@@ -355,19 +395,26 @@ class ModelPatchingCoordinator:
             if key == "total":
                 continue
             for k, v in value.items():
-                if k in ["numel", "nnz"]:
+                if k == "numel" or "nnz" in k:
                     info["total"][k] += v
 
         for key, value in info.items():
-            value["nnz_perc"] = value["nnz"] / value["numel"]
-            del value["nnz"]
-            del value["numel"]
+            if value["numel"] != 0:
+                # No patching (no pruning) -> no information on nnz -> dense linear layers
+                value["nnz_perc"] = value["nnz"] / value["numel"]
+            else:
+                value["nnz_perc"] = 1.0
+            for k in "nnz", "numel":
+                if k in value:
+                    del value[k]
             if key == "total":
                 continue
-            value["regu_loss"] = value["regu"] * lambdas[key] / value["nummod"]
-            info["total"]["regu_loss"] += value["regu_loss"]
-            del value["regu"]
-            del value["nummod"]
+            if value["nummod"] != 0:
+                value["regu_loss"] = value["regu"] * lambdas[key] / value["nummod"]
+                info["total"]["regu_loss"] += value["regu_loss"]
+            for k in "regu", "nummod":
+                if k in value:
+                    del value[k]
 
         return info["total"]["regu_loss"], lamb, info
 
@@ -376,7 +423,7 @@ class ModelPatchingCoordinator:
         teacher = self.teacher
 
         if teacher == None:
-            return ce_loss
+            return ce_loss, 0.0
 
         temperature = sparse_args.distil_temperature
 
@@ -446,6 +493,7 @@ class ModelPatchingCoordinator:
 
 
     def patch_model(self, model, trial = None):
+        layers_count = model.config.num_hidden_layers
         attention_pruning_method_parts = self.parse_pruning_method(self.sparse_args.attention_pruning_method)
 
         if hasattr(self.sparse_args, "bias_mask"):
@@ -453,50 +501,55 @@ class ModelPatchingCoordinator:
         else:
             bias_mask = False
 
-        args_attention = LinearPruningArgs(
-            method=attention_pruning_method_parts[0],
-            submethod=attention_pruning_method_parts[1],
-            ampere_method=self.sparse_args.ampere_pruning_method,
-            block_rows=self.sparse_args.attention_block_rows,
-            block_cols=self.sparse_args.attention_block_cols,
-            bias_mask=bias_mask
-        )
+        patcher_context = self.patcher_context
 
-        args_attention_t = LinearPruningArgs(
-            method=attention_pruning_method_parts[0],
-            submethod=attention_pruning_method_parts[1],
-            ampere_method=self.sparse_args.ampere_pruning_method,
-            block_rows=self.sparse_args.attention_block_cols,
-            block_cols=self.sparse_args.attention_block_rows,
-            bias_mask=bias_mask
-        )
+        if attention_pruning_method_parts[0] != "disabled" or self.sparse_args.ampere_pruning_method != "disabled":
+            args_attention = LinearPruningArgs(
+                method=attention_pruning_method_parts[0],
+                submethod=attention_pruning_method_parts[1],
+                ampere_method=self.sparse_args.ampere_pruning_method,
+                block_rows=self.sparse_args.attention_block_rows,
+                block_cols=self.sparse_args.attention_block_cols,
+                bias_mask=bias_mask
+            )
+
+            args_attention_t = LinearPruningArgs(
+                method=attention_pruning_method_parts[0],
+                submethod=attention_pruning_method_parts[1],
+                ampere_method=self.sparse_args.ampere_pruning_method,
+                block_rows=self.sparse_args.attention_block_cols,
+                block_cols=self.sparse_args.attention_block_rows,
+                bias_mask=bias_mask
+            )
+            if args_attention.submethod == "joint":
+                p_attention = JointPruningModulePatcher(patcher_context, args_attention, suffix=".attention")
+                p_attention_t = JointPruningModulePatcher(patcher_context, args_attention_t, suffix=".attention")
+            else:
+                p_attention = LinearPruningModulePatcher(patcher_context, args_attention)
+                p_attention_t = LinearPruningModulePatcher(patcher_context, args_attention_t)
+        else:
+            p_attention = None
+            p_attention_t = None
 
         dense_pruning_method_parts = self.parse_pruning_method(self.sparse_args.dense_pruning_method)
 
-        args_dense = LinearPruningArgs(
-            method=dense_pruning_method_parts[0],
-            submethod=dense_pruning_method_parts[1],
-            ampere_method=self.sparse_args.ampere_pruning_method,
-            block_rows=self.sparse_args.dense_block_rows,
-            block_cols=self.sparse_args.dense_block_cols,
-            bias_mask=bias_mask
-        )
-
-        patcher_context = self.patcher_context
-
-        if args_attention.submethod == "joint":
-            p_attention = JointPruningModulePatcher(patcher_context, args_attention, suffix=".attention")
-            p_attention_t = JointPruningModulePatcher(patcher_context, args_attention_t, suffix=".attention")
-        else:
-            p_attention = LinearPruningModulePatcher(patcher_context, args_attention)
-            p_attention_t = LinearPruningModulePatcher(patcher_context, args_attention_t)
-
-        if args_dense.submethod.startswith("1d"):
-            p_dense = ChannelPruningModulePatcher(
-                patcher_context, args_dense, self.MODEL_STRUCTURE, suffix="dense"
+        if dense_pruning_method_parts[0] != "disabled" or self.sparse_args.ampere_pruning_method != "disabled":
+            args_dense = LinearPruningArgs(
+                method=dense_pruning_method_parts[0],
+                submethod=dense_pruning_method_parts[1],
+                ampere_method=self.sparse_args.ampere_pruning_method,
+                block_rows=self.sparse_args.dense_block_rows,
+                block_cols=self.sparse_args.dense_block_cols,
+                bias_mask=bias_mask
             )
+            if args_dense.submethod.startswith("1d"):
+                p_dense = ChannelPruningModulePatcher(
+                    patcher_context, args_dense, self.MODEL_STRUCTURE, suffix="dense"
+                )
+            else:
+                p_dense = LinearPruningModulePatcher(patcher_context, args_dense)
         else:
-            p_dense = LinearPruningModulePatcher(patcher_context, args_dense)
+            p_dense = None
 
         if not hasattr(self.sparse_args, "attention_output_with_dense") or self.sparse_args.attention_output_with_dense:
             p_att_dense = p_dense
@@ -522,17 +575,39 @@ class ModelPatchingCoordinator:
         else:
             gelu_patch = False
 
-        patcher = BertLinearModelPatcher(module_patchers,
-                                         layer_norm_patch=layer_norm_patch,
-                                         gelu_patch = gelu_patch)
-        patcher.patch(model)
-        print("LAYER NORM PATCH", patcher.stats)
-        if layer_norm_patch:
-            patched_count = 97
-        else:
-            patched_count = 72
+        patcher = BertLinearModelPatcher(module_patchers)
 
-        assert ((patcher.stats["patched"] % patched_count) == 0)
+        patcher.patch(model)
+
+        patched_count = 0
+        if attention_pruning_method_parts[0] != "disabled" or self.sparse_args.ampere_pruning_method != "disabled":
+            patched_count += 4 * layers_count
+
+        if dense_pruning_method_parts[0] != "disabled" or self.sparse_args.ampere_pruning_method != "disabled":
+            patched_count += 2 * layers_count
+
+        assert (patcher.stats["patched"] == patched_count)
+
+        if layer_norm_patch:
+            def schedule_callback():
+                mix = self.patcher_context.get_context_data("layernorm_to_nonorm_mix")
+                delta = self.patcher_context.get_context_data("layernorm_to_nonorm_delta")
+                return dict(mix=mix, delta=delta)
+
+            layer_norm_patcher = Layer2NoNormPatcher(schedule_callback=schedule_callback)
+            layer_norm_patcher.patch(model)
+            layer_norm_patched_count = 2 * layers_count + 1
+            assert (layer_norm_patcher.stats["patched"] == layer_norm_patched_count)
+
+        if gelu_patch:
+            def schedule_callback():
+                mix = self.patcher_context.get_context_data("gelu_to_relu_mix")
+                return dict(mix=mix)
+
+            gelu_patcher = GeLU2ReLUModelPatcher(schedule_callback=schedule_callback)
+            gelu_patcher.patch(model)
+            gelu_patcher_count = layers_count
+            assert (gelu_patcher.stats["patched"] == gelu_patcher_count)
 
         return patcher
 

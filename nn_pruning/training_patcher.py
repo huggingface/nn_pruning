@@ -10,7 +10,6 @@ from nn_pruning.modules.nonorm import Layer2NoNorm
 class PatcherContextModule(nn.Module):
     pass
 
-
 class PatcherContext:
     def __init__(self):
         self.context_modules: Dict = {}
@@ -102,31 +101,19 @@ class ModulePatcher:
 
 
 class ModelDispatchingPatcher(ModelPatcher):
-    def __init__(self, layer_norm_patch, gelu_patch):
+    def __init__(self):
         super().__init__()
-        self.layer_norm_patch = layer_norm_patch
-        self.gelu_patch = gelu_patch
-        if self.layer_norm_patch:
-            self.add_pattern(".*.LayerNorm", {})
 
     def add_patcher(self, pattern: str, patcher: ModulePatcher):
         patch_info = dict(patcher=patcher)
         super().add_pattern(pattern, patch_info)
 
     def new_child_module(self, child_module_name: str, child_module: nn.Module, patch_info: Dict):
-        if isinstance(child_module, nn.LayerNorm):
-            assert(self.layer_norm_patch)
-            return Layer2NoNorm(child_module)
-        else:
+        if patch_info.get("patcher") is not None:
             return patch_info["patcher"].patch_and_connect(child_module_name, child_module)
 
     def is_patchable(self, module_name, module, raiseError):
-        is_patchable = isinstance(module, nn.Linear)
-        if self.layer_norm_patch:
-            is_patchable = is_patchable or isinstance(module, nn.LayerNorm)
-        if self.gelu_patch:
-            is_patchable = is_patchable or isinstance(module, nn.GELU)
-        return is_patchable
+        return isinstance(module, nn.Linear)
 
 class BertLinearModelPatcher(ModelDispatchingPatcher):
     PATTERN_PREFIX = "bert.encoder.layer.[0-9]+."
@@ -139,8 +126,8 @@ class BertLinearModelPatcher(ModelDispatchingPatcher):
         output_dense="output.dense",
     )
 
-    def __init__(self, patchers: Dict[str, ModulePatcher], layer_norm_patch, gelu_patch):
-        super().__init__(layer_norm_patch, gelu_patch)
+    def __init__(self, patchers: Dict[str, ModulePatcher]):
+        super().__init__()
         for layer_type, patcher in patchers.items():
             layer_pattern = (self.PATTERN_PREFIX + self.LAYERS_PATTERNS[layer_type]).replace(".", "\.")
             self.add_patcher(layer_pattern, patcher)

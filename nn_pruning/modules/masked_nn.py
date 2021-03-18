@@ -40,6 +40,7 @@ from nn_pruning.training_patcher import (
 )
 
 from .binarizer import MagnitudeBinarizer, ThresholdBinarizer, TopKBinarizer
+import numpy
 
 sparse_patterns = None
 
@@ -56,7 +57,8 @@ class RuntimeLinearPruningArgs:
     ampere_method: str
     block_rows: int
     block_cols: int
-    bias_mask:bool = False
+    bias_mask: bool = False
+
 
 @dataclass
 class InitDirective:
@@ -87,6 +89,18 @@ class GenericLinearPruningContextModule(PatcherContextModule):
         elif mask_init == "kaiming":
             init.kaiming_uniform_(mask_scores, a=math.sqrt(5))
 
+    def regularization(self, method):
+        mask_scores = self.mask_scores
+        numel = mask_scores.numel()
+        if method == "l1":
+            module_regu = torch.norm(torch.sigmoid(mask_scores), p=1) / numel
+        elif method == "l0":
+            module_regu = torch.sigmoid(mask_scores - 2 / 3 * numpy.log(0.1 / 1.1)).sum() / numel
+        else:
+            assert False
+
+        return module_regu
+
 
 class LinearPruningContextModule(GenericLinearPruningContextModule):
     def __init__(self, shape, args: LinearPruningArgs):
@@ -100,12 +114,14 @@ class LinearPruningContextModule(GenericLinearPruningContextModule):
             shape[1] // _p.block_cols,
         )
 
+
 class BlockLinearPruningContextModule(LinearPruningContextModule):
     def __init__(self, shape, args: LinearPruningArgs):
         super().__init__(shape, args)
         assert args.submethod == "default"
         self.mask_scores = nn.Parameter(torch.Tensor(size=self.mask_size))
         self.init_masks(self.args.mask_init)
+
 
 class SingleDimensionLinearPruningContextModule(LinearPruningContextModule):
     def __init__(self, shape, is_row, args: LinearPruningArgs):
@@ -162,17 +178,36 @@ class AmpereMaskModule(nn.Module):
         return sparse_patterns
 
     @staticmethod
-    def sigmoied_threshold_mask(mask_scores, threshold, sigmoid, train):
-        assert ((mask_scores.shape[1] % 4) == 0)
+    def get_final_mask(mask_scores, pattern_n, pattern_m):
+        assert (mask_scores.shape[1] % pattern_m) == 0
 
-        mask_scores_4 = mask_scores.reshape(mask_scores.shape[0], mask_scores.shape[1] // 4, 4)
-        top = torch.topk(mask_scores_4, 2, dim=2, largest=True)
-        top_mask = torch.zeros_like(mask_scores_4, device=mask_scores.device)
-        top_mask = top_mask.scatter(2, top.indices, True)
+        mask_scores_m = mask_scores.reshape(mask_scores.shape[0], mask_scores.shape[1] // pattern_m, pattern_m)
+        # print(f"ampere mask scores range [{mask_scores.min().item()}, {mask_scores.max().item()}]")
+        top = torch.topk(mask_scores_m, pattern_n, dim=2, largest=True)
+        top_mask = torch.zeros_like(mask_scores_m, device=mask_scores.device)
+        top_mask = top_mask.scatter(2, top.indices, 1.0)
         top_mask = top_mask.reshape_as(mask_scores)
 
+        return top_mask
+
+    @staticmethod
+    def sigmoied_threshold_mask(mask_scores, threshold, sigmoid, train):
+        top_mask = AmpereMaskModule.get_final_mask(mask_scores, 2, 4)
+
         if train:
-            mask = ThresholdBinarizer.apply(mask_scores, threshold, sigmoid)
+            mask = ThresholdBinarizer.apply(mask_scores, threshold, sigmoid, min_elements = 0)
+            ret = torch.max(mask, top_mask)
+        else:
+            ret = top_mask
+
+        return ret
+
+    @staticmethod
+    def topk_mask(mask_scores, threshold, train):
+        top_mask = AmpereMaskModule.get_final_mask(mask_scores, 2, 4)
+
+        if train:
+            mask = TopKBinarizer.apply(mask_scores, threshold)
             ret = torch.max(mask, top_mask)
         else:
             ret = top_mask
@@ -199,6 +234,12 @@ class AmpereMaskModule(nn.Module):
                 self.context_module.mask_scores,
                 ampere_temperature,
                 "sigmoied" in self.method,
+                self.training,
+            )
+        elif self.method == "topK":
+            return self.topk_mask(
+                self.context_module.mask_scores,
+                ampere_temperature,
                 self.training,
             )
         elif self.method == "annealing":
@@ -238,6 +279,9 @@ class MaskModule(nn.Module):
         training,
     ):
         method = args.method
+        if method == "disabled":
+            return None
+
         submethod = args.submethod
         if submethod.startswith("1d"):
             dividers = args.block_rows, args.block_cols
@@ -266,6 +310,8 @@ class MaskModule(nn.Module):
                 s = torch.sigmoid(mask_scores)
             s_bar = s * (r - l) + l
             mask = s_bar.clamp(min=0.0, max=1.0)
+        else:
+            raise NotImplementedError(f"Unknown method {method}")
 
         if method not in "magnitude":
             # Expand block mask to individual element mask
@@ -304,21 +350,39 @@ class MaskedLinear(ReplacementModule):
             self.ampere_module = AmpereMaskModule(ampere_context_module, args)
         self.args = args
 
+    def nnz(self, m):
+        return int((m != 0).sum().item())
+
     def get_masked_weights_bias(self):
         threshold = self.get_context_data("threshold")
         mask = self.mask_module(self.weight, threshold)
+
+        if mask is not None:
+            self.mask_nnz = self.nnz(mask)
+        else:
+            self.mask_nnz = self.weight.numel()
+
         if self.args.ampere_method != "disabled":
             ampere_temperature = self.get_context_data("ampere_temperature")
             ampere_mask = self.ampere_module(ampere_temperature)
-            if mask.shape != ampere_mask.shape:
+            if mask is not None and mask.shape != ampere_mask.shape:
                 raise Exception("Shape mismatch")
-            mask = mask * ampere_mask
+            self.ampere_nnz = self.nnz(ampere_mask)
+            if mask is not None:
+                mask = mask * ampere_mask
+            else:
+                mask = ampere_mask
+            self.base_mask_nnz = self.mask_nnz
+            self.mask_nnz = self.nnz(mask)
 
-        masked_weights = mask * self.weight
+        if mask is not None:
+            masked_weights = mask * self.weight
+        else:
+            masked_weights = self.weight
 
         bias = self.bias
         if bias is not None:
-            if self.args.bias_mask:
+            if self.args.bias_mask and mask is not None:
                 bias = bias * (mask != 0).any(1)
 
         return masked_weights, bias
@@ -327,6 +391,13 @@ class MaskedLinear(ReplacementModule):
         masked_weights, bias = self.get_masked_weights_bias()
         # Compute output (linear layer) with masked weights
         return F.linear(input, masked_weights, bias)
+
+    def get_sparsity_info(self):
+        ret = {"numel": self.weight.numel(), "nnz": self.mask_nnz}
+
+        if self.args.ampere_method != "disabled":
+            ret.update({"base_nnz": self.base_mask_nnz, "ampere_nnz": self.ampere_nnz})
+        return ret
 
     def compile(self):
         masked_weights, bias = self.get_masked_weights_bias()
@@ -354,7 +425,7 @@ class LinearPruningModulePatcher(ModulePatcher):
         method = args.method
         submethod = args.submethod
         ampere_method = args.ampere_method
-        PRUNING_METHODS = ["topK", "threshold", "sigmoied_threshold", "magnitude", "l0"]
+        PRUNING_METHODS = ["disabled", "topK", "threshold", "sigmoied_threshold", "magnitude", "l0"]
         if method not in PRUNING_METHODS:
             raise RuntimeError(f"Unknown pruning method '{method}', should be in {PRUNING_METHODS}")
 
@@ -362,7 +433,7 @@ class LinearPruningModulePatcher(ModulePatcher):
         if submethod not in PRUNING_SUB_METHODS:
             raise RuntimeError(f"Unknown pruning sub method '{submethod}', should be in {PRUNING_SUB_METHODS}")
 
-        AMPERE_METHODS = ["disabled", "annealing", "sigmoied_threshold"]
+        AMPERE_METHODS = ["disabled", "annealing", "sigmoied_threshold", "topK"]
         if ampere_method not in AMPERE_METHODS:
             raise RuntimeError(f"Unknown ampere pruning method '{ampere_method}', should be in {AMPERE_METHODS}")
 
@@ -383,18 +454,21 @@ class LinearPruningModulePatcher(ModulePatcher):
             raise RuntimeError(f"Unknown context module kind {prefix}")
 
     def patch(self, child_module_name, child_module):
-        if self.args.submethod.startswith("1d"):
-            mask_row = self.get_context_module(child_module_name, child_module, kind="mask_row", row=True)
-            mask_col = self.get_context_module(child_module_name, child_module, kind="mask_col", row=False)
-            shape = child_module.weight.shape
-            if mask_row is not None:
-                assert mask_row.mask_scores.shape[0] == shape[0] // self.args.block_rows
-            if mask_col is not None:
-                assert mask_col.mask_scores.shape[0] == shape[1] // self.args.block_cols
-            mask_context_modules = [mask_row, mask_col]
+        if self.args.method != "disabled":
+            if self.args.submethod.startswith("1d"):
+                mask_row = self.get_context_module(child_module_name, child_module, kind="mask_row", row=True)
+                mask_col = self.get_context_module(child_module_name, child_module, kind="mask_col", row=False)
+                shape = child_module.weight.shape
+                if mask_row is not None:
+                    assert mask_row.mask_scores.shape[0] == shape[0] // self.args.block_rows
+                if mask_col is not None:
+                    assert mask_col.mask_scores.shape[0] == shape[1] // self.args.block_cols
+                mask_context_modules = [mask_row, mask_col]
+            else:
+                mask_context_module = self.get_context_module(child_module_name, child_module, kind="mask")
+                mask_context_modules = [mask_context_module]
         else:
-            mask_context_module = self.get_context_module(child_module_name, child_module, kind="mask")
-            mask_context_modules = [mask_context_module]
+            mask_context_modules = []
 
         if self.args.ampere_method != "disabled":
             ampere_context_module = self.get_context_module(child_module_name, child_module, kind="ampere_mask")
@@ -453,6 +527,7 @@ class ChannelPruningModulePatcher(LinearPruningModulePatcher):
             return ("mask_1d", f"{layer_number}.{position+offset}.{self.suffix}")
         else:
             raise RuntimeError(f"Unknown kind {kind}")
+
 
 class MaskedLinearModelCompiler(ModelPatcher):
     def __init__(self):
