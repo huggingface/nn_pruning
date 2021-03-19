@@ -10,7 +10,7 @@ extras["examples"] = ["numpy>=1.2.0", "datasets>=1.4.1", "ipywidgets>=7.6.3", "m
 
 setup(
     name="nn_pruning",
-    version="0.1",
+    version="0.1.1",
     description="nn_pruning is a python package for pruning PyTorch models.",
     long_description="nn_pruning is a python package for pruning PyTorch models.",
     classifiers=[
