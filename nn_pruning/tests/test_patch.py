@@ -7,8 +7,9 @@ from nn_pruning.model_structure import BertStructure
 from nn_pruning.modules.masked_nn import (
     ChannelPruningModulePatcher,
     JointPruningModulePatcher,
+    LinearPruningArgs,
     LinearPruningModulePatcher,
-    LinearPruningParameters,
+    LinearPruningArgs,
 )
 from nn_pruning.training_patcher import BertLinearModelPatcher, PatcherContext
 
@@ -27,12 +28,13 @@ class TestFun(TestCase):
         config = BertConfig.from_pretrained("bert-base-uncased")
         model = BertForQuestionAnswering(config)
 
-        parameters = LinearPruningParameters(
+        parameters = LinearPruningArgs(
             method="topK",
             submethod="default",
             ampere_method="disabled",
             block_rows=32,
             block_cols=32,
+            min_elements=0.005,
         )
 
         context = PatcherContext()
@@ -53,12 +55,13 @@ class TestFun(TestCase):
         config = BertConfig.from_pretrained("bert-base-uncased")
         model = BertForQuestionAnswering(config)
 
-        parameters = LinearPruningParameters(
+        parameters = LinearPruningArgs(
             method="topK",
             submethod="default",
             ampere_method="annealing",
             block_rows=32,
             block_cols=32,
+            min_elements=0.005,
         )
 
         context = PatcherContext()
@@ -79,12 +82,13 @@ class TestFun(TestCase):
         config = BertConfig.from_pretrained("bert-base-uncased")
         model = BertForQuestionAnswering(config)
 
-        parameters = LinearPruningParameters(
+        parameters = LinearPruningArgs(
             method="topK",
             submethod="default",
             ampere_method="annealing",
             block_rows=32,
             block_cols=32,
+            min_elements=0.005,
         )
 
         context = PatcherContext()
@@ -113,20 +117,17 @@ class TestFun(TestCase):
         config = BertConfig.from_pretrained("bert-base-uncased")
         model = BertForQuestionAnswering(config)
 
-        parameters_attention = LinearPruningParameters(
+        parameters_attention = LinearPruningArgs(
             method="topK",
             submethod="default",
             ampere_method="annealing",
             block_rows=32,
             block_cols=32,
+            min_elements=0.005,
         )
 
-        parameters_dense = LinearPruningParameters(
-            method="topK",
-            submethod="1d",
-            ampere_method="annealing",
-            block_rows=32,
-            block_cols=32,
+        parameters_dense = LinearPruningArgs(
+            method="topK", submethod="1d", ampere_method="annealing", block_rows=32, block_cols=32, min_elements=0.005
         )
 
         context = PatcherContext()
