@@ -11,8 +11,8 @@ extras["examples"] = ["numpy>=1.2.0", "datasets>=1.4.1", "ipywidgets>=7.6.3", "m
 setup(
     name="nn_pruning",
     version="0.1",
-    description="nn_pruning is a Python package for pruning Transformers",
-    long_description=readme(),
+    description="nn_pruning is a python package for pruning PyTorch models.",
+    long_description="nn_pruning is a python package for pruning PyTorch models.",
     classifiers=[
         "Development Status :: 3 - Alpha",
         "License :: OSI Approved :: MIT License",
@@ -24,7 +24,7 @@ setup(
     author="",
     author_email="",
     license="MIT",
-    packages=["nn_pruning"],
+    packages=['nn_pruning', 'nn_pruning.modules'],
     install_requires=["click", "transformers>=4.3.0", "torch>=1.6", "scikit-learn>=0.24"],
     extras_require=extras,
     test_suite="nose.collector",
