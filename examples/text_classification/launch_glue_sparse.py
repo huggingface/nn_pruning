@@ -10,7 +10,7 @@ def main():
     filename = Path(sys.argv[1]).resolve()
     param_dict = json.load(open(filename))
 
-    import nn_pruning.examples.text_classification.glue_sparse_xp as glue_sparse_xp
+    import examples.text_classification.glue_sparse_xp as glue_sparse_xp
 
     glue = glue_sparse_xp.GlueSparseXP(param_dict)
     def hp_space(trial):

@@ -128,7 +128,9 @@ class SparseQAShortNamer(TrialShortNamer):
         'layer_norm_patch_steps': 50000,
         'layer_norm_patch_start_delta': 0.99,
         'gelu_patch':False,
-        'gelu_patch_steps': 50000}
+        'gelu_patch_steps': 50000,
+        'linear_min_parameters': 0.005,
+    }
 
 
 class QASparseXP(SparseXP, QAXP):

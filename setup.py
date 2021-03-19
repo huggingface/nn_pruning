@@ -30,7 +30,7 @@ setup(
     test_suite="nose.collector",
     tests_require=["nose", "nose-cover3"],
     entry_points={
-        "console_scripts": ["nn_pruning_run=nn_pruning.command_line:main"],
+        "console_scripts": ["nn_pruning_run_example=examples.command_line:main"],
     },
     include_package_data=True,
     zip_safe=False,

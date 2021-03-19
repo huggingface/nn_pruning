@@ -57,8 +57,8 @@ class RuntimeLinearPruningArgs:
     ampere_method: str
     block_rows: int
     block_cols: int
+    min_elements: float
     bias_mask: bool = False
-
 
 @dataclass
 class InitDirective:
@@ -300,7 +300,7 @@ class MaskModule(nn.Module):
             mask = MagnitudeBinarizer.apply(weight, threshold)
         elif method in ["threshold", "sigmoied_threshold"]:
             sig = "sigmoied" in method
-            mask = ThresholdBinarizer.apply(mask_scores, threshold, sig)
+            mask = ThresholdBinarizer.apply(mask_scores, threshold, sig, args.min_elements)
         elif method == "l0":
             l, r, b = -0.1, 1.1, 2 / 3
             if training:

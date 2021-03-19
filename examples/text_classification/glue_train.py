@@ -19,7 +19,7 @@ A subclass of `Trainer` specific to Question-Answering tasks
 import os
 import json
 
-from nn_pruning.examples.xp import XPTrainer
+from examples.xp import XPTrainer
 from transformers.utils import logging
 from transformers.trainer_utils import (
     PredictionOutput,

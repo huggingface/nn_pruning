@@ -34,7 +34,7 @@ from nn_pruning.hp_naming import TrialShortNamer
 
 from .qa_train import QATrainer
 from .qa_utils import postprocess_qa_predictions
-from nn_pruning.examples.xp import XP, DataTrainingArguments, ModelArguments, XPTrainingArguments
+from examples.xp import XP, DataTrainingArguments, ModelArguments, XPTrainingArguments
 import json
 
 logger = logging.getLogger(__name__)

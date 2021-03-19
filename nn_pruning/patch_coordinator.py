@@ -213,6 +213,13 @@ class SparseTrainingArguments:
         },
     )
 
+    linear_min_parameters: int = field(
+        default=0.005,
+        metadata={
+            "help": "Minimum fraction of parameters which should be non zero when using ThresholdBinarizer"
+        },
+    )
+
 class ModelPatchingCoordinator:
     MODEL_STRUCTURE = BertStructure
 
@@ -494,32 +501,40 @@ class ModelPatchingCoordinator:
 
     def patch_model(self, model, trial = None):
         layers_count = model.config.num_hidden_layers
-        attention_pruning_method_parts = self.parse_pruning_method(self.sparse_args.attention_pruning_method)
+        sparse_args = self.sparse_args
+        attention_pruning_method_parts = self.parse_pruning_method(sparse_args.attention_pruning_method)
 
-        if hasattr(self.sparse_args, "bias_mask"):
-            bias_mask = self.sparse_args.bias_mask
+        if hasattr(sparse_args, "bias_mask"):
+            bias_mask = sparse_args.bias_mask
         else:
             bias_mask = False
 
+        if hasattr(sparse_args, "linear_min_parameters"):
+            linear_min_parameters = sparse_args.linear_min_parameters
+        else:
+            linear_min_parameters = 0.005
+
         patcher_context = self.patcher_context
 
-        if attention_pruning_method_parts[0] != "disabled" or self.sparse_args.ampere_pruning_method != "disabled":
+        if attention_pruning_method_parts[0] != "disabled" or sparse_args.ampere_pruning_method != "disabled":
             args_attention = LinearPruningArgs(
                 method=attention_pruning_method_parts[0],
                 submethod=attention_pruning_method_parts[1],
-                ampere_method=self.sparse_args.ampere_pruning_method,
-                block_rows=self.sparse_args.attention_block_rows,
-                block_cols=self.sparse_args.attention_block_cols,
-                bias_mask=bias_mask
+                ampere_method=sparse_args.ampere_pruning_method,
+                block_rows=sparse_args.attention_block_rows,
+                block_cols=sparse_args.attention_block_cols,
+                bias_mask=bias_mask,
+                min_parameters=linear_min_parameters,
             )
 
             args_attention_t = LinearPruningArgs(
                 method=attention_pruning_method_parts[0],
                 submethod=attention_pruning_method_parts[1],
-                ampere_method=self.sparse_args.ampere_pruning_method,
-                block_rows=self.sparse_args.attention_block_cols,
-                block_cols=self.sparse_args.attention_block_rows,
-                bias_mask=bias_mask
+                ampere_method=sparse_args.ampere_pruning_method,
+                block_rows=sparse_args.attention_block_cols,
+                block_cols=sparse_args.attention_block_rows,
+                bias_mask=bias_mask,
+                min_parameters=linear_min_parameters,
             )
             if args_attention.submethod == "joint":
                 p_attention = JointPruningModulePatcher(patcher_context, args_attention, suffix=".attention")
@@ -531,16 +546,17 @@ class ModelPatchingCoordinator:
             p_attention = None
             p_attention_t = None
 
-        dense_pruning_method_parts = self.parse_pruning_method(self.sparse_args.dense_pruning_method)
+        dense_pruning_method_parts = self.parse_pruning_method(sparse_args.dense_pruning_method)
 
-        if dense_pruning_method_parts[0] != "disabled" or self.sparse_args.ampere_pruning_method != "disabled":
+        if dense_pruning_method_parts[0] != "disabled" or sparse_args.ampere_pruning_method != "disabled":
             args_dense = LinearPruningArgs(
                 method=dense_pruning_method_parts[0],
                 submethod=dense_pruning_method_parts[1],
-                ampere_method=self.sparse_args.ampere_pruning_method,
-                block_rows=self.sparse_args.dense_block_rows,
-                block_cols=self.sparse_args.dense_block_cols,
-                bias_mask=bias_mask
+                ampere_method=sparse_args.ampere_pruning_method,
+                block_rows=sparse_args.dense_block_rows,
+                block_cols=sparse_args.dense_block_cols,
+                bias_mask=bias_mask,
+                min_parameters=linear_min_parameters,
             )
             if args_dense.submethod.startswith("1d"):
                 p_dense = ChannelPruningModulePatcher(
@@ -551,7 +567,7 @@ class ModelPatchingCoordinator:
         else:
             p_dense = None
 
-        if not hasattr(self.sparse_args, "attention_output_with_dense") or self.sparse_args.attention_output_with_dense:
+        if not hasattr(sparse_args, "attention_output_with_dense") or sparse_args.attention_output_with_dense:
             p_att_dense = p_dense
         else:
             p_att_dense = p_attention_t
@@ -565,13 +581,13 @@ class ModelPatchingCoordinator:
             output_dense=p_dense,
         )
 
-        if hasattr(self.sparse_args, "layer_norm_patch"):
-            layer_norm_patch = self.sparse_args.layer_norm_patch
+        if hasattr(sparse_args, "layer_norm_patch"):
+            layer_norm_patch = sparse_args.layer_norm_patch
         else:
             layer_norm_patch = False
 
-        if hasattr(self.sparse_args, "gelu_patch"):
-            gelu_patch = self.sparse_args.gelu_patch
+        if hasattr(sparse_args, "gelu_patch"):
+            gelu_patch = sparse_args.gelu_patch
         else:
             gelu_patch = False
 
@@ -580,10 +596,10 @@ class ModelPatchingCoordinator:
         patcher.patch(model)
 
         patched_count = 0
-        if attention_pruning_method_parts[0] != "disabled" or self.sparse_args.ampere_pruning_method != "disabled":
+        if attention_pruning_method_parts[0] != "disabled" or sparse_args.ampere_pruning_method != "disabled":
             patched_count += 4 * layers_count
 
-        if dense_pruning_method_parts[0] != "disabled" or self.sparse_args.ampere_pruning_method != "disabled":
+        if dense_pruning_method_parts[0] != "disabled" or sparse_args.ampere_pruning_method != "disabled":
             patched_count += 2 * layers_count
 
         assert (patcher.stats["patched"] == patched_count)

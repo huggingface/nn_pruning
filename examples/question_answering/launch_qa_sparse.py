@@ -4,8 +4,11 @@ import copy
 def main():
     import json
     from pathlib import Path
+    import sys
 
-    import nn_pruning.examples.question_answering.qa_sparse_xp as qa_sparse_xp
+    sys.path += ["."]
+
+    import examples.question_answering.qa_sparse_xp as qa_sparse_xp
 
     if len(sys.argv) < 2:
         raise RuntimeError("Please specify json file")

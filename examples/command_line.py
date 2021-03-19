@@ -43,9 +43,12 @@ QA_TYPICAL_PARAMETERS = {
     "distil_alpha_ce": 0.1,
     "distil_alpha_teacher": 0.9,
     "attention_output_with_dense": 0,
+    "layer_norm_patch_steps": 50000,
+    "gelu_patch_steps": 50000,
+    'linear_min_parameters': 0,
 }
 
-GLUE_TYPICAL_PARAMETERS = {
+MNLI_TYPICAL_PARAMETERS = {
     "task_name": "mnli",
     "do_train": 1,
     "do_eval": 1,
@@ -83,33 +86,32 @@ GLUE_TYPICAL_PARAMETERS = {
     "attention_output_with_dense": 0,
 }
 
-# parameters: model_name, teacher, batch_size, regu_lambda, regu_lambda_dense, ampere
-@cli.group()
-def examples():
-    pass
-
-@examples.command()
+@cli.command()
 @click.pass_context
 @click.argument("task", default="squadv1", type=click.Choice(["squadv1", "mnli"]))
 @click.argument("output-dir", type=click.Path(resolve_path=True))
 @click.option("--parameters", type=click.Path(resolve_path=True), help="Path to a parameters json file")
 @click.option("--model-name-or-path", default="bert-base-uncased", type=click.Choice(["bert-base-uncased", "bert-large-uncased"]))
-@click.option("--distil-teacher-name-or-path", default="bert-large-uncased-whole-word-masking-finetuned-squad", type=str, help = "teacher name (default is bert-large-uncased-whole-word-masking-finetuned-squad)")
+@click.option("--teacher", default="bert-large-uncased-whole-word-masking-finetuned-squad", type=str, help = "teacher name or path (default is bert-large-uncased-whole-word-masking-finetuned-squad)")
 @click.option("--per-device-train-batch-size", default=16, type=int)
 @click.option("--regularization-final-lambda", default=10, type=float)
 @click.option("--dense-lambda", default=1.0, type=float)
 @click.option("--ampere-pruning-method", default="disabled", type=click.Choice(["disabled", "topk"]))
-def fine_prune(
+@click.option('--layer_norm_patch', is_flag=True)
+@click.option('--gelu_patch', is_flag=True)
+def finetune(
     ctx,
     task,
     json_path,
     model_name_or_path,
-    distil_teacher_name_or_path,
+    teacher,
     per_device_train_batch_size,
     regularization_final_lambda,
     dense_lambda,
     ampere_pruning_method,
     output_dir,
+    layer_norm_patch,
+    gelu_patch
 ):
     filename = json_path
     if json_path is not None:
@@ -118,21 +120,23 @@ def fine_prune(
         if task == "squadv1":
             param_dict = QA_TYPICAL_PARAMETERS
         elif task == "mnli":
-            param_dict = GLUE_TYPICAL_PARAMETERS
+            param_dict = MNLI_TYPICAL_PARAMETERS
         else:
             raise ValueError(f"Unknown task {task}")
 
         param_dict["model_name_or_path"] = model_name_or_path
-        param_dict["distil_teacher_name_or_path"] = distil_teacher_name_or_path
+        param_dict["distil_teacher_name_or_path"] = teacher
         param_dict["per_device_train_batch_size"] = per_device_train_batch_size
         param_dict["regularization_final_lambda"] = regularization_final_lambda
         param_dict["dense_lambda"] = dense_lambda
         param_dict["ampere_pruning_method"] = ampere_pruning_method
         param_dict["output_dir"] = output_dir
         param_dict["logging_dir"] = output_dir
+        param_dict["layer_norm_patch"] = layer_norm_patch
+        param_dict["gelu_patch"] = gelu_patch
 
     if task == "squadv1":
-        if json_path is None and distil_teacher_name_or_path is None:
+        if json_path is None and teacher is None:
             # Large teacher is default
             param_dict["distil_teacher_name_or_path"] = "csarron/bert-base-uncased-squad-v1"
 
@@ -140,7 +144,7 @@ def fine_prune(
 
         experiment = qa_sparse_xp.QASparseXP(param_dict)
     else:
-        if json_path is None and distil_teacher_name_or_path is None:
+        if json_path is None and teacher is None or teacher == "bert-large-uncased-whole-word-masking-finetuned-squad":
             # Large teacher is default
             param_dict["distil_teacher_name_or_path"] = "aloxatel/bert-base-mnli"
 
@@ -151,6 +155,8 @@ def fine_prune(
     # This does not actually use hyper parameter search right now, but it's useful for naming the output directory for example
     experiment.hyperparameter_search()
 
+def post_process():
+    pass
 
 def main():
     return cli()

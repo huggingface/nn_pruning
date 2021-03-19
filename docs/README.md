@@ -13,7 +13,7 @@ Some degree of structure is necessary to use the intrinsic parallel nature of to
 You can read more about block sparsity and why it matters for performance on these [blog](https://medium.com/huggingface/is-the-future-of-neural-networks-sparse-an-introduction-1-n-d03923ecbd70) [posts](https://medium.com/huggingface/sparse-neural-networks-2-n-gpu-performance-b8bc9ce950fc).*
 
 # How to use
-The documentation is [here](documentation/README.md).
+The documentation is [here](HOWTO.md).
 
 ## Results
 
