@@ -317,25 +317,33 @@ class ModelPatchingCoordinator:
         def interp(a,b, interpf):
             return a * interpf + (1.0 - interpf) * b
 
-        if sparse_args.layer_norm_patch:
-            interpf = 0.0
-            layer_norm_patch_steps = sparse_args.layer_norm_patch_steps
-            if step < layer_norm_patch_steps:
-                interpf = 1.0 - (step / layer_norm_patch_steps)
+        if hasattr(sparse_args, "layer_norm_patch") and sparse_args.layer_norm_patch:
+            if training:
+                interpf = 0.0
+                layer_norm_patch_steps = sparse_args.layer_norm_patch_steps
+                if step < layer_norm_patch_steps:
+                    interpf = 1.0 - (step / layer_norm_patch_steps)
 
-            delta = interp(sparse_args.layer_norm_patch_start_delta, 1.0, interpf)
-            mix = interpf
+                delta = interp(sparse_args.layer_norm_patch_start_delta, 1.0, interpf)
+                mix = interpf
 
-            context_data["layernorm_to_nonorm_delta"] = delta
-            context_data["layernorm_to_nonorm_mix"] = mix
+                context_data["layernorm_to_nonorm_delta"] = delta
+                context_data["layernorm_to_nonorm_mix"] = mix
+            else:
+                context_data["layernorm_to_nonorm_delta"] = 1.0
+                context_data["layernorm_to_nonorm_mix"] = 0.0
 
-        if sparse_args.gelu_patch:
-            interpf = 0.0
-            gelu_patch_steps = sparse_args.gelu_patch_steps
-            if step < gelu_patch_steps:
-                interpf = 1.0 - (step / gelu_patch_steps)
+        if hasattr(sparse_args, "gelu_patch") and sparse_args.gelu_patch:
+            if training:
+                interpf = 0.0
+                gelu_patch_steps = sparse_args.gelu_patch_steps
+                if step < gelu_patch_steps:
+                    interpf = 1.0 - (step / gelu_patch_steps)
 
-            context_data["gelu_to_relu_mix"] = interpf
+                context_data["gelu_to_relu_mix"] = interpf
+            else:
+                context_data["gelu_to_relu_mix"] = 0.0
+
 
         self.patcher_context.set_context_data_dict(context_data)
 
@@ -638,7 +646,7 @@ class ModelPatchingCoordinator:
             nnc.patch(model)
             model.config.layer_norm_type = "no_norm"
 
-        if hasattr(self.sparse_args, "gelu_norm_patch") and self.sparse_args.gelu_norm_patch:
+        if hasattr(self.sparse_args, "gelu_patch") and self.sparse_args.gelu_patch:
             model.config.hidden_act = "relu"
 
 

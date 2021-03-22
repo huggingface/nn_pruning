@@ -254,10 +254,11 @@ def optimize_model(model, mode, clone=True):
     )
 
     mp.patch_model(model)
-
     if hasattr(model.config, "layer_norm_type") and model.config.layer_norm_type == "no_norm":
         from nn_pruning.modules.nonorm import NoNormPatcher
         nnc = NoNormPatcher()
-        nnc.patch(model)
+        # Check to avoid spurious message when layernorm->nonorm has already been done (for example when freshly compiled)
+        if nnc.needs_patch(model):
+            nnc.patch(model)
 
     return model

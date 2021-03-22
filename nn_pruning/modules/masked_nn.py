@@ -195,7 +195,7 @@ class AmpereMaskModule(nn.Module):
         top_mask = AmpereMaskModule.get_final_mask(mask_scores, 2, 4)
 
         if train:
-            mask = ThresholdBinarizer.apply(mask_scores, threshold, sigmoid, min_elements = 0)
+            mask = ThresholdBinarizer.apply(mask_scores, threshold, sigmoid, 0)
             ret = torch.max(mask, top_mask)
         else:
             ret = top_mask
