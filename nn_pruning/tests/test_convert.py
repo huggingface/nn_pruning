@@ -3,7 +3,7 @@ import unittest
 from pathlib import Path
 from unittest import TestCase
 
-import nn_pruning.examples.question_answering.run_qa_sparse as run_qa_sparse
+import examples.question_answering.run_qa_sparse as run_qa_sparse
 
 
 class TestFun(TestCase):

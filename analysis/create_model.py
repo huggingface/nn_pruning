@@ -5,7 +5,7 @@ import shutil
 from transformers import BertForQuestionAnswering, TFBertForQuestionAnswering, BertConfig
 from tempfile import TemporaryDirectory
 from nn_pruning.inference_model_patcher import optimize_model
-from nn_pruning.analysis.model_card_graphics import PruningInfoBokehPlotter, DensityBokehPlotter
+from analysis.model_card_graphics import PruningInfoBokehPlotter, DensityBokehPlotter
 import jinja2
 
 import sys
@@ -15,8 +15,8 @@ if sys.version_info.major == 3 and 4 <= sys.version_info.minor <= 8:
   json.encoder._make_iterencode = _make_iterencode._make_iterencode
   indent = (4, None)
 
-from nn_pruning.examples.question_answering.qa_sparse_xp import QASparseXP
-from nn_pruning.examples.text_classification.glue_sparse_xp import GlueSparseXP
+from examples.question_answering.qa_sparse_xp import QASparseXP
+from examples.text_classification.glue_sparse_xp import GlueSparseXP
 
 def pretty_json(p):
     return json.dumps(p, sort_keys=True, indent=indent, separators = [", ", ": "])

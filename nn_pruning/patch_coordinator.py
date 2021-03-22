@@ -524,7 +524,7 @@ class ModelPatchingCoordinator:
                 block_rows=sparse_args.attention_block_rows,
                 block_cols=sparse_args.attention_block_cols,
                 bias_mask=bias_mask,
-                min_parameters=linear_min_parameters,
+                min_elements=linear_min_parameters,
             )
 
             args_attention_t = LinearPruningArgs(
@@ -534,7 +534,7 @@ class ModelPatchingCoordinator:
                 block_rows=sparse_args.attention_block_cols,
                 block_cols=sparse_args.attention_block_rows,
                 bias_mask=bias_mask,
-                min_parameters=linear_min_parameters,
+                min_elements=linear_min_parameters,
             )
             if args_attention.submethod == "joint":
                 p_attention = JointPruningModulePatcher(patcher_context, args_attention, suffix=".attention")
@@ -556,7 +556,7 @@ class ModelPatchingCoordinator:
                 block_rows=sparse_args.dense_block_rows,
                 block_cols=sparse_args.dense_block_cols,
                 bias_mask=bias_mask,
-                min_parameters=linear_min_parameters,
+                min_elements=linear_min_parameters,
             )
             if args_dense.submethod.startswith("1d"):
                 p_dense = ChannelPruningModulePatcher(

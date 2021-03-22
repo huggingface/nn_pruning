@@ -124,6 +124,19 @@ class SparseGlueShortNamer(TrialShortNamer):
         'layer_norm_patch_start_delta': 0.99,
         'gelu_patch': False,
         'gelu_patch_steps': 50000,
+        'warmup_ratio': 0.0,
+        'fp16_full_eval': False,
+        'label_smoothing_factor': 0.0,
+        'adafactor': False,
+        'group_by_length': False,
+        'report_to': [],
+        'dataloader_pin_memory': True,
+        'skip_memory_metrics': False,
+        '_n_gpu': 1,
+        'linear_min_parameters': 0.005,
+        'lr_scheduler_type': 'SchedulerType.LINEAR',
+        'logging_strategy': 'IntervalStrategy.STEPS',
+        'save_strategy': 'IntervalStrategy.STEPS',
         }
 
 

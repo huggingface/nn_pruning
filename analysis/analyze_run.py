@@ -1,8 +1,8 @@
-from nn_pruning.examples.question_answering.qa_xp import QAXP
-from nn_pruning.examples.question_answering.qa_sparse_xp import QASparseXP
-from nn_pruning.examples.text_classification.glue_xp import GlueXP
-from nn_pruning.examples.text_classification.glue_sparse_xp import GlueSparseXP
-import nn_pruning.examples.xp as xp
+from examples.question_answering.qa_xp import QAXP
+from examples.question_answering.qa_sparse_xp import QASparseXP
+from examples.text_classification.glue_xp import GlueXP
+from examples.text_classification.glue_sparse_xp import GlueSparseXP
+import examples.xp as xp
 import os
 from pathlib import Path
 import json

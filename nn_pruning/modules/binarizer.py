@@ -67,7 +67,7 @@ class ThresholdBinarizer(autograd.Function):
 
     @staticmethod
     def backward(ctx, gradOutput):
-        return gradOutput, None, None
+        return gradOutput, None, None, None
 
 
 class TopKBinarizer(autograd.Function):

@@ -90,7 +90,7 @@ MNLI_TYPICAL_PARAMETERS = {
 @click.pass_context
 @click.argument("task", default="squadv1", type=click.Choice(["squadv1", "mnli"]))
 @click.argument("output-dir", type=click.Path(resolve_path=True))
-@click.option("--parameters", type=click.Path(resolve_path=True), help="Path to a parameters json file")
+@click.option("--json_path", type=click.Path(resolve_path=True), help="Path to a parameters json file")
 @click.option("--model-name-or-path", default="bert-base-uncased", type=click.Choice(["bert-base-uncased", "bert-large-uncased"]))
 @click.option("--teacher", default="bert-large-uncased-whole-word-masking-finetuned-squad", type=str, help = "teacher name or path (default is bert-large-uncased-whole-word-masking-finetuned-squad)")
 @click.option("--per-device-train-batch-size", default=16, type=int)
@@ -140,7 +140,7 @@ def finetune(
             # Large teacher is default
             param_dict["distil_teacher_name_or_path"] = "csarron/bert-base-uncased-squad-v1"
 
-        import nn_pruning.examples.question_answering.qa_sparse_xp as qa_sparse_xp
+        import examples.question_answering.qa_sparse_xp as qa_sparse_xp
 
         experiment = qa_sparse_xp.QASparseXP(param_dict)
     else:
@@ -148,7 +148,7 @@ def finetune(
             # Large teacher is default
             param_dict["distil_teacher_name_or_path"] = "aloxatel/bert-base-mnli"
 
-        import nn_pruning.examples.text_classification.glue_sparse_xp as glue_sparse_xp
+        import examples.text_classification.glue_sparse_xp as glue_sparse_xp
 
         experiment = glue_sparse_xp.GlueSparseXP(param_dict)
 

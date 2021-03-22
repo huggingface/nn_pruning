@@ -11,7 +11,7 @@ from collections import defaultdict
 import copy
 
 import bokeh
-from nn_pruning.analysis.graph_util import BokehHelper
+from analysis.graph_util import BokehHelper
 import bokeh.plotting as plotting
 from bokeh.models import Label, Range1d
 
