@@ -1,8 +1,8 @@
 import json
 from pathlib import Path
 import sys
-from nn_pruning.examples.question_answering.qa_sparse_xp import QASparseXP
-from nn_pruning.examples.text_classification.glue_sparse_xp import GlueSparseXP
+from examples.question_answering.qa_sparse_xp import QASparseXP
+from examples.text_classification.glue_sparse_xp import GlueSparseXP
 import shutil
 
 

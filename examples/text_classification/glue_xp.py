@@ -35,7 +35,7 @@ from transformers import (
 from nn_pruning.hp_naming import TrialShortNamer
 
 from .glue_train import GlueTrainer
-from nn_pruning.examples.xp import XP, DataTrainingArguments, ModelArguments, XPTrainingArguments
+from examples.xp import XP, DataTrainingArguments, ModelArguments, XPTrainingArguments
 import json
 
 

@@ -4,7 +4,7 @@ from io import StringIO
 from pytablewriter import MarkdownTableWriter
 from pprint import pprint
 import json
-from nn_pruning.analysis.create_model import Packager
+from analysis.create_model import Packager
 
 class DocBuilder:
     def __init__(self, file_name):
