@@ -101,6 +101,7 @@ class ExperimentClassifier:
         large = "large" in xp["config"]["_name_or_path"] or "large" in xp.get("source_checkpoint", "")
         size = "l" if large else "b"
         no_norm = "layer_norm_patch" in sparse_args and sparse_args["layer_norm_patch"]
+        is_relu = "gelu_patch" in sparse_args and sparse_args["gelu_patch"] or xp["config"]["hidden_act"] == "relu"
 
         compare_different = {}
         if self.check(sparse_args, compare, compare_different):
@@ -115,6 +116,9 @@ class ExperimentClassifier:
 
             if no_norm:
                 ret += ", nonorm=1"
+
+            if is_relu:
+                ret += ", relu=1"
 
             return ret, annotate
 
@@ -148,6 +152,9 @@ class ExperimentClassifier:
 
             if no_norm:
                 ret += ", nonorm=1"
+
+            if is_relu:
+                ret += ", relu=1"
 
 #            annotate = self.get_lambdas_annotation(sparse_args)
             annotate = "%d" % (100 - xp["stats"]["linear_sparsity"])

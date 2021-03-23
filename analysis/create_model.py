@@ -11,7 +11,7 @@ import jinja2
 import sys
 indent = 4
 if sys.version_info.major == 3 and 4 <= sys.version_info.minor <= 8:
-  from nn_pruning.analysis import _make_iterencode
+  import _make_iterencode
   json.encoder._make_iterencode = _make_iterencode._make_iterencode
   indent = (4, None)
 
@@ -148,10 +148,15 @@ class Packager:
                     shutil.copyfile(str(Path(src_path) / file), str(self.git_path / file))
                     modified = True
 
-            return modified
         finally:
             if d is not None:
                 d.cleanup()
+
+        # Reload the config, this may have been changed by compilation / optimization (pruned_heads, gelu_patch, layer_norm_patch)
+        with (self.git_path / "config.json").open() as f:
+            self.checkpoint_info["config"] = json.load(f)
+
+        return modified
 
     JS_PATH = "$$JS_PATH$$"
     def create_graphics(self, url_base, model_card_path):
@@ -297,9 +302,10 @@ class Packager:
 if __name__ == "__main__":
     checkpoint_path = "/data_2to/devel_data/nn_pruning/output/squad_test_final_fine_tune/fine_tuned_aws_nn-pruning-v10-a32-l5-dl0-5--2021-01-21--00-52-45/checkpoint-22132"
     checkpoint_path = "/data_2to/devel_data/nn_pruning/output/squad_test_final_fine_tune/fine_tuned_hp_od-output__squad_test3_es-steps_nte20_ls250_est5000_rn-output__squad_test3_dpm-sigmoied_threshold:1d_alt_apme-sigmoied_threshold_aowd0_bm1_abr32_abc32_it0_fw10_r-l1_rfl20_dl0.25_dtnop-csarron__bert-base-uncased-squad-v1/checkpoint-22132"
-    kind = "hybrid-filled"
+    checkpoint_path = "/data_2to/devel_data/nn_pruning/output/squad_test_9_fullpatch4/hp_od-__data_2to__devel_data__nn_pruning__output__squad_test_9_fullpatch4___es-steps_nte20_ls250_stl50_est5000_rn-__data_2to__devel_data__nn_pruning__output__squad_test_9_fullpatch4_--6cb2db64e9a885f1/checkpoint-110000"
+    kind = "hybrid-filled-opt"
     task = "squadv1"
 
-    git_base_path = (Path(__file__).parent.parent.parent.parent / "models").resolve()
-    p = Packager("madlag", "files/test6.json", checkpoint_path, git_base_path, kind = kind, task = task)
+    git_base_path = (Path(__file__).parent.parent.parent / "models").resolve()
+    p = Packager("madlag", "files/results_squadv1.json", checkpoint_path, git_base_path, kind = kind, task = task)
     p.run()

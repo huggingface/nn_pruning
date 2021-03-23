@@ -37,6 +37,7 @@ from .modules.masked_nn import (
 )
 from .modules.nonorm import NoNormCompiler, Layer2NoNormPatcher
 from .modules.gelu2relu import GeLU2ReLUModelPatcher
+from .inference_model_patcher import BertHeadsPruner
 
 from nn_pruning.training_patcher import (
     BertLinearModelPatcher,
@@ -648,6 +649,10 @@ class ModelPatchingCoordinator:
 
         if hasattr(self.sparse_args, "gelu_patch") and self.sparse_args.gelu_patch:
             model.config.hidden_act = "relu"
+
+        pruner = BertHeadsPruner(model)
+        removed_heads, total_heads = pruner.run()
+        return removed_heads, total_heads
 
 
 
