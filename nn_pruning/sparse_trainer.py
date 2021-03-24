@@ -85,7 +85,7 @@ class SparseTrainer:
         self.log_prefix = ""
         return super().training_step(*args, **kwargs)
 
-    def compute_loss(self, model, inputs):
+    def compute_loss(self, model, inputs, return_outputs=False):
         """
         How the loss is computed by Trainer. By default, all models return the loss in the first element.
 
@@ -119,7 +119,7 @@ class SparseTrainer:
 
         loss = loss + regu_loss * lamb
 
-        return loss
+        return (loss, outputs) if return_outputs else loss
 
     def evaluate(self, *args, **kwargs):
         self.schedule_threshold(False)

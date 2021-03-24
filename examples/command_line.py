@@ -48,8 +48,7 @@ QA_TYPICAL_PARAMETERS = {
     'linear_min_parameters': 0,
 }
 
-MNLI_TYPICAL_PARAMETERS = {
-    "task_name": "mnli",
+GLUE_TYPICAL_PARAMETERS = {
     "do_train": 1,
     "do_eval": 1,
     "per_device_eval_batch_size": 128,
@@ -86,9 +85,23 @@ MNLI_TYPICAL_PARAMETERS = {
     "attention_output_with_dense": 0,
 }
 
+GLUE_TASKS = {"mnli", "cola", "mrpc", "qnli", "qqp", "rte", "sst2", "stsb", "wnli"}
+
+task2teacher = {
+    "mnli": "textattack/bert-base-uncased-MNLI",
+    "cola": "textattack/bert-base-uncased-CoLA",
+    "mrpc": "textattack/bert-base-uncased-MRPC",
+    "qnli": "textattack/bert-base-uncased-QNLI",
+    "qqp": "textattack/bert-base-uncased-QQP",
+    "rte": "textattack/bert-base-uncased-RTE",
+    "sst2": "textattack/bert-base-uncased-SST-2",
+    "stsb": "textattack/bert-base-uncased-STS-B",
+    "wnli": "textattack/bert-base-uncased-WNLI",
+}
+
 @cli.command()
 @click.pass_context
-@click.argument("task", default="squadv1", type=click.Choice(["squadv1", "mnli"]))
+@click.argument("task", default="squadv1", type=click.Choice(["squadv1", "mnli", "cola", "mrpc", "qnli", "qqp", "rte", "sst2", "stsb", "wnli"]))
 @click.argument("output-dir", type=click.Path(resolve_path=True))
 @click.option("--json_path", type=click.Path(resolve_path=True), help="Path to a parameters json file")
 @click.option("--model-name-or-path", default="bert-base-uncased", type=click.Choice(["bert-base-uncased", "bert-large-uncased"]))
@@ -119,8 +132,9 @@ def finetune(
     else:
         if task == "squadv1":
             param_dict = QA_TYPICAL_PARAMETERS
-        elif task == "mnli":
-            param_dict = MNLI_TYPICAL_PARAMETERS
+        elif task in GLUE_TASKS:
+            param_dict = GLUE_TYPICAL_PARAMETERS
+            param_dict["task_name"] = task
         else:
             raise ValueError(f"Unknown task {task}")
 
@@ -146,7 +160,10 @@ def finetune(
     else:
         if json_path is None and teacher is None or teacher == "bert-large-uncased-whole-word-masking-finetuned-squad":
             # Large teacher is default
-            param_dict["distil_teacher_name_or_path"] = "aloxatel/bert-base-mnli"
+            if task in GLUE_TASKS:
+                param_dict["distil_teacher_name_or_path"] = task2teacher[task]
+            else:
+                param_dict["distil_teacher_name_or_path"] = "aloxatel/bert-base-mnli"
 
         import examples.text_classification.glue_sparse_xp as glue_sparse_xp
 
