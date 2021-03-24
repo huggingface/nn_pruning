@@ -65,14 +65,41 @@ class PruningInfoBokehPlotter(BokehHelper):
 
 
 class DensityBokehPlotter(BokehHelper):
+
+    def matrix_blockify(self, matrix, block_size):
+        shape = matrix.shape
+        matrix = matrix != 0
+        m = matrix.reshape(shape[0] // block_size[0], block_size[0], shape[1] // block_size[1], block_size[1])
+        m = m.any(1).any(2).int()
+        return m
+
+    def matrix_pattern_block(self, matrix, block_size):
+        return self.matrix_blockify(matrix, block_size)
+
+    def matrix_pattern_line(self, matrix, block_size):
+        a = (matrix != 0).any(0).sum()
+        b = (torch.arange(matrix.shape[1]) < a).expand_as(matrix)
+
+        return self.matrix_blockify(b, block_size)
+
+    def matrix_pattern_col(self, matrix, block_size):
+        a = (matrix != 0).any(1).sum()
+        b = (torch.arange(matrix.shape[0]) < a).unsqueeze(1).expand_as(matrix)
+        return self.matrix_blockify(b, block_size)
+
     def matrix_preprocess(self, matrix):
         self.block_size = (32, 32)
-        block_size = self.block_size
-        shape = matrix.shape
-        matrix = matrix.reshape(shape[0] // block_size[0], block_size[0], shape[1] // block_size[1], block_size[1])
-        matrix = matrix != 0
-        matrix = matrix.any(1).any(2).int()
-        return matrix
+
+        best_sparsity = 0.0
+        best_matrix = None
+        for method in "matrix_pattern_block", "matrix_pattern_line", "matrix_pattern_col":
+            m = getattr(self, method)(matrix, self.block_size)
+            sparsity = (m == 0).sum() / m.numel()
+            if sparsity > best_sparsity:
+                best_sparsity = sparsity
+                best_matrix = m
+
+        return best_matrix
 
     def color_to_tensor(self, color):
         return torch.tensor(color).float().unsqueeze(0)

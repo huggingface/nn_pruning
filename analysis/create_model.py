@@ -2,7 +2,7 @@ from pathlib import Path
 import json
 import sh
 import shutil
-from transformers import BertForQuestionAnswering, TFBertForQuestionAnswering, BertConfig
+from transformers import BertForQuestionAnswering, TFBertForQuestionAnswering
 from tempfile import TemporaryDirectory
 from nn_pruning.inference_model_patcher import optimize_model
 from analysis.model_card_graphics import PruningInfoBokehPlotter, DensityBokehPlotter
@@ -101,6 +101,7 @@ class Packager:
 
     def create_git(self):
         git_path = self.git_base_path / self.model_owner_name / self.model_name
+        print(git_path)
         if not git_path.parent.exists():
             git_path.parent.mkdir(parents=True)
         if not git_path.exists():
@@ -200,7 +201,7 @@ class Packager:
                 html = html.replace(self.JS_PATH, f"{model_path}/{k}.js")[1:]
                 v["html"] = html
 
-        template_file = Path(__file__).parent / "files" / "README_MODEL.md.jinja"
+        template_file = Path(__file__).parent / "files" / "README_MODEL.jinja.md"
         template = jinja2.Template(template_file.open().read())
 
         config = checkpoint_info["config"]
@@ -218,6 +219,10 @@ class Packager:
         if task == "squadv1":
             eval_metrics["main_metric"] = eval_metrics["f1"]
 
+        nn_pruning_needed = config.get("layer_norm_type") == "no_norm"
+        use_relu = config.get("hidden_act") == "relu"
+
+        teacher = self.checkpoint_info["sparse_args"].get('distil_teacher_name_or_path')
         ret = template.render(speedup = checkpoint_info["speedup"],
                               sparsity = sparsity_report,
                               packaging = packaging_report,
@@ -226,7 +231,10 @@ class Packager:
                               burl=model_card_base_url,
                               kind=self.kind,
                               reference = reference,
-                              task=self.task)
+                              task=self.task,
+                              nn_pruning_needed=nn_pruning_needed,
+                              use_relu=use_relu,
+                              teacher=teacher)
 
         with (self.git_path / "README.md").open("w") as readme_file:
             readme_file.write(ret)
@@ -306,6 +314,6 @@ if __name__ == "__main__":
     kind = "hybrid-filled-opt"
     task = "squadv1"
 
-    git_base_path = (Path(__file__).parent.parent.parent / "models").resolve()
+    git_base_path = (Path(__file__).resolve().parent.parent.parent / "models").resolve()
     p = Packager("madlag", "files/results_squadv1.json", checkpoint_path, git_base_path, kind = kind, task = task)
     p.run()
