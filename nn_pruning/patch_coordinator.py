@@ -33,10 +33,12 @@ from .modules.masked_nn import (
     LinearPruningArgs,
     MaskedLinear,
     MaskedLinearModelCompiler,
-    GenericLinearPruningContextModule
+    GenericLinearPruningContextModule,
+    head_mask,
 )
 from .modules.nonorm import NoNormCompiler, Layer2NoNormPatcher
 from .modules.gelu2relu import GeLU2ReLUModelPatcher
+from .inference_model_patcher import BertHeadsPruner
 
 from nn_pruning.training_patcher import (
     BertLinearModelPatcher,
@@ -220,6 +222,13 @@ class SparseTrainingArguments:
         },
     )
 
+    rewind_model_name_or_path : str = field(
+        default=None,
+        metadata = {
+           "help": "Model that will be used as a guide to prevent pruning of some attention heads while redoing fine-pruning."
+        },
+    )
+
 class ModelPatchingCoordinator:
     MODEL_STRUCTURE = BertStructure
 
@@ -230,6 +239,7 @@ class ModelPatchingCoordinator:
         self.patcher_context = PatcherContext()
         self.teacher_constructor = teacher_constructor
         self.teacher = self.create_teacher(device, cache_dir)
+        self.layer_head_mask = self.create_head_rewind_info(device, cache_dir)
         self.logit_names = logit_names
 
     def parse_pruning_method(self, method):
@@ -263,12 +273,21 @@ class ModelPatchingCoordinator:
                 config=model_config,
                 cache_dir=cache_dir,
             )
-            print(teacher)
             teacher.to(device)
         else:
             teacher = None
 
         return teacher
+
+
+    def create_head_rewind_info(self, device, cache_dir):
+        rewind_model_name_or_path = self.sparse_args.rewind_model_name_or_path
+        if rewind_model_name_or_path is None:
+            return None
+        else:
+            rewind_config = AutoConfig.from_pretrained(rewind_model_name_or_path, cache_dir=cache_dir)
+
+            return head_mask(rewind_config, device)
 
     def schedule_threshold(
         self,
@@ -317,25 +336,33 @@ class ModelPatchingCoordinator:
         def interp(a,b, interpf):
             return a * interpf + (1.0 - interpf) * b
 
-        if sparse_args.layer_norm_patch:
-            interpf = 0.0
-            layer_norm_patch_steps = sparse_args.layer_norm_patch_steps
-            if step < layer_norm_patch_steps:
-                interpf = 1.0 - (step / layer_norm_patch_steps)
+        if hasattr(sparse_args, "layer_norm_patch") and sparse_args.layer_norm_patch:
+            if training:
+                interpf = 0.0
+                layer_norm_patch_steps = sparse_args.layer_norm_patch_steps
+                if step < layer_norm_patch_steps:
+                    interpf = 1.0 - (step / layer_norm_patch_steps)
 
-            delta = interp(sparse_args.layer_norm_patch_start_delta, 1.0, interpf)
-            mix = interpf
+                delta = interp(sparse_args.layer_norm_patch_start_delta, 1.0, interpf)
+                mix = interpf
 
-            context_data["layernorm_to_nonorm_delta"] = delta
-            context_data["layernorm_to_nonorm_mix"] = mix
+                context_data["layernorm_to_nonorm_delta"] = delta
+                context_data["layernorm_to_nonorm_mix"] = mix
+            else:
+                context_data["layernorm_to_nonorm_delta"] = 1.0
+                context_data["layernorm_to_nonorm_mix"] = 0.0
 
-        if sparse_args.gelu_patch:
-            interpf = 0.0
-            gelu_patch_steps = sparse_args.gelu_patch_steps
-            if step < gelu_patch_steps:
-                interpf = 1.0 - (step / gelu_patch_steps)
+        if hasattr(sparse_args, "gelu_patch") and sparse_args.gelu_patch:
+            if training:
+                interpf = 0.0
+                gelu_patch_steps = sparse_args.gelu_patch_steps
+                if step < gelu_patch_steps:
+                    interpf = 1.0 - (step / gelu_patch_steps)
 
-            context_data["gelu_to_relu_mix"] = interpf
+                context_data["gelu_to_relu_mix"] = interpf
+            else:
+                context_data["gelu_to_relu_mix"] = 0.0
+
 
         self.patcher_context.set_context_data_dict(context_data)
 
@@ -524,7 +551,7 @@ class ModelPatchingCoordinator:
                 block_rows=sparse_args.attention_block_rows,
                 block_cols=sparse_args.attention_block_cols,
                 bias_mask=bias_mask,
-                min_parameters=linear_min_parameters,
+                min_elements=linear_min_parameters,
             )
 
             args_attention_t = LinearPruningArgs(
@@ -534,14 +561,21 @@ class ModelPatchingCoordinator:
                 block_rows=sparse_args.attention_block_cols,
                 block_cols=sparse_args.attention_block_rows,
                 bias_mask=bias_mask,
-                min_parameters=linear_min_parameters,
+                min_elements=linear_min_parameters,
             )
+
             if args_attention.submethod == "joint":
-                p_attention = JointPruningModulePatcher(patcher_context, args_attention, suffix=".attention")
-                p_attention_t = JointPruningModulePatcher(patcher_context, args_attention_t, suffix=".attention")
+                p_attention = JointPruningModulePatcher(patcher_context, args_attention, model_structure=self.MODEL_STRUCTURE, suffix=".attention")
+                p_attention_t = JointPruningModulePatcher(patcher_context, args_attention_t, model_structure=self.MODEL_STRUCTURE, suffix=".attention")
             else:
-                p_attention = LinearPruningModulePatcher(patcher_context, args_attention)
-                p_attention_t = LinearPruningModulePatcher(patcher_context, args_attention_t)
+                p_attention = LinearPruningModulePatcher(patcher_context,
+                                                         args_attention,
+                                                         model_structure=self.MODEL_STRUCTURE,
+                                                         row_additive_mask = self.layer_head_mask)
+                p_attention_t = LinearPruningModulePatcher(patcher_context,
+                                                           args_attention_t,
+                                                           model_structure = self.MODEL_STRUCTURE,
+                                                           col_additive_mask = self.layer_head_mask)
         else:
             p_attention = None
             p_attention_t = None
@@ -556,14 +590,14 @@ class ModelPatchingCoordinator:
                 block_rows=sparse_args.dense_block_rows,
                 block_cols=sparse_args.dense_block_cols,
                 bias_mask=bias_mask,
-                min_parameters=linear_min_parameters,
+                min_elements=linear_min_parameters,
             )
             if args_dense.submethod.startswith("1d"):
                 p_dense = ChannelPruningModulePatcher(
-                    patcher_context, args_dense, self.MODEL_STRUCTURE, suffix="dense"
+                    patcher_context, args_dense, model_structure=self.MODEL_STRUCTURE, suffix="dense"
                 )
             else:
-                p_dense = LinearPruningModulePatcher(patcher_context, args_dense)
+                p_dense = LinearPruningModulePatcher(patcher_context, args_dense, model_structure=self.MODEL_STRUCTURE)
         else:
             p_dense = None
 
@@ -633,10 +667,17 @@ class ModelPatchingCoordinator:
         compiler = MaskedLinearModelCompiler()
         compiler.patch(model)
 
-        if self.sparse_args.layer_norm_patch:
+        if hasattr(self.sparse_args, "layer_norm_patch") and self.sparse_args.layer_norm_patch:
             nnc = NoNormCompiler()
             nnc.patch(model)
             model.config.layer_norm_type = "no_norm"
+
+        if hasattr(self.sparse_args, "gelu_patch") and self.sparse_args.gelu_patch:
+            model.config.hidden_act = "relu"
+
+        pruner = BertHeadsPruner(model)
+        removed_heads, total_heads = pruner.run()
+        return removed_heads, total_heads
 
 
 

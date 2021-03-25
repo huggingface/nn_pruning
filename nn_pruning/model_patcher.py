@@ -42,6 +42,13 @@ class ModelPatcher:
             self.stats["patched"] += 1
             setattr(father, child_name, new_child_module)
 
+    def needs_patch(self, model):
+        for k, v in model.named_modules():
+            if self.is_patchable(k, v, raiseError=True):
+                return True
+        else:
+            return False
+
     def patch(self, model):
         modules = {}
         modified = False

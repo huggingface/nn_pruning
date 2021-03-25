@@ -130,6 +130,7 @@ class SparseQAShortNamer(TrialShortNamer):
         'gelu_patch':False,
         'gelu_patch_steps': 50000,
         'linear_min_parameters': 0.005,
+        'rewind_model_name_or_path': None,
     }
 
 

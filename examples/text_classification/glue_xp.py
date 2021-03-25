@@ -35,7 +35,7 @@ from transformers import (
 from nn_pruning.hp_naming import TrialShortNamer
 
 from .glue_train import GlueTrainer
-from nn_pruning.examples.xp import XP, DataTrainingArguments, ModelArguments, XPTrainingArguments
+from examples.xp import XP, DataTrainingArguments, ModelArguments, XPTrainingArguments
 import json
 
 
@@ -163,7 +163,6 @@ class GlueXP(XP):
         # In distributed training, the load_dataset function guarantee that only one local process can concurrently
         # download the dataset.
         data_args = self.data_args
-
         if data_args.task_name is not None:
             # Downloading and loading a dataset from the hub.
             datasets = load_dataset("glue", data_args.task_name)
@@ -197,6 +196,7 @@ class GlueXP(XP):
                 label_list = datasets["train"].features["label"].names
                 num_labels = len(label_list)
             else:
+                label_list = None
                 num_labels = 1
         else:
             # Trying to have good defaults here, don't hesitate to tweak to your needs.
@@ -292,9 +292,13 @@ class GlueXP(XP):
             cache_file_names[key] =  str(cache_dir / key)
 
         for key in ["validation", "test"]:
-            for matched in ["matched", "mismatched"]:
-                key_matched = "_".join([key, matched])
-                cache_file_names[key_matched] = str(cache_dir / key_matched)
+            if data_args.task_name == "mnli":
+                for matched in ["matched", "mismatched"]:
+                    key_matched = "_".join([key, matched])
+                    cache_file_names[key_matched] = str(cache_dir / key_matched)
+            else:
+                cache_file_names[key] = str(cache_dir / key)
+
 
         datasets = datasets.map(
             preprocess_function,
@@ -308,7 +312,6 @@ class GlueXP(XP):
         self.eval_dataset = datasets["validation_matched" if data_args.task_name == "mnli" else "validation"]
         if data_args.task_name is not None:
             self.test_dataset = datasets["test_matched" if data_args.task_name == "mnli" else "test"]
-
         # Log a few random samples from the training set:
         for index in random.sample(range(len(self.train_dataset)), 3):
             logger.info(f"Sample {index} of the training set: {self.train_dataset[index]}.")
@@ -387,10 +390,16 @@ class GlueXP(XP):
 
         cls.run_from_dict(parameters)
 
-        file_info = {"timings":"evaluate_timing_mnli",
-                     "timings_mm":"evaluate_timing_mnli-mm",
-                     "metrics":"eval_results_mnli",
-                     "metrics_mm": "eval_results_mnli-mm"}
+        file_info = {"timings": "evaluate_timing",
+                     "metrics": "eval_results"}
+
+        if task is not None:
+            file_info_tmp = {}
+            for k, v in file_info.items():
+                file_info_tmp[k] = file_info[k] + "_" + task
+                if task == "mnli":
+                    file_info_tmp[k + "_mm"] = file_info_tmp[k] + "-mm"
+            file_info = file_info_tmp
 
         ret = {}
         for k, v in file_info.items():

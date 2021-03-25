@@ -20,8 +20,15 @@ widget:
 ## BERT-base uncased model fine-tuned on SQuAD v1
 
 This model was created using the [nn_pruning](https://github.com/huggingface/nn_pruning) python library: the **linear layers contains {{"%.1f"|format(sparsity.linear_density)}}%** of the original weights.
+{% if nn_pruning_needed %}
+This model **CANNOT be used without using nn_pruning `optimize_model`** function, as it uses NoNorms instead of LayerNorms and this is not currently supported by the Transformers library.
+{% endif %}
+{% if use_relu %}
+It uses ReLUs instead of GeLUs as in the initial BERT network, to speedup inference.
+This does not need special handling, as it is supported by the Transformers library, and flagged in the model config by the ```"hidden_act": "relu"``` entry.
+{% endif %}
 {% if is_ampere %}
-Moreover, this model is Ampere sparse. That means that the non-zero blocks are themselves Ampere sparse, reducing the number of parameters, increasing speed, with a limited impact on precision.
+It is Ampere sparse. That means that the non-zero blocks are themselves Ampere sparse, reducing the number of parameters, increasing speed, with a limited impact on precision.
 {% endif %}
 The model contains **{{"%.1f"|format(sparsity.total_density)}}%** of the original weights **overall** (the embeddings account for a significant part of the model, and they are not pruned by this method).
 
@@ -30,10 +37,10 @@ This is possible because the pruning method lead to structured matrices: to visu
 
 <div class="graph">{{graphics.density_info.html}}</div>
 
-In terms of accuracy, its **{{reference.main_metric_name}} is {{"%.2f"|format(eval_metrics.main_metric)}}**, compared with {{reference.main_metric_value}} for BERT-base, a **{{reference.main_metric_name}} {{"gain" if eval_metrics.main_metric > reference.main_metric_value else "drop"}} of {{"%.2f"|format(eval_metrics.main_metric - reference.main_metric_value | abs)}}**.
+In terms of accuracy, its **{{reference.main_metric_name}} is {{"%.2f"|format(eval_metrics.main_metric)}}**, compared with {{reference.main_metric_value}} for BERT-base, a **{{reference.main_metric_name}} {{"gain" if eval_metrics.main_metric > reference.main_metric_value else "drop"}} of {{"%.2f"|format((eval_metrics.main_metric - reference.main_metric_value) | abs)}}**.
 
 ## Fine-Pruning details
-This model was fine-tuned from the HuggingFace [BERT](https://www.aclweb.org/anthology/N19-1423/) base uncased checkpoint on [SQuAD1.1](https://rajpurkar.github.io/SQuAD-explorer), and distilled from the equivalent model [csarron/bert-base-uncased-squad-v1](https://huggingface.co/csarron/bert-base-uncased-squad-v1).
+This model was fine-tuned from the HuggingFace [BERT](https://www.aclweb.org/anthology/N19-1423/) base uncased checkpoint on [SQuAD1.1](https://rajpurkar.github.io/SQuAD-explorer), and distilled from the model [{{teacher}}](https://huggingface.co/{{teacher}}).
 This model is case-insensitive: it does not make a difference between english and English.
 
 A side-effect of the block pruning is that some of the attention heads are completely removed: {{sparsity.pruned_heads}} heads were removed on a total of {{sparsity.total_heads}} ({{"%.1f"|format(sparsity.pruned_heads / sparsity.total_heads * 100)}}%).
@@ -65,12 +72,12 @@ GPU driver: 455.23.05, CUDA: 11.1
 | Metric | # Value   | # Original ([Table 2](https://www.aclweb.org/anthology/N19-1423.pdf))| Variation |
 | ------ | --------- | --------- | --------- |
 | **EM** | **{{"%.2f"|format(eval_metrics.exact_match)}}** | **80.8** | **{{"%+.2f"|format(eval_metrics.exact_match - 80.8)}}**|
-| **F1** | **{{"%.2f"|format(eval_metrics.f1)}}** | **88.5** | **{{"%+.2f"|format(eval_metrics.f1 - 88.5)}}**|
+| **F1** | **{{"%.2f"|format(eval_metrics.f1)}}** | **88.5** | **{{"%+.2f"|format((eval_metrics.f1 - 88.5))}}**|
 
 ## Example Usage
 Install nn_pruning: it contains the optimization script, which just pack the linear layers into smaller ones by removing empty rows/columns.
 
-`pip install git+https://github.com//huggingface/nn_pruning`
+`pip install nn_pruning`
 
 Then you can use the `transformers library` almost as usual: you just have to call `optimize_model` when the pipeline has loaded.
 

@@ -11,7 +11,7 @@ from collections import defaultdict
 import copy
 
 import bokeh
-from nn_pruning.analysis.graph_util import BokehHelper
+from analysis.graph_util import BokehHelper
 import bokeh.plotting as plotting
 from bokeh.models import Label, Range1d
 
@@ -426,6 +426,7 @@ def draw_all_plots(input_file_name, task, x_axis, cleanup_cache=False):
                 "Block/struct method, bs= 32x32, v=1, s=l": "Hybrid, BERT-large",
                 "Block/struct method, bs= 32x32, v=1, s=b, t=l": "Hybrid, BERT-base, large teacher",
                 "Block/struct method, bs= 32x32, v=1, s=b, t=l, nonorm=1": "Hybrid, BERT-base, large teacher, NoNorm",
+                "Block/struct method, bs= 32x32, v=1, s=b, t=l, nonorm=1, relu=1": "Hybrid, BERT-base, large teacher, Full Patch",
                 "Structured pruning": "Structured pruning, BERT-base",
                 "improved soft movement with distillation": "Improved soft movement, BERT-base",
                 "soft_movement_with_distillation": "Original Soft Movement",
@@ -556,99 +557,3 @@ if __name__ == "__main__":
         for x_axis in ["speedup", "fill_rate"]:
             draw_all_plots(input_file_name_, task, x_axis, cleanup_cache=False)
         copy_plots(task)
-
-    import sys
-
-    sys.exit()
-
-    #    select = ['block_sparse', 'improved soft movement with distillation', 'misc', 'new method, attention pruned with rows', 'new method, longer final warmup (15 instead of 10)', 'new xp, block_size= 16x16', 'new xp, block_size= 32x32', 'new xp, block_size= 64x32', 'small_epoch']
-
-    CAT_FUN_NAMES = [
-        "new_xp",
-        "full_block",
-        "improved_mvmt_pruning",
-        "longer_final_warmup",
-        "attention_rows",
-        "short_final_warmup",
-        "block_unstructured",
-    ]
-
-
-    white_list = [  # "Block/struct method, bs= [0-9]+x[0-9]+, v=1",
-        "Block/struct method, bs= 32x32, v=1",
-        "Block/struct method, final fine tuned, s=[bl]",
-        "Block/unstruct method, bs= [0-9]+x[0-9]+",
-        "improved soft movement with distillation",
-        "soft_movement_with_distillation",
-        "Full block method, bs= [0-9]+x[0-9]+",
-        "Structured pruning",
-    ]
-    black_list = ["new method, attention pruned with rows"]  # "Block/struct method, bs= [0-9]+x.[0-9]+, v=0"]
-    raw_black_list = copy.deepcopy(white_list)
-    raw_black_list += copy.deepcopy(black_list)
-    # raw_black_list = False
-
-    limits = {
-        "speedup": dict(legend_pos="upper right", x_min=0.75, x_max=4.0, y_min=None, y_max=None),
-        "fill_rate": dict(legend_pos="upper left", x_min=0.0, x_max=0.75, y_min=None, y_max=None),
-    }
-
-    # For debug purpose : black_list is the kept white list
-    p = GeneralPlotter(
-        task,
-        input_file_name,
-        white_list=False,
-        black_list=raw_black_list,
-        reference_black_list=None,
-        limits=limits,
-    )
-    multiplot(p, "raw_global")
-    #    sys.exit(0)
-    reference_black_list = ["local_movement_pruning"]
-    p = GeneralPlotter(
-        task,
-        input_file_name,
-        white_list=white_list,
-        black_list=black_list,
-        reference_black_list=reference_black_list,
-        limits=limits,
-    )
-    multiplot(p, "global")
-
-    CAT_FUN_NAMES = {
-        #    "new_xp_v0": dict(fun_name="new_xp", draw_labels=False, white_list=["Block/struct method, bs= [0-9]+x.[0-9]+, v=0"]),
-        "new_xp_v0": dict(
-            cat_fun_names=["new_xp"],
-            draw_labels=False,
-            white_list=["Block/struct method, final fine tuned, s=[bl]", "Structured pruning"],
-            label_mapping=new_xp_v0_mapping,
-        ),
-        "new_xp_v1": dict(
-            cat_fun_names=["new_xp"],
-            draw_labels=True,
-            white_list=[
-                "Block/struct method, bs= 32x32, v=1, s=[bl]",
-                "Block/struct method, final fine tuned, s=[bl]",
-            ],
-        ),
-        "structured": dict(cat_fun_names=["new_xp"], draw_labels=False, white_list=["Structured pruning"]),
-        #        "new_xp_16": dict(fun_name="new_xp", draw_labels=False, white_list=["Block/struct method, bs= 16x16, v=[0-9]+"]),
-        #        "new_xp_32": dict(fun_name="new_xp", draw_labels=False, white_list=["Block/struct method, bs= 32x32, v=[0-9]+"]),
-        "full_block": {},
-        "improved_mvmt_pruning": {},
-        "block_unstructured": {},
-    }
-    for name, configuration in CAT_FUN_NAMES.items():
-        limits = {
-            "speedup": dict(legend_pos="upper right", x_min=0.75, x_max=4.0, y_min=None, y_max=None),
-            "fill_rate": dict(legend_pos="upper left", x_min=0.0, x_max=0.75, y_min=None, y_max=None),
-        }
-        p = GeneralPlotter(
-            task,
-            input_file_name,
-            limits=limits,
-            cluster=True,
-            **configuration,
-        )
-        multiplot(p, name)
-#        break

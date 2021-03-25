@@ -1,5 +1,5 @@
 from typing import Dict
-
+import re
 
 class ModelStructure:
     PATTERN_PREFIX: str = ""
@@ -21,6 +21,13 @@ class ModelStructure:
         category = list(cls.LAYER_PATTERNS.keys())[pos]
         return category in cls.ATTENTION_LAYERS
 
+    @classmethod
+    def layer_index(cls, child_module_name):
+        extracts = re.findall(r"[0-9]+", child_module_name)
+        if len(extracts) != 1:
+            return None
+        return int(extracts[0])
+
 
 class BertStructure(ModelStructure):
     PATTERN_PREFIX = "bert.encoder.layer.[0-9]+."
@@ -32,3 +39,5 @@ class BertStructure(ModelStructure):
         interm_dense="intermediate.dense",
         output_dense="output.dense",
     )
+
+

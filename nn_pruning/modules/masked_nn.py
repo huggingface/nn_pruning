@@ -22,7 +22,7 @@ The pruned weight matrix is then multiplied against the inputs (and if necessary
 import math
 from dataclasses import dataclass
 from itertools import permutations
-from typing import List
+from typing import List, Optional
 
 import torch
 from torch import nn
@@ -195,7 +195,7 @@ class AmpereMaskModule(nn.Module):
         top_mask = AmpereMaskModule.get_final_mask(mask_scores, 2, 4)
 
         if train:
-            mask = ThresholdBinarizer.apply(mask_scores, threshold, sigmoid, min_elements = 0)
+            mask = ThresholdBinarizer.apply(mask_scores, threshold, sigmoid, 0)
             ret = torch.max(mask, top_mask)
         else:
             ret = top_mask
@@ -338,6 +338,8 @@ class MaskedLinear(ReplacementModule):
         mask_context_modules: List[LinearPruningContextModule],
         ampere_context_module: AmpereLinearPruningContextModule,
         args: LinearPruningArgs,
+        row_additive_mask: Optional[torch.Tensor]=None,
+        col_additive_mask: Optional[torch.Tensor]=None
     ):
         super().__init__()
 
@@ -350,12 +352,26 @@ class MaskedLinear(ReplacementModule):
             self.ampere_module = AmpereMaskModule(ampere_context_module, args)
         self.args = args
 
+        self.row_additive_mask = row_additive_mask
+        self.col_additive_mask = col_additive_mask
+
     def nnz(self, m):
         return int((m != 0).sum().item())
 
     def get_masked_weights_bias(self):
         threshold = self.get_context_data("threshold")
         mask = self.mask_module(self.weight, threshold)
+
+        if mask is not None:
+            if self.row_additive_mask is not None:
+                row_mask = self.row_additive_mask
+                row_mask = row_mask.unsqueeze(-1)
+                row_mask = row_mask.expand_as(mask).float()
+                mask = torch.maximum(mask, row_mask)
+            if self.col_additive_mask is not None:
+                col_mask = self.col_additive_mask
+                col_mask = col_mask.expand_as(mask).float()
+                mask = torch.maximum(mask, col_mask)
 
         if mask is not None:
             self.mask_nnz = self.nnz(mask)
@@ -415,10 +431,19 @@ class LinearPruningModulePatcher(ModulePatcher):
         self,
         context: PatcherContext,
         args: LinearPruningArgs,
+        model_structure:ModelStructure,
+        row_additive_mask: Optional[torch.Tensor] = None,
+        col_additive_mask: Optional[torch.Tensor] = None,
     ):
         super().__init__(context=context)
         self.args = args
         self.check_method(args)
+        self.model_structure = model_structure
+        self.row_additive_mask = row_additive_mask
+        self.col_additive_mask = col_additive_mask
+
+    def layer_index(self, child_module_name):
+        return self.model_structure.layer_index(child_module_name)
 
     @staticmethod
     def check_method(args: LinearPruningArgs):
@@ -475,20 +500,34 @@ class LinearPruningModulePatcher(ModulePatcher):
         else:
             ampere_context_module = None
 
-        return MaskedLinear(child_module, mask_context_modules, ampere_context_module, self.args)
+        layer_index = self.layer_index(child_module_name)
+
+        if self.row_additive_mask is not None:
+            row_additive_mask = self.row_additive_mask[layer_index]
+        else:
+            row_additive_mask = None
+
+        if self.col_additive_mask is not None:
+            col_additive_mask = self.col_additive_mask[layer_index]
+        else:
+            col_additive_mask = None
+
+        return MaskedLinear(child_module, mask_context_modules, ampere_context_module, self.args,
+                            row_additive_mask = row_additive_mask,
+                            col_additive_mask = col_additive_mask)
 
 
 class JointPruningModulePatcher(LinearPruningModulePatcher):
-    def __init__(self, context: PatcherContext, args: LinearPruningArgs, suffix: str):
+    def __init__(self, context: PatcherContext, args: LinearPruningArgs, model_structure: ModelStructure, suffix: str):
 
-        super().__init__(context, args)
+        super().__init__(context, args, model_structure=model_structure)
         self.suffix = suffix
 
     def get_context_key(self, child_module_name, kind="default"):
         if kind == "ampere_mask":
             return (kind, child_module_name)
         elif kind == "mask":
-            layer_number = self.extract_layer_number_from_name(child_module_name)
+            layer_number = self.layer_index(child_module_name)
             return (kind, f"{layer_number}.{self.suffix}")
         else:
             raise RuntimeError(f"Unknown kind {kind}")
@@ -502,15 +541,14 @@ class ChannelPruningModulePatcher(LinearPruningModulePatcher):
         model_structure: ModelStructure,
         suffix: str,
     ):
-        super().__init__(context, args)
-        self.model_structure = model_structure
+        super().__init__(context, args, model_structure=model_structure)
         self.suffix = suffix
 
     def get_context_key(self, child_module_name, kind="default"):
         if kind == "ampere_mask":
             return (kind, child_module_name)
         elif kind in ["mask_row", "mask_col"]:
-            layer_number = self.extract_layer_number_from_name(child_module_name)
+            layer_number = self.layer_index(child_module_name)
 
             offset = 1 if kind == "mask_row" else 0  # The weight matrix has a shape [output, input]
 
@@ -538,3 +576,29 @@ class MaskedLinearModelCompiler(ModelPatcher):
 
     def new_child_module(self, child_module_name, child_module, patch_info):
         return child_module.compile()
+
+
+
+def head_mask(config, device):
+    removed_heads = config.pruned_heads
+    num_attention_heads = config.num_attention_heads
+    num_hidden_layers = config.num_hidden_layers
+
+    head_keep = []
+    head_size = int(config.hidden_size / num_attention_heads)
+
+    for hidden_index in range(num_hidden_layers):
+        r = removed_heads.get(hidden_index, [])
+        keep = []
+        for i in range(num_attention_heads):
+            if i not in r:
+                value = True
+            else:
+                value = False
+
+            for j in range(head_size):
+                keep.append(value)
+
+        t = torch.tensor(keep, device=device, dtype=torch.bool)
+        head_keep.append(t)
+    return head_keep
