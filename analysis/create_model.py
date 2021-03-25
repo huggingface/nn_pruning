@@ -11,7 +11,7 @@ import jinja2
 import sys
 indent = 4
 if sys.version_info.major == 3 and 4 <= sys.version_info.minor <= 8:
-  import _make_iterencode
+  from . import _make_iterencode
   json.encoder._make_iterencode = _make_iterencode._make_iterencode
   indent = (4, None)
 
