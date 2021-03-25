@@ -105,7 +105,7 @@ task2teacher = {
 @click.argument("output-dir", type=click.Path(resolve_path=True))
 @click.option("--json_path", type=click.Path(resolve_path=True), help="Path to a parameters json file")
 @click.option("--model-name-or-path", default="bert-base-uncased", type=click.Choice(["bert-base-uncased", "bert-large-uncased"]))
-@click.option("--teacher", default="bert-large-uncased-whole-word-masking-finetuned-squad", type=str, help = "teacher name or path (default is bert-large-uncased-whole-word-masking-finetuned-squad)")
+@click.option("--teacher", default=None, type=str, help = "'auto' for auto selection, or teacher name or path (default is no teacher)")
 @click.option("--per-device-train-batch-size", default=16, type=int)
 @click.option("--regularization-final-lambda", default=10, type=float)
 @click.option("--dense-lambda", default=1.0, type=float)
@@ -150,20 +150,26 @@ def finetune(
         param_dict["gelu_patch"] = gelu_patch
 
     if task == "squadv1":
-        if json_path is None and teacher is None:
-            # Large teacher is default
-            param_dict["distil_teacher_name_or_path"] = "csarron/bert-base-uncased-squad-v1"
+        if json_path is None and teacher == "auto":
+            if model_name_or_path == "bert-base-uncased":
+                param_dict["distil_teacher_name_or_path"] = "csarron/bert-base-uncased-squad-v1"
+            elif model_name_or_path == "bert-large-uncased":
+                param_dict["distil_teacher_name_or_path"] = "bert-large-uncased-whole-word-masking-finetuned-squad"
+            else:
+                raise ValueError(f"Cannot find teacher for model {model_name_or_path}")
 
         import examples.question_answering.qa_sparse_xp as qa_sparse_xp
 
         experiment = qa_sparse_xp.QASparseXP(param_dict)
     else:
-        if json_path is None and teacher is None or teacher == "bert-large-uncased-whole-word-masking-finetuned-squad":
-            # Large teacher is default
-            if task in GLUE_TASKS:
-                param_dict["distil_teacher_name_or_path"] = task2teacher[task]
+        if json_path is None and teacher == "auto":
+            if model_name_or_path == "bert-base-uncased":
+                if task in GLUE_TASKS:
+                    param_dict["distil_teacher_name_or_path"] = task2teacher[task]
+                else:
+                    raise ValueError(f"Unknown task {task}")
             else:
-                param_dict["distil_teacher_name_or_path"] = "aloxatel/bert-base-mnli"
+                raise ValueError(f"Cannot find teacher for model {model_name_or_path}")
 
         import examples.text_classification.glue_sparse_xp as glue_sparse_xp
 
