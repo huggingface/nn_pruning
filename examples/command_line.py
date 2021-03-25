@@ -134,7 +134,7 @@ def finetune(
             param_dict = QA_TYPICAL_PARAMETERS
         elif task in GLUE_TASKS:
             param_dict = GLUE_TYPICAL_PARAMETERS
-            param_dict["task_name"] = task
+            param_dict["dataset_name"] = task
         else:
             raise ValueError(f"Unknown task {task}")
 
