@@ -102,6 +102,7 @@ class ExperimentClassifier:
         size = "l" if large else "b"
         no_norm = "layer_norm_patch" in sparse_args and sparse_args["layer_norm_patch"]
         is_relu = "gelu_patch" in sparse_args and sparse_args["gelu_patch"] or xp["config"]["hidden_act"] == "relu"
+        is_rewind = "rewind_model_name_or_path" in sparse_args and sparse_args["rewind_model_name_or_path"] is not None
 
         compare_different = {}
         if self.check(sparse_args, compare, compare_different):
@@ -119,6 +120,9 @@ class ExperimentClassifier:
 
             if is_relu:
                 ret += ", relu=1"
+
+            if is_rewind:
+                ret += ", rewind=1"
 
             return ret, annotate
 
@@ -156,7 +160,10 @@ class ExperimentClassifier:
             if is_relu:
                 ret += ", relu=1"
 
-#            annotate = self.get_lambdas_annotation(sparse_args)
+            if is_rewind:
+                ret += ", rewind=1"
+
+            #            annotate = self.get_lambdas_annotation(sparse_args)
             annotate = "%d" % (100 - xp["stats"]["linear_sparsity"])
             # annotate += ", fw=" + str(sparse_args["final_warmup"])
 
