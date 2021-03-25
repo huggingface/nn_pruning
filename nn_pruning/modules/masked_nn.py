@@ -352,7 +352,13 @@ class MaskedLinear(ReplacementModule):
             self.ampere_module = AmpereMaskModule(ampere_context_module, args)
         self.args = args
 
+        if row_additive_mask is not None:
+            row_additive_mask = row_additive_mask.to(self.weight.device)
         self.row_additive_mask = row_additive_mask
+
+        if col_additive_mask is not None:
+            col_additive_mask = col_additive_mask.to(self.weight.device)
+
         self.col_additive_mask = col_additive_mask
 
     def nnz(self, m):
