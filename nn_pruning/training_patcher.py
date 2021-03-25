@@ -1,11 +1,8 @@
-import re
 from typing import Any, Dict
 
 import torch.nn as nn
 
 from .model_patcher import ModelPatcher
-from nn_pruning.modules.nonorm import Layer2NoNorm
-
 
 class PatcherContextModule(nn.Module):
     pass
@@ -66,12 +63,6 @@ class ModulePatcher:
     def __init__(self, context: PatcherContext):
         self.context = context
 
-    def extract_layer_number_from_name(self, child_module_name):
-        extracts = re.findall(r"[0-9]+", child_module_name)
-        if len(extracts) != 1:
-            return None
-        return int(extracts[0])
-
     def get_context_key(self, child_module_name, kind="default"):
         # Default implementation: each module has its own context
         return (kind, child_module_name)
@@ -131,4 +122,3 @@ class BertLinearModelPatcher(ModelDispatchingPatcher):
         for layer_type, patcher in patchers.items():
             layer_pattern = (self.PATTERN_PREFIX + self.LAYERS_PATTERNS[layer_type]).replace(".", "\.")
             self.add_patcher(layer_pattern, patcher)
-

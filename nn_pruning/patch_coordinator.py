@@ -33,7 +33,8 @@ from .modules.masked_nn import (
     LinearPruningArgs,
     MaskedLinear,
     MaskedLinearModelCompiler,
-    GenericLinearPruningContextModule
+    GenericLinearPruningContextModule,
+    head_mask,
 )
 from .modules.nonorm import NoNormCompiler, Layer2NoNormPatcher
 from .modules.gelu2relu import GeLU2ReLUModelPatcher
@@ -221,6 +222,13 @@ class SparseTrainingArguments:
         },
     )
 
+    rewind_model_name_or_path : str = field(
+        default=None,
+        metadata = {
+           "help": "Model that will be used as a guide to prevent pruning of some attention heads while redoing fine-pruning."
+        },
+    )
+
 class ModelPatchingCoordinator:
     MODEL_STRUCTURE = BertStructure
 
@@ -231,6 +239,7 @@ class ModelPatchingCoordinator:
         self.patcher_context = PatcherContext()
         self.teacher_constructor = teacher_constructor
         self.teacher = self.create_teacher(device, cache_dir)
+        self.layer_head_mask = self.create_head_rewind_info(device, cache_dir)
         self.logit_names = logit_names
 
     def parse_pruning_method(self, method):
@@ -264,12 +273,21 @@ class ModelPatchingCoordinator:
                 config=model_config,
                 cache_dir=cache_dir,
             )
-            print(teacher)
             teacher.to(device)
         else:
             teacher = None
 
         return teacher
+
+
+    def create_head_rewind_info(self, device, cache_dir):
+        rewind_model_name_or_path = self.sparse_args.rewind_model_name_or_path
+        if rewind_model_name_or_path is None:
+            return None
+        else:
+            rewind_config = AutoConfig.from_pretrained(rewind_model_name_or_path, cache_dir=cache_dir)
+
+            return head_mask(rewind_config, device)
 
     def schedule_threshold(
         self,
@@ -545,12 +563,19 @@ class ModelPatchingCoordinator:
                 bias_mask=bias_mask,
                 min_elements=linear_min_parameters,
             )
+
             if args_attention.submethod == "joint":
-                p_attention = JointPruningModulePatcher(patcher_context, args_attention, suffix=".attention")
-                p_attention_t = JointPruningModulePatcher(patcher_context, args_attention_t, suffix=".attention")
+                p_attention = JointPruningModulePatcher(patcher_context, args_attention, model_structure=self.MODEL_STRUCTURE, suffix=".attention")
+                p_attention_t = JointPruningModulePatcher(patcher_context, args_attention_t, model_structure=self.MODEL_STRUCTURE, suffix=".attention")
             else:
-                p_attention = LinearPruningModulePatcher(patcher_context, args_attention)
-                p_attention_t = LinearPruningModulePatcher(patcher_context, args_attention_t)
+                p_attention = LinearPruningModulePatcher(patcher_context,
+                                                         args_attention,
+                                                         model_structure=self.MODEL_STRUCTURE,
+                                                         row_additive_mask = self.layer_head_mask)
+                p_attention_t = LinearPruningModulePatcher(patcher_context,
+                                                           args_attention_t,
+                                                           model_structure = self.MODEL_STRUCTURE,
+                                                           col_additive_mask = self.layer_head_mask)
         else:
             p_attention = None
             p_attention_t = None
@@ -569,10 +594,10 @@ class ModelPatchingCoordinator:
             )
             if args_dense.submethod.startswith("1d"):
                 p_dense = ChannelPruningModulePatcher(
-                    patcher_context, args_dense, self.MODEL_STRUCTURE, suffix="dense"
+                    patcher_context, args_dense, model_structure=self.MODEL_STRUCTURE, suffix="dense"
                 )
             else:
-                p_dense = LinearPruningModulePatcher(patcher_context, args_dense)
+                p_dense = LinearPruningModulePatcher(patcher_context, args_dense, model_structure=self.MODEL_STRUCTURE)
         else:
             p_dense = None
 

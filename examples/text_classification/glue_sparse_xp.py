@@ -137,7 +137,8 @@ class SparseGlueShortNamer(TrialShortNamer):
         'lr_scheduler_type': 'SchedulerType.LINEAR',
         'logging_strategy': 'IntervalStrategy.STEPS',
         'save_strategy': 'IntervalStrategy.STEPS',
-        }
+        'rewind_model_name_or_path': None,
+    }
 
 
 class GlueSparseXP(SparseXP, GlueXP):
