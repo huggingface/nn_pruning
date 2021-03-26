@@ -155,10 +155,10 @@ class QASparseXP(SparseXP, QAXP):
         SparseXP.setup_trainer(self)
 
     @classmethod
-    def final_finetune(cls, src_path, dest_path, teacher):
+    def final_finetune(cls, src_path, dest_path, task, teacher):
         param_dict = {
             "model_name_or_path": src_path,
-            "dataset_name": "squad",
+            "dataset_name": task,
             "do_train": 1,
             "do_eval": 1,
             "per_device_train_batch_size": 16,

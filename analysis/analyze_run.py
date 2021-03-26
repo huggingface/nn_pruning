@@ -138,9 +138,9 @@ class ModelSpeedEvaluate(ModelStatsExtractBase):
 
     def run_(self, model):
         if self.task == "squadv1":
-            ret = QAXP.evaluate_model(src_path=self.dest_path, optimize_mode=self.optimize_mode)
+            ret = QAXP.evaluate_model(src_path=self.dest_path, task="squad", optimize_mode=self.optimize_mode)
         elif self.task == "mnli":
-            ret = GlueXP.evaluate_model(src_path=self.dest_path, optimize_mode=self.optimize_mode, task=self.task)
+            ret = GlueXP.evaluate_model(src_path=self.dest_path, task=self.task, optimize_mode=self.optimize_mode)
         else:
             raise Exception(f"Unknown task {self.task}")
 

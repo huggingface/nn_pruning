@@ -9,7 +9,6 @@ def cli(ctx):
 
 
 QA_TYPICAL_PARAMETERS = {
-    "dataset_name": "squad",
     "do_train": 1,
     "do_eval": 1,
     "max_seq_length": 384,
@@ -46,6 +45,7 @@ QA_TYPICAL_PARAMETERS = {
     "layer_norm_patch_steps": 50000,
     "gelu_patch_steps": 50000,
     'linear_min_parameters': 0,
+    'null_score_diff_threshold': 0.0,
 }
 
 GLUE_TYPICAL_PARAMETERS = {
@@ -85,23 +85,29 @@ GLUE_TYPICAL_PARAMETERS = {
     "attention_output_with_dense": 0,
 }
 
+QA_TASKS = {"squadv1", "squadv2"}
+
 GLUE_TASKS = {"mnli", "cola", "mrpc", "qnli", "qqp", "rte", "sst2", "stsb", "wnli"}
 
 task2teacher = {
-    "mnli": "textattack/bert-base-uncased-MNLI",
-    "cola": "textattack/bert-base-uncased-CoLA",
-    "mrpc": "textattack/bert-base-uncased-MRPC",
-    "qnli": "textattack/bert-base-uncased-QNLI",
-    "qqp": "textattack/bert-base-uncased-QQP",
-    "rte": "textattack/bert-base-uncased-RTE",
-    "sst2": "textattack/bert-base-uncased-SST-2",
-    "stsb": "textattack/bert-base-uncased-STS-B",
-    "wnli": "textattack/bert-base-uncased-WNLI",
+    "squadv1_base": "csarron/bert-base-uncased-squad-v1",
+    "squadv1_large": "bert-large-uncased-whole-word-masking-finetuned-squad",
+    "squadv2_base": "twmkn9/bert-base-uncased-squad2",
+    "mnli_base": "textattack/bert-base-uncased-MNLI",
+    "cola_base": "textattack/bert-base-uncased-CoLA",
+    "mrpc_base": "textattack/bert-base-uncased-MRPC",
+    "qnli_base": "textattack/bert-base-uncased-QNLI",
+    "qqp_base": "textattack/bert-base-uncased-QQP",
+    "rte_base": "textattack/bert-base-uncased-RTE",
+    "sst2_base": "textattack/bert-base-uncased-SST-2",
+    "stsb_base": "textattack/bert-base-uncased-STS-B",
+    "wnli_base": "textattack/bert-base-uncased-WNLI",
 }
 
 @cli.command()
 @click.pass_context
-@click.argument("task", default="squadv1", type=click.Choice(["squadv1", "mnli", "cola", "mrpc", "qnli", "qqp", "rte", "sst2", "stsb", "wnli"]))
+@click.argument("task", default="squadv1", type=click.Choice(["squadv1", "squadv2", "mnli", "cola", "mrpc", "qnli",
+                                                              "qqp", "rte", "sst2", "stsb", "wnli"]))
 @click.argument("output-dir", type=click.Path(resolve_path=True))
 @click.option("--json_path", type=click.Path(resolve_path=True), help="Path to a parameters json file")
 @click.option("--model-name-or-path", default="bert-base-uncased", type=click.Choice(["bert-base-uncased", "bert-large-uncased"]))
@@ -112,6 +118,7 @@ task2teacher = {
 @click.option("--ampere-pruning-method", default="disabled", type=click.Choice(["disabled", "topk"]))
 @click.option('--layer_norm_patch', is_flag=True)
 @click.option('--gelu_patch', is_flag=True)
+
 def finetune(
     ctx,
     task,
@@ -126,12 +133,19 @@ def finetune(
     layer_norm_patch,
     gelu_patch
 ):
-    filename = json_path
+
     if json_path is not None:
-        param_dict = json.load(open(filename))
+        param_dict = json.load(open(json_path))
     else:
-        if task == "squadv1":
+        if task in QA_TASKS:
             param_dict = QA_TYPICAL_PARAMETERS
+            if task == "squadv2":
+                param_dict["dataset_name"] = "squad_v2"
+                param_dict["version_2_with_negative"] = 1
+            else:
+                param_dict["dataset_name"] = "squad"
+                param_dict["version_2_with_negative"] = 0
+
         elif task in GLUE_TASKS:
             param_dict = GLUE_TYPICAL_PARAMETERS
             param_dict["dataset_name"] = task
@@ -149,28 +163,22 @@ def finetune(
         param_dict["layer_norm_patch"] = layer_norm_patch
         param_dict["gelu_patch"] = gelu_patch
 
-    if task == "squadv1":
-        if json_path is None and teacher == "auto":
+        if teacher == "auto":
+            name_teacher = task
             if model_name_or_path == "bert-base-uncased":
-                param_dict["distil_teacher_name_or_path"] = "csarron/bert-base-uncased-squad-v1"
+                name_teacher += '_base'
             elif model_name_or_path == "bert-large-uncased":
-                param_dict["distil_teacher_name_or_path"] = "bert-large-uncased-whole-word-masking-finetuned-squad"
-            else:
-                raise ValueError(f"Cannot find teacher for model {model_name_or_path}")
+                name_teacher += '_large'
+            distil_teacher_name_or_path = task2teacher.get(name_teacher)
+            if distil_teacher_name_or_path is None:
+                raise ValueError(f"Cannot find teacher for model {model_name_or_path} on task {task}")
+            param_dict["distil_teacher_name_or_path"] = distil_teacher_name_or_path
 
+    if task in QA_TASKS:
         import examples.question_answering.qa_sparse_xp as qa_sparse_xp
 
         experiment = qa_sparse_xp.QASparseXP(param_dict)
     else:
-        if json_path is None and teacher == "auto":
-            if model_name_or_path == "bert-base-uncased":
-                if task in GLUE_TASKS:
-                    param_dict["distil_teacher_name_or_path"] = task2teacher[task]
-                else:
-                    raise ValueError(f"Unknown task {task}")
-            else:
-                raise ValueError(f"Cannot find teacher for model {model_name_or_path}")
-
         import examples.text_classification.glue_sparse_xp as glue_sparse_xp
 
         experiment = glue_sparse_xp.GlueSparseXP(param_dict)
