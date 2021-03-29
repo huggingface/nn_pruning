@@ -112,7 +112,7 @@ class SparseGlueShortNamer(TrialShortNamer):
         "save_steps": 5000,
         "save_total_limit": 50,
         "seed": 17,
-        "task_name": "mnli",
+        "dataset_name": "mnli",
         "tpu_metrics_debug": False,
         "use_fast_tokenizer": True,
         "warmup_steps": 5400,
@@ -165,7 +165,7 @@ class GlueSparseXP(SparseXP, GlueXP):
     def final_finetune(cls, src_path, dest_path, task, teacher):
         param_dict = {
             "model_name_or_path": src_path,
-            "task_name": task,
+            "dataset_name": task,
             "dataset_cache_dir": "dataset_cache_dir",
             "do_train": 1,
             "do_eval": 1,

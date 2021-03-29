@@ -38,14 +38,14 @@ class GlueTrainer(XPTrainer):
 
     def evaluate(self, eval_dataset=None, eval_examples=None, ignore_keys=None):
         data_args = self.data_args
-        eval_dataset = self.additional_datasets["validation_matched" if data_args.task_name == "mnli" else "validation"]
+        eval_dataset = self.additional_datasets["validation_matched" if data_args.dataset_name == "mnli" else "validation"]
 
         logger.info("*** Evaluate ***")
 
         # Loop to handle MNLI double evaluation (matched, mis-matched)
-        tasks = [data_args.task_name]
+        tasks = [data_args.dataset_name]
         eval_datasets = [eval_dataset]
-        if data_args.task_name == "mnli":
+        if data_args.dataset_name == "mnli":
             tasks.append("mnli-mm")
             eval_datasets.append(self.additional_datasets["validation_mismatched"])
 
@@ -90,8 +90,8 @@ class GlueTrainer(XPTrainer):
         logger.info("*** Test ***")
 
         # Loop to handle MNLI double evaluation (matched, mis-matched)
-        tasks = [data_args.task_name]
-        if data_args.task_name == "mnli":
+        tasks = [data_args.dataset_name]
+        if data_args.dataset_name == "mnli":
             test_datasets = [self.additional_datasets["test_matched"]]
             tasks.append("mnli-mm")
             test_datasets.append(self.additional_datasets["test_mismatched"])

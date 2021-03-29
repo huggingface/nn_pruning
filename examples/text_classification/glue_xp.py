@@ -64,11 +64,6 @@ class GlueDataTrainingArguments(DataTrainingArguments):
     the command line.
     """
 
-    task_name: Optional[str] = field(
-        default=None,
-        metadata={"help": "The name of the task to train on: " + ", ".join(task_to_keys.keys())},
-    )
-
     max_seq_length: int = field(
         default=128,
         metadata={
@@ -78,9 +73,9 @@ class GlueDataTrainingArguments(DataTrainingArguments):
     )
 
     def __post_init__(self):
-        if self.task_name is not None:
-            self.task_name = self.task_name.lower()
-            if self.task_name not in task_to_keys.keys():
+        if self.dataset_name is not None:
+            self.dataset_name = self.dataset_name.lower()
+            if self.dataset_name not in task_to_keys.keys():
                 raise ValueError("Unknown task, you should pick one in " + ",".join(task_to_keys.keys()))
         elif self.train_file is None or self.validation_file is None:
             raise ValueError("Need either a GLUE task or a training/validation file.")
@@ -142,7 +137,7 @@ class GlueXP(XP):
         self.config = AutoConfig.from_pretrained(
             config_path,
             num_labels=self.num_labels,
-            finetuning_task=self.data_args.task_name,
+            finetuning_task=self.data_args.dataset_name,
             cache_dir=model_args.cache_dir,
             **kwargs
         )
@@ -163,9 +158,9 @@ class GlueXP(XP):
         # In distributed training, the load_dataset function guarantee that only one local process can concurrently
         # download the dataset.
         data_args = self.data_args
-        if data_args.task_name is not None:
+        if data_args.dataset_name is not None:
             # Downloading and loading a dataset from the hub.
-            datasets = load_dataset("glue", data_args.task_name)
+            datasets = load_dataset("glue", data_args.dataset_name)
         elif data_args.train_file.endswith(".csv"):
             # Loading a dataset from local csv files
             datasets = load_dataset(
@@ -190,8 +185,8 @@ class GlueXP(XP):
         # https://huggingface.co/docs/datasets/loading_datasets.html.
 
         # Labels
-        if data_args.task_name is not None:
-            is_regression = data_args.task_name == "stsb"
+        if data_args.dataset_name is not None:
+            is_regression = data_args.dataset_name == "stsb"
             if not is_regression:
                 label_list = datasets["train"].features["label"].names
                 num_labels = len(label_list)
@@ -217,8 +212,8 @@ class GlueXP(XP):
         self.num_labels = num_labels
 
         # Preprocessing the datasets
-        if data_args.task_name is not None:
-            sentence1_key, sentence2_key = task_to_keys[data_args.task_name]
+        if data_args.dataset_name is not None:
+            sentence1_key, sentence2_key = task_to_keys[data_args.dataset_name]
         else:
             # Again, we try to have some nice defaults but don't hesitate to tweak to your use case.
             non_label_column_names = [name for name in datasets["train"].column_names if name != "label"]
@@ -248,7 +243,7 @@ class GlueXP(XP):
 
         if (
                 model_config.label2id != PretrainedConfig(num_labels=num_labels).label2id
-                and data_args.task_name is not None
+                and data_args.dataset_name is not None
         ):
             # Some have all caps in their config, some don't.
             label_name_to_id = {k.lower(): v for k, v in model_config.label2id.items()}
@@ -260,7 +255,7 @@ class GlueXP(XP):
                     f"model labels: {list(sorted(label_name_to_id.keys()))}, dataset labels: {list(sorted(label_list))}."
                     "\nIgnoring the model labels as a result.",
                 )
-        elif data_args.task_name is None:
+        elif data_args.dataset_name is None:
             label_to_id = {v: i for i, v in enumerate(label_list)}
 
         self.label_to_id = label_to_id
@@ -286,13 +281,13 @@ class GlueXP(XP):
             return result
 
         cache_file_names = {}
-        cache_dir = (Path(data_args.dataset_cache_dir) / data_args.task_name).resolve()
+        cache_dir = (Path(data_args.dataset_cache_dir) / data_args.dataset_name).resolve()
         cache_dir.mkdir(exist_ok=True, parents=True)
         for key in ["train"]:
             cache_file_names[key] =  str(cache_dir / key)
 
         for key in ["validation", "test"]:
-            if data_args.task_name == "mnli":
+            if data_args.dataset_name == "mnli":
                 for matched in ["matched", "mismatched"]:
                     key_matched = "_".join([key, matched])
                     cache_file_names[key_matched] = str(cache_dir / key_matched)
@@ -309,9 +304,9 @@ class GlueXP(XP):
         self.datasets = datasets
 
         self.train_dataset = datasets["train"]
-        self.eval_dataset = datasets["validation_matched" if data_args.task_name == "mnli" else "validation"]
-        if data_args.task_name is not None:
-            self.test_dataset = datasets["test_matched" if data_args.task_name == "mnli" else "test"]
+        self.eval_dataset = datasets["validation_matched" if data_args.dataset_name == "mnli" else "validation"]
+        if data_args.dataset_name is not None:
+            self.test_dataset = datasets["test_matched" if data_args.dataset_name == "mnli" else "test"]
         # Log a few random samples from the training set:
         for index in random.sample(range(len(self.train_dataset)), 3):
             logger.info(f"Sample {index} of the training set: {self.train_dataset[index]}.")
@@ -325,8 +320,8 @@ class GlueXP(XP):
         data_args = self.data_args
 
         # Get the metric function
-        if data_args.task_name is not None:
-            metric = load_metric("glue", data_args.task_name)
+        if data_args.dataset_name is not None:
+            metric = load_metric("glue", data_args.dataset_name)
 
         # TODO: When datasets metrics include regular accuracy, make an else here and remove special branch from
         # compute_metrics
@@ -336,7 +331,7 @@ class GlueXP(XP):
         def compute_metrics(p: EvalPrediction):
             preds = p.predictions[0] if isinstance(p.predictions, tuple) else p.predictions
             preds = np.squeeze(preds) if self.is_regression else np.argmax(preds, axis=1)
-            if data_args.task_name is not None:
+            if data_args.dataset_name is not None:
                 result = metric.compute(predictions=preds, references=p.label_ids)
                 if len(result) > 1:
                     result["combined_score"] = np.mean(list(result.values())).item()
@@ -374,7 +369,7 @@ class GlueXP(XP):
 
         parameters = {
             "model_name_or_path": src_path_str,
-            "task_name": task,
+            "dataset_name": task,
             "dataset_cache_dir": "dataset_cache_dir",
             "do_train": 0,
             "do_eval": 1,
