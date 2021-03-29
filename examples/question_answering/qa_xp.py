@@ -275,7 +275,7 @@ class QAXP(XP):
         data_args = self.data_args
         if data_args.dataset_name is not None:
             # Downloading and loading a dataset from the hub.
-            self.datasets = load_dataset(data_args.dataset_name, data_args.dataset_config_name)
+            self.datasets =  load_dataset(data_args.dataset_name, data_args.dataset_config_name)
         else:
             data_files = {}
             if data_args.train_file is not None:
@@ -326,11 +326,7 @@ class QAXP(XP):
             default_data_collator if data_args.pad_to_max_length else DataCollatorWithPadding(self.tokenizer)
         )
 
-        # TODO: Once the fix lands in a Datasets release, remove the _local here and the squad_v2_local folder.
-        current_dir = os.path.sep.join(os.path.join(__file__).split(os.path.sep)[:-1])
-        metric = load_metric(
-            os.path.join(current_dir, "squad_v2_local") if data_args.version_2_with_negative else "squad"
-        )
+        metric = load_metric("squad_v2" if data_args.version_2_with_negative else "squad")
 
         def compute_metrics(p: EvalPrediction):
             return metric.compute(predictions=p.predictions, references=p.label_ids)
@@ -353,13 +349,13 @@ class QAXP(XP):
         )
 
     @classmethod
-    def evaluate_model(cls, src_path, optimize_mode="dense"):
+    def evaluate_model(cls, src_path, task, optimize_mode="dense"):
         src_path = Path(src_path).resolve()
         src_path_str = str(src_path)
 
         parameters = {
             "model_name_or_path": src_path_str,
-            "dataset_name": "squad",
+            "dataset_name": task,
             "do_train": 0,
             "do_eval": 1,
             "per_device_train_batch_size": 16,
