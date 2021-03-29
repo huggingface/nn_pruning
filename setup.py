@@ -18,7 +18,7 @@ extras["dev"] = combine_requirements([k for k in extras if k != "examples"])
 
 setup(
     name="nn_pruning",
-    version="0.1.1",
+    version="0.1.2",
     description="nn_pruning is a python package for pruning PyTorch models.",
     long_description="nn_pruning is a python package for pruning PyTorch models.",
     classifiers=[
