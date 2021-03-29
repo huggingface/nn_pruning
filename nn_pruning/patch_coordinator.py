@@ -281,6 +281,9 @@ class ModelPatchingCoordinator:
 
 
     def create_head_rewind_info(self, device, cache_dir):
+        if not hasattr(self.sparse_args, "rewind_model_name_or_path"):
+            return None
+
         rewind_model_name_or_path = self.sparse_args.rewind_model_name_or_path
         if rewind_model_name_or_path is None:
             return None
