@@ -313,7 +313,9 @@ if __name__ == "__main__":
     checkpoint_path = "/data_2to/devel_data/nn_pruning/output/squad_test_9_fullpatch4/hp_od-__data_2to__devel_data__nn_pruning__output__squad_test_9_fullpatch4___es-steps_nte20_ls250_stl50_est5000_rn-__data_2to__devel_data__nn_pruning__output__squad_test_9_fullpatch4_--6cb2db64e9a885f1/checkpoint-110000"
     checkpoint_path = "/data_2to/devel_data/nn_pruning/output/squad_test_9_fullpatch6/hp_od-__data_2to__devel_data__nn_pruning__output__squad_test_9_fullpatch6___es-steps_nte20_ls250_stl50_est5000_rn-__data_2to__devel_data__nn_pruning__output__squad_test_9_fullpatch6_--5f772c87c5edbc85/checkpoint-100000"
     checkpoint_path = "/data_2to/devel_data/nn_pruning/output/squad_test_8_mvp_lt/hp_od-__data_2to__devel_data__nn_pruning__output__squad_test_8_mvp_lt___es-steps_nte20_ls250_stl50_est5000_rn-__data_2to__devel_data__nn_pruning__output__squad_test_8_mvp_lt___dpm-si--7fe43555f854fbb6/checkpoint-110000"
-    kind = "unstruct"
+    checkpoint_path = "/data_2to/devel_data/nn_pruning/output/squad_test4/hp_od-__data_2to__devel_data__nn_pruning__output__squad4___es-steps_nte20_ls250_stl50_est5000_rn-__data_2to__devel_data__nn_pruning__output__squad4___dpm-sigmoied_threshold:1d_alt_ap--17cd29ad8a563746/checkpoint-110000"
+    #kind = "unstruct"
+    kind = "hybrid"
     task = "squadv1"
 
     git_base_path = (Path(__file__).resolve().parent.parent.parent / "models").resolve()
