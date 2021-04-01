@@ -131,6 +131,18 @@ class SparseQAShortNamer(TrialShortNamer):
         'gelu_patch_steps': 50000,
         'linear_min_parameters': 0.005,
         'rewind_model_name_or_path': None,
+        'lr_scheduler_type': 'SchedulerType.LINEAR',
+        'warmup_ratio': 0.0,
+        'logging_strategy': 'IntervalStrategy.STEPS',
+        'save_strategy': 'IntervalStrategy.STEPS',
+        'fp16_full_eval': False,
+        'label_smoothing_factor': 0.0,
+        'adafactor': False,
+        'group_by_length': False,
+        'report_to': None,
+        'dataloader_pin_memory': True,
+        'skip_memory_metrics': False,
+        '_n_gpu': 1,
     }
 
 
