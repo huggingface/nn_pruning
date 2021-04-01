@@ -11,12 +11,13 @@ def cli(ctx):
 QA_TYPICAL_PARAMETERS = {
     "do_train": 1,
     "do_eval": 1,
+    "per_device_eval_batch_size": 128,
     "max_seq_length": 384,
     "doc_stride": 128,
     "num_train_epochs": 20,
     "logging_steps": 250,
-    "save_steps": 10000,
-    "eval_steps": 10000,
+    "save_steps": 5000,
+    "eval_steps": 5000,
     "save_total_limit": 50,
     "seed": 17,
     "evaluation_strategy": "steps",
@@ -191,3 +192,6 @@ def post_process():
 
 def main():
     return cli()
+
+if __name__ == "__main__":
+    main()
