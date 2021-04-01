@@ -1,1 +1,0 @@
-/data_2to/devel_data/nn_pruning/output/mnli_test2/hp_od-output__mnli_test2___pdtbs32_pdebs128_nte12_ws12000_rn-output__mnli_test2___fw4_rfl40/checkpoint-140000

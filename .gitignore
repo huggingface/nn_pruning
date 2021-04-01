@@ -18,3 +18,9 @@ __pycache__/
 
 # Jupyter Notebook
 .ipynb_checkpoints
+
+# wandb information directory
+wandb
+
+# backup directories
+back
