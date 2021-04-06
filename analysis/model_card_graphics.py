@@ -90,7 +90,7 @@ class DensityBokehPlotter(BokehHelper):
     def matrix_preprocess(self, matrix):
         self.block_size = (32, 32)
 
-        best_sparsity = 0.0
+        best_sparsity = -1.0
         best_matrix = None
         for method in "matrix_pattern_block", "matrix_pattern_line", "matrix_pattern_col":
             m = getattr(self, method)(matrix, self.block_size)
@@ -116,11 +116,11 @@ class DensityBokehPlotter(BokehHelper):
 
         return m_final
 
-    def create_image(self, matrix, file_path):
+    def create_image(self, matrix, file):
         ratio = 8
         fig = px.imshow(matrix)
         fig.update_layout(width = int(matrix.shape[1] * ratio), height = int(matrix.shape[0] * ratio), margin=dict(l=2, r=2, b=2, t=2))
-        fig.write_image(file_path)
+        fig.write_image(file)
 
     def replacements_apply(self, s, replacements):
         for r in replacements:
@@ -155,7 +155,8 @@ class DensityBokehPlotter(BokehHelper):
 
         layer = dict(name=name, filename=filename, density=density, parameters=parameters, size=matrix.shape)
         self.layers.append(layer)
-        self.create_image(color_matrix, (self.dest_path / filename).open("wb"))
+        with (self.dest_path / filename).open("wb") as f:
+            self.create_image(color_matrix, f)
 
         return matrix
 

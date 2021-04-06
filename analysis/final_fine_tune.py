@@ -59,9 +59,9 @@ def main(checkpoint_list_file, task):
             teacher = sparse_args["distil_teacher_name_or_path"]
 
         if task == "squad":
-            QASparseXP.final_finetune(str(tmp_path), str(dest_path), teacher=teacher)
+            QASparseXP.final_finetune(str(tmp_path), str(dest_path), task, teacher=teacher)
         elif task in ["mnli"]:
-            GlueSparseXP.final_finetune(str(tmp_path), str(dest_path), teacher=teacher)
+            GlueSparseXP.final_finetune(str(tmp_path), str(dest_path), task, teacher=teacher)
         else:
             raise Exception(f"Unknown task {task}")
 

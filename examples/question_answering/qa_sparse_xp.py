@@ -131,6 +131,18 @@ class SparseQAShortNamer(TrialShortNamer):
         'gelu_patch_steps': 50000,
         'linear_min_parameters': 0.005,
         'rewind_model_name_or_path': None,
+        'lr_scheduler_type': 'SchedulerType.LINEAR',
+        'warmup_ratio': 0.0,
+        'logging_strategy': 'IntervalStrategy.STEPS',
+        'save_strategy': 'IntervalStrategy.STEPS',
+        'fp16_full_eval': False,
+        'label_smoothing_factor': 0.0,
+        'adafactor': False,
+        'group_by_length': False,
+        'report_to': None,
+        'dataloader_pin_memory': True,
+        'skip_memory_metrics': False,
+        '_n_gpu': 1,
     }
 
 
@@ -155,10 +167,10 @@ class QASparseXP(SparseXP, QAXP):
         SparseXP.setup_trainer(self)
 
     @classmethod
-    def final_finetune(cls, src_path, dest_path, teacher):
+    def final_finetune(cls, src_path, dest_path, task, teacher):
         param_dict = {
             "model_name_or_path": src_path,
-            "dataset_name": "squad",
+            "dataset_name": task,
             "do_train": 1,
             "do_eval": 1,
             "per_device_train_batch_size": 16,

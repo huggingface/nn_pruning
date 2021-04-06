@@ -427,6 +427,7 @@ def draw_all_plots(input_file_name, task, x_axis, cleanup_cache=False):
                 "Block/struct method, bs= 32x32, v=1, s=b, t=l": "Hybrid, BERT-base, large teacher",
                 "Block/struct method, bs= 32x32, v=1, s=b, t=l, nonorm=1": "Hybrid, BERT-base, large teacher, NoNorm",
                 "Block/struct method, bs= 32x32, v=1, s=b, t=l, nonorm=1, relu=1": "Hybrid, BERT-base, large teacher, Full Patch",
+                "Block/struct method, bs= 32x32, v=1, s=b, t=l, nonorm=1, relu=1, rewind=1": "Hybrid, BERT-base, large teacher, Full Patch, Rewind",
                 "Structured pruning": "Structured pruning, BERT-base",
                 "improved soft movement with distillation": "Improved soft movement, BERT-base",
                 "soft_movement_with_distillation": "Original Soft Movement",
