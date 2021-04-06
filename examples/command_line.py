@@ -45,8 +45,9 @@ QA_TYPICAL_PARAMETERS = {
     "attention_output_with_dense": 0,
     "layer_norm_patch_steps": 50000,
     "gelu_patch_steps": 50000,
-    'linear_min_parameters': 0,
-    'null_score_diff_threshold': 0.0,
+    "eval_with_current_patch_params ": 0,
+    "linear_min_parameters": 0,
+    "null_score_diff_threshold": 0.0,
 }
 
 GLUE_TYPICAL_PARAMETERS = {
@@ -84,6 +85,9 @@ GLUE_TYPICAL_PARAMETERS = {
     "distil_alpha_ce": 0.1,
     "distil_alpha_teacher": 0.90,
     "attention_output_with_dense": 0,
+    "layer_norm_patch_steps": 50000,
+    "gelu_patch_steps": 50000,
+    "eval_with_current_patch_params ": 0,
 }
 
 QA_TASKS = {"squadv1", "squadv2"}
