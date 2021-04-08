@@ -6,8 +6,13 @@ class ModelPatcher:
         self.stats = {"patched": 0}
         self.all_match = all_match
 
-    def is_patchable(self, module_name, module, raiseError):
+    def is_patchable(self, child_module_name, child_module, raiseError):
+        # Implement in subclass if needed
         return True
+
+    def new_child_module(self, child_module_name, child_module, patch_info):
+        # Just return None if the module does not need to be patched, or a new module.
+        raise NotImplementedError("Implement this in subclasses")
 
     def get_patchable_layers(self, model, number_rewrite=True):
         # Layer names (displayed as regexps)")
@@ -33,8 +38,7 @@ class ModelPatcher:
                 return True, pattern_def["patch_info"]
         return False, -1
 
-    def new_child_module(self, child_module_name, child_module, patch_info):
-        raise NotImplementedError("Implement this in subclasses")
+
 
     def replace_module(self, father, child_module_name, child_name, child_module, patch_info):
         new_child_module = self.new_child_module(child_module_name, child_module, patch_info)

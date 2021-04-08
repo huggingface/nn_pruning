@@ -349,20 +349,23 @@ class QAXP(XP):
         )
 
     @classmethod
-    def evaluate_model(cls, src_path, task, optimize_mode="dense"):
-        src_path = Path(src_path).resolve()
-        src_path_str = str(src_path)
+    def evaluate_model(cls, model_name_or_path, task, optimize_mode="dense", output_dir = None):
+        if output_dir is None:
+            output_dir = Path(model_name_or_path)
+        else:
+            output_dir = Path(output_dir)
+        output_dir = output_dir.resolve()
 
         parameters = {
-            "model_name_or_path": src_path_str,
+            "model_name_or_path": model_name_or_path,
             "dataset_name": task,
             "do_train": 0,
             "do_eval": 1,
             "per_device_train_batch_size": 16,
             "max_seq_length": 384,
             "doc_stride": 128,
-            "output_dir": src_path_str,
-            "logging_dir": src_path_str,
+            "output_dir": str(output_dir),
+            "logging_dir": str(output_dir),
             "overwrite_cache": 0,
             "overwrite_output_dir": 0,
             "per_device_eval_batch_size":128,
@@ -376,7 +379,7 @@ class QAXP(XP):
 
         ret = {}
         for k, v in file_info.items():
-            with open(src_path / "checkpoint-0" / (v + ".json")) as f:
+            with open(output_dir / "checkpoint-0" / (v + ".json")) as f:
                 j = json.load(f)
                 ret[k] = j
 

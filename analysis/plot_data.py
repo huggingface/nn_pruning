@@ -3,7 +3,8 @@ import json
 from collections import defaultdict
 from pathlib import Path
 from transformers import AutoModelForQuestionAnswering, AutoModelForSequenceClassification
-
+import tempfile
+from examples.question_answering.qa_xp import QAXP
 import pandas
 
 
@@ -354,8 +355,17 @@ class Experiments(PointProvider):
 
 
 class HFModelStats:
-    def __init__(self, model_name, model_class, white_list, black_list):
+    TASK_NAMES = {"squad":"squadv1"}
+    TIMING_KEY = "cuda_eval_elapsed_time"
+
+    def __init__(self, model_name, task, white_list, black_list):
         self.model_name = model_name
+        self.task = self.TASK_NAMES.get(task, task)
+        if task in ["squadv1", "squadv2"]:
+            model_class = AutoModelForQuestionAnswering
+        elif task == "mnli":
+            model_class = AutoModelForSequenceClassification
+
         self.model_class = model_class
         self.white_list = white_list
         self.black_list = black_list
@@ -383,16 +393,41 @@ class HFModelStats:
         return total
 
 
+    def get_base_speed_info(self):
+        task = self.TASK_NAMES.get(self.task, self.task)
+
+        path = Path(__file__).parent.resolve()
+        report_path = path / "files" / ("base_speed_report_file_%s.json" % task)
+        with report_path.open() as f:
+            ret = json.load(f)
+        return ret
+
+    def get_speed(self):
+        try:
+            tmpfile = tempfile.TemporaryDirectory()
+            if self.task in ["squadv1", "squadv2"]:
+                task = self.task
+                if self.task == "squadv1":
+                    task = "squad"
+                ret = QAXP.evaluate_model(model_name_or_path=self.model_name,
+                                          task=task,
+                                          optimize_mode="disabled",
+                                          output_dir=tmpfile.name)
+
+                base_speed_info = self.get_base_speed_info()
+
+                ret["speedup"] = base_speed_info[self.TIMING_KEY] / ret["timings"][self.TIMING_KEY]
+                return ret
+            else:
+                raise ValueError(f"Unknown task {self.task}")
+        finally:
+            tmpfile.cleanup()
+
 class DistilBert(PointProvider):
     def points_(self, task):
-        if task == "squadv1":
-            model_class = AutoModelForQuestionAnswering
-        elif task == "mnli":
-            model_class = AutoModelForSequenceClassification
-
         sd = HFModelStats(
             model_name="distilbert-base-uncased-distilled-squad",
-            model_class=model_class,
+            task=task,
             white_list=["weight"],
             black_list=["embeddings", "layer_norm", "qa"],
         )
@@ -401,7 +436,7 @@ class DistilBert(PointProvider):
 
         sb = HFModelStats(
             model_name="csarron/bert-base-uncased-squad-v1",
-            model_class=model_class,
+            task=task,
             white_list=["weight"],
             black_list=["embeddings", "LayerNorm", "qa"],
         )
@@ -508,9 +543,11 @@ MobileBERT w/o OPT 25.3M 5.7B 192 ms 51.1 92.6 88.8 84.8 70.5 84.3/83.4 91.6 70.
     def points_(self, task):
         if task == "squadv1":
             mobile_bert = {"f1": 90.0, "exact": 82.9}
+            mobile_bert_measured =  copy.copy(mobile_bert)
             mobile_bert_no_opt = {"f1": 90.3, "exact": 83.4}
         elif task == "mnli":
             mobile_bert = {"matched": 83.3, "mismatched": 82.6}
+            mobile_bert_measured = copy.copy(mobile_bert)
             mobile_bert_no_opt = {"matched": 84.3, "mismatched": 83.4}
         else:
             raise Exception(f"Unkwnon task {task}")
@@ -519,9 +556,22 @@ MobileBERT w/o OPT 25.3M 5.7B 192 ms 51.1 92.6 88.8 84.8 70.5 84.3/83.4 91.6 70.
         fill_rate = 5.7 / 22.5
         mobile_bert.update({"fill_rate": fill_rate, "speedup": 342 / 62, "annotate": "MobileBERT"})
 
-        mobile_bert_no_opt.update({"fill_rate": fill_rate, "speedup": 342 / 192, "annotate": "MobileBERT w/o OPT"})
 
-        return dict(mobile_bert_no_opt=[mobile_bert_no_opt]) # mobile_bert=[mobile_bert],
+        smb = HFModelStats(
+            model_name= "csarron/mobilebert-uncased-squad-v1",
+            task=task,
+            white_list=["weight"],
+            black_list=["embeddings", "layer_norm", "qa"],
+        )
+
+        speed_info = smb.get_speed()
+
+        paper_speedup = 342 / 192
+        mobile_bert_no_opt.update({"fill_rate": fill_rate, "speedup":paper_speedup, "annotate": "MobileBERT w/o OPT"})
+
+        mobile_bert_measured.update({"fill_rate": fill_rate, "speedup": speed_info["speedup"], "annotate": "MobileBERT (transformers lib)"})
+
+        return dict(mobile_bert_measured=[mobile_bert_measured], mobile_bert_no_opt=[mobile_bert_no_opt]) # mobile_bert=[mobile_bert],
 
 class MovementPruning(PointProvider):
     SUBSETS = ["local_movement_pruning", "soft_movement_with_distillation"]

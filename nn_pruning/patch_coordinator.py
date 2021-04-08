@@ -401,6 +401,10 @@ class ModelPatchingCoordinator:
             elif isinstance(module, MaskedLinear):
                 module_nnz_info = module.get_sparsity_info()
                 nummod = 0
+            elif hasattr(module, "regularization"):
+                module_regu = module.regularization()
+                if hasattr(module, "get_sparsity_info"):
+                    module_nnz_info = module.get_sparsity_info()
             else:
                 continue
             # TEMPORARY : use model info to perform this dispatch
