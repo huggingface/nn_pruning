@@ -235,6 +235,23 @@ class SparseTrainingArguments:
             "help": "Whether to keep the transition parameters used during training for eval. Only for Layer2NoNorm, GeLU2ReLU and pruning threshold."
         },
     )
+
+    @classmethod
+    def hybrid(cls, regularization_lambda):
+        sparse_args = cls()
+        sparse_args.dense_pruning_method = "sigmoied_threshold:1d_alt"
+        sparse_args.attention_pruning_method = "sigmoied_threshold"
+        sparse_args.attention_block_rows = 32
+        sparse_args.attention_block_cols = 32
+        sparse_args.attention_output_with_dense = False
+        sparse_args.initial_threshold = 0.0
+        sparse_args.final_threshold = 0.1
+
+        sparse_args.regularization = "l1"
+        sparse_args.regularization_final_lambda = regularization_lambda
+        return sparse_args
+
+
 class ModelPatchingCoordinator:
     MODEL_STRUCTURE = BertStructure
 
@@ -652,6 +669,8 @@ class ModelPatchingCoordinator:
         if dense_pruning_method_parts[0] != "disabled" or sparse_args.ampere_pruning_method != "disabled":
             patched_count += 2 * layers_count
 
+        self.stats = {}
+        self.stats["main"] = patcher.stats
         assert (patcher.stats["patched"] == patched_count)
 
         if layer_norm_patch:
@@ -664,6 +683,7 @@ class ModelPatchingCoordinator:
             layer_norm_patcher.patch(model)
             layer_norm_patched_count = 2 * layers_count + 1
             assert (layer_norm_patcher.stats["patched"] == layer_norm_patched_count)
+            self.stats["layer_norm"] = layer_norm_patcher.stats
 
         if gelu_patch:
             def schedule_callback():
@@ -674,6 +694,8 @@ class ModelPatchingCoordinator:
             gelu_patcher.patch(model)
             gelu_patcher_count = layers_count
             assert (gelu_patcher.stats["patched"] == gelu_patcher_count)
+            self.stats["gelu"] = gelu_patcher.stats
+
 
         return patcher
 

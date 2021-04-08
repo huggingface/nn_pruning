@@ -3,7 +3,7 @@ import re
 class ModelPatcher:
     def __init__(self, all_match=False):
         self.patterns = []
-        self.stats = {"patched": 0}
+        self.stats = {"patched": 0, "patched_names":set()}
         self.all_match = all_match
 
     def is_patchable(self, child_module_name, child_module, raiseError):
@@ -44,6 +44,7 @@ class ModelPatcher:
         new_child_module = self.new_child_module(child_module_name, child_module, patch_info)
         if new_child_module is not None:
             self.stats["patched"] += 1
+            self.stats["patched_names"].add(child_module_name)
             setattr(father, child_name, new_child_module)
 
     def needs_patch(self, model):
