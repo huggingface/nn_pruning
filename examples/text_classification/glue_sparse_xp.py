@@ -124,6 +124,7 @@ class SparseGlueShortNamer(TrialShortNamer):
         'layer_norm_patch_start_delta': 0.99,
         'gelu_patch': False,
         'gelu_patch_steps': 50000,
+        'eval_with_current_patch_params': False,
         'warmup_ratio': 0.0,
         'fp16_full_eval': False,
         'label_smoothing_factor': 0.0,

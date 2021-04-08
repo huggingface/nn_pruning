@@ -29,10 +29,10 @@ class Layer2NoNorm(nn.Module):
 
         if self.schedule_callback is None:
             self.steps = steps
-            self.delta_step = (self.final_delta - self.delta) / self.steps
-            self.mix_step = 1 / self.steps
             self.delta = start_delta
             self.final_delta = 1.0
+            self.delta_step = (self.final_delta - self.delta) / self.steps
+            self.mix_step = 1 / self.steps
             self.mix = 1.0
         else:
             self.steps = None
@@ -47,17 +47,17 @@ class Layer2NoNorm(nn.Module):
     def forward(self, batch):
         accumulator = self.accumulator.clone()
 
-        if self.training:
-            if self.schedule_callback is not None:
-                d = self.schedule_callback()
-                mix = d["mix"]
-                delta = d["delta"]
-            else:
+        if self.schedule_callback is not None:
+            d = self.schedule_callback()
+            mix = d["mix"]
+            delta = d["delta"]
+        else:
+            if self.training:
                 mix = self.mix
                 delta = self.delta
-        else:
-            mix = 0
-            delta = 1.0
+            else:
+                mix = 0
+                delta = 1.0
 
         if mix == 0 and delta == 1.0:
             batch_mean = accumulator[0] / accumulator[2]
@@ -66,9 +66,10 @@ class Layer2NoNorm(nn.Module):
             batch_mean = batch.mean(-1, keepdim=True)
             batch_var = batch.var(-1, unbiased=False, keepdim=True)
 
-            one = torch.tensor(1.0, device=batch_var.device)
-            new_acc = torch.stack([batch_mean.mean(), batch_var.mean(), one])
-            accumulator = torch.lerp(new_acc, accumulator, delta)
+            if self.training:
+                one = torch.tensor(1.0, device=batch_var.device)
+                new_acc = torch.stack([batch_mean.mean(), batch_var.mean(), one])
+                accumulator = torch.lerp(new_acc, accumulator, delta)
 
             batch_mean = torch.lerp(accumulator[0] / accumulator[2], batch_mean, mix)
             batch_var = torch.lerp(accumulator[1] / accumulator[2], batch_var, mix)
@@ -143,4 +144,3 @@ class NoNormPatcher(ModelPatcher):
 
     def new_child_module(self, child_module_name, child_module, patch_info):
         return NoNorm(child_module.weight.detach(), child_module.bias.detach())
-

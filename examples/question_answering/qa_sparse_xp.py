@@ -129,6 +129,7 @@ class SparseQAShortNamer(TrialShortNamer):
         'layer_norm_patch_start_delta': 0.99,
         'gelu_patch':False,
         'gelu_patch_steps': 50000,
+        'eval_with_current_patch_params': False,
         'linear_min_parameters': 0.005,
         'rewind_model_name_or_path': None,
         'lr_scheduler_type': 'SchedulerType.LINEAR',

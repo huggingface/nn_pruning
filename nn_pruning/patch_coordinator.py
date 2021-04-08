@@ -229,6 +229,12 @@ class SparseTrainingArguments:
         },
     )
 
+    eval_with_current_patch_params: bool = field(
+        default=False,
+        metadata={
+            "help": "Whether to keep the transition parameters used during training for eval. Only for Layer2NoNorm."
+        },
+    )
 class ModelPatchingCoordinator:
     MODEL_STRUCTURE = BertStructure
 
@@ -340,7 +346,7 @@ class ModelPatchingCoordinator:
             return a * interpf + (1.0 - interpf) * b
 
         if hasattr(sparse_args, "layer_norm_patch") and sparse_args.layer_norm_patch:
-            if training:
+            if training or sparse_args.eval_with_current_patch_params:
                 interpf = 0.0
                 layer_norm_patch_steps = sparse_args.layer_norm_patch_steps
                 if step < layer_norm_patch_steps:
