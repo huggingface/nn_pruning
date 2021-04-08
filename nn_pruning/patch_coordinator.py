@@ -362,7 +362,7 @@ class ModelPatchingCoordinator:
                 context_data["layernorm_to_nonorm_mix"] = 0.0
 
         if hasattr(sparse_args, "gelu_patch") and sparse_args.gelu_patch:
-            if training:
+            if training or sparse_args.eval_with_current_patch_params:
                 interpf = 0.0
                 gelu_patch_steps = sparse_args.gelu_patch_steps
                 if step < gelu_patch_steps:

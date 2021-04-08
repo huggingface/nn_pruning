@@ -27,14 +27,14 @@ class GeLU2ReLU(nn.Module):
             self.mix = None
 
     def forward(self, batch):
-        if self.training:
-            if self.schedule_callback is not None:
-                d = self.schedule_callback()
-                mix = d["mix"]
-            else:
-                mix = self.mix
+        if self.schedule_callback is not None:
+            d = self.schedule_callback()
+            mix = d["mix"]
         else:
-            mix = 0
+            if self.training:
+                mix = self.mix
+            else:
+                mix = 0
 
         if mix == 0:
             ret = F.relu(batch)
