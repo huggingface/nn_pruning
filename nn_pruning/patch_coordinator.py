@@ -337,9 +337,11 @@ class ModelPatchingCoordinator:
 
         if training or sparse_args.eval_with_current_patch_params:
             if step <= initial_warmup * warmup_steps:
+                mul_coeff = 1.0
                 threshold = initial_threshold
                 ampere_temperature = initial_ampere_temperature
             elif step > (total_step - final_warmup * warmup_steps):
+                mul_coeff = 0.0
                 threshold = final_threshold
                 ampere_temperature = final_ampere_temperature
             else:
@@ -351,6 +353,7 @@ class ModelPatchingCoordinator:
                     initial_ampere_temperature - final_ampere_temperature
                 ) * (mul_coeff ** 3)
         else:
+            mul_coeff = 0.0
             threshold = final_threshold
             ampere_temperature = final_ampere_temperature
 
@@ -359,7 +362,8 @@ class ModelPatchingCoordinator:
         context_data = dict(
             threshold=threshold,
             regu_lambda=regu_lambda,
-            ampere_temperature = ampere_temperature
+            ampere_temperature = ampere_temperature,
+            progress = 1.0 - mul_coeff
         )
 
         def interp(a,b, interpf):
