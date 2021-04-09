@@ -21,7 +21,7 @@
   "logging_dir": "/data_2to/devel_data/nn_pruning/output_sequence/squad_test_2/",
   "overwrite_cache": 0,
   "overwrite_output_dir": 1,
-  "warmup_steps": 5000,
+  "warmup_steps": 4999,
   "initial_warmup": 1,
   "final_warmup": 3,
   "initial_threshold": 1.0,

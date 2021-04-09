@@ -160,7 +160,15 @@ class TopKBinarizer1D(autograd.Function):
         return gradOutput, None, None
 
 
+def layer_threshold(layer_index, threshold, min_threshold = 0.75, layer_count=5):
+    p = (threshold - min_threshold) / (1 - min_threshold)
+    t = layer_count * p - (layer_count - layer_index - 1)
+    t = t * (1 - min_threshold) + min_threshold
+    t = min(1.0, t)
+    t = max(t, min_threshold)
+    return t
 
+layer_threshold(0, 0.5)
 
 class SequenceExtract(nn.Module):
     def __init__(self, config, child, patcher_context):
@@ -169,7 +177,8 @@ class SequenceExtract(nn.Module):
         self.layer_count = config.num_hidden_layers
         self.hidden_size = config.hidden_size
         self.child = child
-        weight = torch.randn(1, self.hidden_size)
+        weight = torch.randn(1, self.hidden_size,self.hidden_size)
+        self.linear = nn.Linear(self.hidden_size, self.hidden_size)
         self.weight = nn.Parameter(weight)
 
         import threading
@@ -226,8 +235,8 @@ class SequenceExtract(nn.Module):
 
         if phase == 0:
             if (index + 1)< len(self.thread_local.layer_info):
-
-                scores = ret[0].matmul(self.weight[0]) / self.weight.shape[1]
+                scores = ret[0].matmul(self.weight[0]).max(-1)[0]
+                scores = self.linear(ret[0]).max(-1)[0]
 
                 # Regularization
                 numel = scores.numel()
@@ -236,6 +245,7 @@ class SequenceExtract(nn.Module):
 #                print(scores.max(), scores.min())
                 scores += sub_attention_mask * 100
                 threshold = self.patcher_context.get_context_data("threshold")
+                threshold = layer_threshold(index + 1, threshold, min_threshold = 0.75, layer_count=5)
                 mask = TopKBinarizer1D.apply(scores, sub_attention_mask, threshold)
 
                 msum = mask.sum()
