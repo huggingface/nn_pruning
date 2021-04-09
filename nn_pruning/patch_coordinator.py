@@ -315,6 +315,9 @@ class ModelPatchingCoordinator:
         initial_ampere_temperature = sparse_args.initial_ampere_temperature
         final_ampere_temperature = sparse_args.final_ampere_temperature
 
+        if not training:
+            step -= 1
+
         if training or sparse_args.eval_with_current_patch_params:
             if step <= initial_warmup * warmup_steps:
                 threshold = initial_threshold
