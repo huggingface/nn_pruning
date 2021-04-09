@@ -232,7 +232,7 @@ class SparseTrainingArguments:
     eval_with_current_patch_params: bool = field(
         default=False,
         metadata={
-            "help": "Whether to keep the transition parameters used during training for eval. Only for Layer2NoNorm."
+            "help": "Whether to keep the transition parameters used during training for eval. Only for Layer2NoNorm, GeLU2ReLU and pruning threshold."
         },
     )
 class ModelPatchingCoordinator:
@@ -315,7 +315,7 @@ class ModelPatchingCoordinator:
         initial_ampere_temperature = sparse_args.initial_ampere_temperature
         final_ampere_temperature = sparse_args.final_ampere_temperature
 
-        if training:
+        if training or sparse_args.eval_with_current_patch_params:
             if step <= initial_warmup * warmup_steps:
                 threshold = initial_threshold
                 ampere_temperature = initial_ampere_temperature
