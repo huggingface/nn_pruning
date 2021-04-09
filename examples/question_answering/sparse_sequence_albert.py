@@ -160,12 +160,12 @@ class TopKBinarizer1D(autograd.Function):
         return gradOutput, None, None
 
 
-def layer_threshold(layer_index, threshold, min_threshold = 0.75, layer_count=5):
-    p = (threshold - min_threshold) / (1 - min_threshold)
+def layer_threshold(layer_index, progress, min_threshold = 0.75, layer_count=5):
+    p = 1.0 - progress
     t = layer_count * p - (layer_count - layer_index - 1)
-    t = t * (1 - min_threshold) + min_threshold
     t = min(1.0, t)
-    t = max(t, min_threshold)
+    t = max(t, 0.0)
+    t = t * (1 - min_threshold) + min_threshold
     return t
 
 layer_threshold(0, 0.5)
@@ -235,7 +235,7 @@ class SequenceExtract(nn.Module):
 
         if phase == 0:
             if (index + 1)< len(self.thread_local.layer_info):
-                scores = ret[0].matmul(self.weight[0]).max(-1)[0]
+                #scores = ret[0].matmul(self.weight[0]).max(-1)[0]
                 scores = self.linear(ret[0]).max(-1)[0]
 
                 # Regularization
@@ -244,8 +244,8 @@ class SequenceExtract(nn.Module):
 
 #                print(scores.max(), scores.min())
                 scores += sub_attention_mask * 100
-                threshold = self.patcher_context.get_context_data("threshold")
-                threshold = layer_threshold(index + 1, threshold, min_threshold = 0.75, layer_count=5)
+                progress = self.patcher_context.get_context_data("progress")
+                threshold = layer_threshold(index + 1, progress, min_threshold = 0.75, layer_count=5)
                 mask = TopKBinarizer1D.apply(scores, sub_attention_mask, threshold)
 
                 msum = mask.sum()

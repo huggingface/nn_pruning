@@ -145,7 +145,8 @@ class SparseSequenceQAShortNamer(TrialShortNamer):
         'skip_memory_metrics': False,
         '_n_gpu': 1,
         'length_column_name': 'length',
-        'mp_parameters': ''
+        'mp_parameters': '',
+        'eval_with_current_patch_params':False
     }
 
 
