@@ -335,7 +335,9 @@ class ModelPatchingCoordinator:
         if not training:
             step -= 1
 
-        if training or sparse_args.eval_with_current_patch_params:
+        use_scheduler = training or sparse_args.eval_with_current_patch_params
+
+        if use_scheduler:
             if step <= initial_warmup * warmup_steps:
                 mul_coeff = 1.0
                 threshold = initial_threshold
@@ -370,7 +372,7 @@ class ModelPatchingCoordinator:
             return a * interpf + (1.0 - interpf) * b
 
         if hasattr(sparse_args, "layer_norm_patch") and sparse_args.layer_norm_patch:
-            if training or sparse_args.eval_with_current_patch_params:
+            if use_scheduler:
                 interpf = 0.0
                 layer_norm_patch_steps = sparse_args.layer_norm_patch_steps
                 if step < layer_norm_patch_steps:
@@ -386,7 +388,7 @@ class ModelPatchingCoordinator:
                 context_data["layernorm_to_nonorm_mix"] = 0.0
 
         if hasattr(sparse_args, "gelu_patch") and sparse_args.gelu_patch:
-            if training or sparse_args.eval_with_current_patch_params:
+            if use_scheduler:
                 interpf = 0.0
                 gelu_patch_steps = sparse_args.gelu_patch_steps
                 if step < gelu_patch_steps:
