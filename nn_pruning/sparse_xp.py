@@ -11,14 +11,15 @@ class SparseXP:
     def __init__(self):
         self.patch_coordinator = self.create_patching_coordinator(self.sparse_args,
                                                                   self.training_args.device,
-                                                                  self.model_args.cache_dir)
-
+                                                                  self.model_args.cache_dir,
+                                                                  self.model_args.model_name_or_path)
 
     @classmethod
-    def create_patching_coordinator(cls, sparse_args, device, cache_dir):
+    def create_patching_coordinator(cls, sparse_args, device, cache_dir, model_name_or_path):
         return ModelPatchingCoordinator(sparse_args,
                                         device=device,
                                         cache_dir=cache_dir,
+                                        model_name_or_path=model_name_or_path,
                                         logit_names=cls.LOGIT_NAMES,
                                         teacher_constructor=cls.CONSTRUCTOR)
 

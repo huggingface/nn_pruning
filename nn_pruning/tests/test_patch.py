@@ -11,15 +11,16 @@ from nn_pruning.modules.masked_nn import (
     LinearPruningModulePatcher,
     LinearPruningArgs,
 )
-from nn_pruning.training_patcher import BertLinearModelPatcher, PatcherContext
+from nn_pruning.training_patcher import LinearModelPatcher, PatcherContext
 
 
 class TestFun(TestCase):
+    MODEL_STRUCTURE = BertStructure
     def test_base(self):
         config = BertConfig.from_pretrained("bert-base-uncased")
         model = BertForQuestionAnswering(config)
 
-        patcher = BertLinearModelPatcher({})
+        patcher = LinearModelPatcher({}, self.MODEL_STRUCTURE)
         layers = patcher.get_patchable_layers(model)
         # for regexp, layers in layers.items():
         #    print(regexp)
@@ -39,11 +40,11 @@ class TestFun(TestCase):
 
         context = PatcherContext()
 
-        p = LinearPruningModulePatcher(context, parameters)
+        p = LinearPruningModulePatcher(context, parameters, self.MODEL_STRUCTURE)
 
         module_patchers = dict(query=p, key=p, value=p, att_dense=p, interm_dense=p, output_dense=p)
 
-        patcher = BertLinearModelPatcher(module_patchers)
+        patcher = LinearModelPatcher(module_patchers, self.MODEL_STRUCTURE)
         patcher.patch(model)
 
         self.assertEqual(patcher.stats["patched"], 72)
@@ -66,11 +67,11 @@ class TestFun(TestCase):
 
         context = PatcherContext()
 
-        p = LinearPruningModulePatcher(context, parameters)
+        p = LinearPruningModulePatcher(context, parameters, self.MODEL_STRUCTURE)
 
         module_patchers = dict(query=p, key=p, value=p, att_dense=p, interm_dense=p, output_dense=p)
 
-        patcher = BertLinearModelPatcher(module_patchers)
+        patcher = LinearModelPatcher(module_patchers, self.MODEL_STRUCTURE)
         patcher.patch(model)
 
         self.assertEqual(patcher.stats["patched"], 72)
@@ -93,8 +94,8 @@ class TestFun(TestCase):
 
         context = PatcherContext()
 
-        p_attention = JointPruningModulePatcher(context, parameters, "attention")
-        p_dense = LinearPruningModulePatcher(context, parameters)
+        p_attention = JointPruningModulePatcher(context, parameters, self.MODEL_STRUCTURE, "attention")
+        p_dense = LinearPruningModulePatcher(context, parameters, self.MODEL_STRUCTURE)
 
         module_patchers = dict(
             query=p_attention,
@@ -105,7 +106,7 @@ class TestFun(TestCase):
             output_dense=p_dense,
         )
 
-        patcher = BertLinearModelPatcher(module_patchers)
+        patcher = LinearModelPatcher(module_patchers, self.MODEL_STRUCTURE)
         patcher.patch(model)
 
         self.assertEqual(patcher.stats["patched"], 72)
@@ -132,8 +133,8 @@ class TestFun(TestCase):
 
         context = PatcherContext()
 
-        p_attention = JointPruningModulePatcher(context, parameters_attention, suffix=".attention")
-        p_dense = ChannelPruningModulePatcher(context, parameters_dense, BertStructure, suffix="dense")
+        p_attention = JointPruningModulePatcher(context, parameters_attention, self.MODEL_STRUCTURE, suffix=".attention")
+        p_dense = ChannelPruningModulePatcher(context, parameters_dense, self.MODEL_STRUCTURE, suffix="dense")
 
         module_patchers = dict(
             query=p_attention,
@@ -144,7 +145,7 @@ class TestFun(TestCase):
             output_dense=p_dense,
         )
 
-        patcher = BertLinearModelPatcher(module_patchers)
+        patcher = LinearModelPatcher(module_patchers, self.MODEL_STRUCTURE)
         patcher.patch(model)
 
         self.assertEqual(patcher.stats["patched"], 72)

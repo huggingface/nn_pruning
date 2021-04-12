@@ -115,7 +115,7 @@ task2teacher = {
                                                               "qqp", "rte", "sst2", "stsb", "wnli"]))
 @click.argument("output-dir", type=click.Path(resolve_path=True))
 @click.option("--json_path", type=click.Path(resolve_path=True), help="Path to a parameters json file")
-@click.option("--model-name-or-path", default="bert-base-uncased", type=click.Choice(["bert-base-uncased", "bert-large-uncased"]))
+@click.option("--model-name-or-path", default="bert-base-uncased", type=click.Choice(["bert-base-uncased", "bert-large-uncased", "facebook/bart-base"]))
 @click.option("--teacher", default=None, type=str, help = "'auto' for auto selection, or teacher name or path (default is no teacher)")
 @click.option("--per-device-train-batch-size", default=16, type=int)
 @click.option("--regularization-final-lambda", default=10, type=float)

@@ -25,7 +25,7 @@ from transformers import AutoConfig, AutoModelForQuestionAnswering
 from dataclasses import dataclass, field
 from collections import defaultdict
 
-from nn_pruning.model_structure import BertStructure
+from nn_pruning.model_structure import BertStructure, BartStructure
 from .modules.masked_nn import (
     ChannelPruningModulePatcher,
     JointPruningModulePatcher,
@@ -41,7 +41,7 @@ from .modules.gelu2relu import GeLU2ReLUModelPatcher
 from .inference_model_patcher import BertHeadsPruner
 
 from nn_pruning.training_patcher import (
-    BertLinearModelPatcher,
+    LinearModelPatcher,
     PatcherContext,
     PatcherContextModule,
 )
@@ -253,9 +253,12 @@ class SparseTrainingArguments:
 
 
 class ModelPatchingCoordinator:
-    MODEL_STRUCTURE = BertStructure
+    model2struct = {
+        "bert-base-uncased": BertStructure,
+        "facebook/bart-base": BartStructure
+    }
 
-    def __init__(self, sparse_args, device, cache_dir, logit_names, teacher_constructor):
+    def __init__(self, sparse_args, device, cache_dir, model_name_or_path, logit_names, teacher_constructor):
         # logit_names is ["start_logits", "end_logits"] for qa, ["logits"] for glue etc
         # teacher model is AutoModelForQuestionAnswering for qa, AutoModelForSequenceClassification for glue etc
         self.sparse_args = sparse_args
@@ -264,6 +267,7 @@ class ModelPatchingCoordinator:
         self.teacher = self.create_teacher(device, cache_dir)
         self.layer_head_mask = self.create_head_rewind_info(device, cache_dir)
         self.logit_names = logit_names
+        self.model_structure = self.model2struct.get(model_name_or_path, BertStructure)
 
     def parse_pruning_method(self, method):
         parts = method.split(":")
@@ -435,13 +439,9 @@ class ModelPatchingCoordinator:
                 continue
             # TEMPORARY : use model info to perform this dispatch
             if not hasattr(self.sparse_args, "attention_output_with_dense") or self.sparse_args.attention_output_with_dense:
-                layer_names = ["key", "query", "value"]
-                key = "dense"
-                for ln in layer_names:
-                    if ln in name:
-                        key = "attention"
+                key = "attention" if self.model_structure.is_attention(name) else "dense"
             else:
-                key = "attention" if "attention" in name else "dense"
+                key = "attention" if "att" in name else "dense"
 
             if key not in info:
                 info[key] = defaultdict(float)
@@ -529,7 +529,7 @@ class ModelPatchingCoordinator:
 
     def create_optimizer_groups(self, model, args, sparse_args):
         # Prepare optimizer and schedule (linear warmup and decay)
-        no_decay = ["bias", "LayerNorm.weight", "NoNorm.weight", "LayerNorm.bias", "NoNorm.bias"]
+        no_decay = ["bias", "LayerNorm.weight", "NoNorm.weight", "layer_norm.weight", "layernorm.weight"]
 
         mask_params = []
         no_decay_params = []
@@ -604,16 +604,16 @@ class ModelPatchingCoordinator:
             )
 
             if args_attention.submethod == "joint":
-                p_attention = JointPruningModulePatcher(patcher_context, args_attention, model_structure=self.MODEL_STRUCTURE, suffix=".attention")
-                p_attention_t = JointPruningModulePatcher(patcher_context, args_attention_t, model_structure=self.MODEL_STRUCTURE, suffix=".attention")
+                p_attention = JointPruningModulePatcher(patcher_context, args_attention, model_structure=self.model_structure, suffix=".attention")
+                p_attention_t = JointPruningModulePatcher(patcher_context, args_attention_t, model_structure=self.model_structure, suffix=".attention")
             else:
                 p_attention = LinearPruningModulePatcher(patcher_context,
                                                          args_attention,
-                                                         model_structure=self.MODEL_STRUCTURE,
+                                                         model_structure=self.model_structure,
                                                          row_additive_mask = self.layer_head_mask)
                 p_attention_t = LinearPruningModulePatcher(patcher_context,
                                                            args_attention_t,
-                                                           model_structure = self.MODEL_STRUCTURE,
+                                                           model_structure = self.model_structure,
                                                            col_additive_mask = self.layer_head_mask)
         else:
             p_attention = None
@@ -633,10 +633,10 @@ class ModelPatchingCoordinator:
             )
             if args_dense.submethod.startswith("1d"):
                 p_dense = ChannelPruningModulePatcher(
-                    patcher_context, args_dense, model_structure=self.MODEL_STRUCTURE, suffix="dense"
+                    patcher_context, args_dense, model_structure=self.model_structure, suffix="dense"
                 )
             else:
-                p_dense = LinearPruningModulePatcher(patcher_context, args_dense, model_structure=self.MODEL_STRUCTURE)
+                p_dense = LinearPruningModulePatcher(patcher_context, args_dense, model_structure=self.model_structure)
         else:
             p_dense = None
 
@@ -650,6 +650,10 @@ class ModelPatchingCoordinator:
             key=p_attention,
             value=p_attention,
             att_dense=p_att_dense,
+            encoder_decoder_query=p_attention,
+            encoder_decoder_key=p_attention,
+            encoder_decoder_value=p_attention,
+            encoder_decoder_att_dense=p_att_dense,
             interm_dense=p_dense,
             output_dense=p_dense,
         )
@@ -664,20 +668,11 @@ class ModelPatchingCoordinator:
         else:
             gelu_patch = False
 
-        patcher = BertLinearModelPatcher(module_patchers)
+        patcher = LinearModelPatcher(module_patchers, model_structure=self.model_structure)
 
         patcher.patch(model)
-
-        patched_count = 0
-        if attention_pruning_method_parts[0] != "disabled" or sparse_args.ampere_pruning_method != "disabled":
-            patched_count += 4 * layers_count
-
-        if dense_pruning_method_parts[0] != "disabled" or sparse_args.ampere_pruning_method != "disabled":
-            patched_count += 2 * layers_count
-
         self.stats = {}
         self.stats["main"] = patcher.stats
-        assert (patcher.stats["patched"] == patched_count)
 
         if layer_norm_patch:
             def schedule_callback():
@@ -687,8 +682,6 @@ class ModelPatchingCoordinator:
 
             layer_norm_patcher = Layer2NoNormPatcher(schedule_callback=schedule_callback)
             layer_norm_patcher.patch(model)
-            layer_norm_patched_count = 2 * layers_count + 1
-            assert (layer_norm_patcher.stats["patched"] == layer_norm_patched_count)
             self.stats["layer_norm"] = layer_norm_patcher.stats
 
         if gelu_patch:
@@ -698,8 +691,6 @@ class ModelPatchingCoordinator:
 
             gelu_patcher = GeLU2ReLUModelPatcher(schedule_callback=schedule_callback)
             gelu_patcher.patch(model)
-            gelu_patcher_count = layers_count
-            assert (gelu_patcher.stats["patched"] == gelu_patcher_count)
             self.stats["gelu"] = gelu_patcher.stats
 
 
@@ -722,6 +713,4 @@ class ModelPatchingCoordinator:
         pruner = BertHeadsPruner(model)
         removed_heads, total_heads = pruner.run()
         return removed_heads, total_heads
-
-
 
