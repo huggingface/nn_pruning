@@ -56,7 +56,7 @@ class GeLU2ReLUModelPatcher(ModelPatcher):
         super().__init__(all_match=True)
         self.steps = steps
         self.schedule_callback = schedule_callback
-        self.names = ["intermediate_act_fn", "transform_act_fn"]
+        self.names = ["intermediate_act_fn", "transform_act_fn", "activation_fn"]
 
     def is_patchable(self, module_name, module, raiseError):
         for name in self.names:

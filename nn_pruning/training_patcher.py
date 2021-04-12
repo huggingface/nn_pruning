@@ -3,6 +3,7 @@ from typing import Any, Dict
 import torch.nn as nn
 
 from .model_patcher import ModelPatcher
+from nn_pruning.model_structure import BertStructure, ModelStructure
 
 class PatcherContextModule(nn.Module):
     pass
@@ -106,19 +107,13 @@ class ModelDispatchingPatcher(ModelPatcher):
     def is_patchable(self, module_name, module, raiseError):
         return isinstance(module, nn.Linear)
 
-class BertLinearModelPatcher(ModelDispatchingPatcher):
-    PATTERN_PREFIX = "bert.encoder.layer.[0-9]+."
-    LAYERS_PATTERNS = dict(
-        query="attention.self.query",
-        key="attention.self.key",
-        value="attention.self.value",
-        att_dense="attention.output.dense",
-        interm_dense="intermediate.dense",
-        output_dense="output.dense",
-    )
 
-    def __init__(self, patchers: Dict[str, ModulePatcher]):
+class LinearModelPatcher(ModelDispatchingPatcher):
+    def __init__(self, patchers: Dict[str, ModulePatcher], model_structure: ModelStructure):
         super().__init__()
+        self.model_structure = model_structure
         for layer_type, patcher in patchers.items():
-            layer_pattern = (self.PATTERN_PREFIX + self.LAYERS_PATTERNS[layer_type]).replace(".", "\.")
-            self.add_patcher(layer_pattern, patcher)
+            layer = self.model_structure.LAYER_PATTERNS.get(layer_type)
+            if layer is not None:
+                layer_pattern = (self.model_structure.PATTERN_PREFIX + layer).replace(".", "\.")
+                self.add_patcher(layer_pattern, patcher)
