@@ -139,6 +139,8 @@ class SparseGlueShortNamer(TrialShortNamer):
         'logging_strategy': 'IntervalStrategy.STEPS',
         'save_strategy': 'IntervalStrategy.STEPS',
         'rewind_model_name_or_path': None,
+        'qat': False,
+        'qconfig': 'default',
     }
 
 

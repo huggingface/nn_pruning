@@ -36,8 +36,9 @@ from .modules.masked_nn import (
     GenericLinearPruningContextModule,
     head_mask,
 )
-from .modules.nonorm import NoNormCompiler, Layer2NoNormPatcher
+from .modules.nonorm import Layer2NoNorm, NoNorm, NoNormCompiler, Layer2NoNormPatcher
 from .modules.gelu2relu import GeLU2ReLUModelPatcher
+from .modules.quantized_layers import create_qconfig, QATPatcher
 from .inference_model_patcher import BertHeadsPruner
 
 from nn_pruning.training_patcher import (
@@ -45,6 +46,7 @@ from nn_pruning.training_patcher import (
     PatcherContext,
     PatcherContextModule,
 )
+
 
 @dataclass
 class SparseTrainingArguments:
@@ -222,9 +224,9 @@ class SparseTrainingArguments:
         },
     )
 
-    rewind_model_name_or_path : str = field(
+    rewind_model_name_or_path: str = field(
         default=None,
-        metadata = {
+        metadata={
            "help": "Model that will be used as a guide to prevent pruning of some attention heads while redoing fine-pruning."
         },
     )
@@ -234,6 +236,16 @@ class SparseTrainingArguments:
         metadata={
             "help": "Whether to keep the transition parameters used during training for eval. Only for Layer2NoNorm, GeLU2ReLU and pruning threshold."
         },
+    )
+
+    qat: bool = field(
+        default=False,
+        metadata={"help": "Whether to prepare the model for Quantization Aware Training"},
+    )
+
+    qconfig: str = field(
+        default="default",
+        metadata={"help": "The quantization scheme configuration to use for QAT"},
     )
 
     @classmethod
@@ -402,7 +414,6 @@ class ModelPatchingCoordinator:
             else:
                 context_data["gelu_to_relu_mix"] = 0.0
 
-
         self.patcher_context.set_context_data_dict(context_data)
 
     def regularization_loss(self, model: nn.Module):
@@ -568,6 +579,18 @@ class ModelPatchingCoordinator:
     def patch_model(self, model, trial = None):
         layers_count = model.config.num_hidden_layers
         sparse_args = self.sparse_args
+
+        device = model.device
+
+        qconfig = None
+        if sparse_args.qat:
+            qconfig = create_qconfig(sparse_args.qconfig)
+            qat_patcher = QATPatcher(
+                qconfig,
+                layers_not_to_patch=[Layer2NoNorm, NoNorm],
+            )
+            qat_patcher.patch(model)
+
         attention_pruning_method_parts = self.parse_pruning_method(sparse_args.attention_pruning_method)
 
         if hasattr(sparse_args, "bias_mask"):
@@ -671,6 +694,8 @@ class ModelPatchingCoordinator:
         patcher = LinearModelPatcher(module_patchers, model_structure=self.model_structure)
 
         patcher.patch(model)
+        model = model.to(device)  # TODO: change this by making sure the mask_scores are located at the right place.
+
         self.stats = {}
         self.stats["main"] = patcher.stats
 
@@ -693,6 +718,15 @@ class ModelPatchingCoordinator:
             gelu_patcher.patch(model)
             self.stats["gelu"] = gelu_patcher.stats
 
+        if sparse_args.qat:
+            qat_patcher = QATPatcher(
+                qconfig,
+                layers_to_patch=[MaskedLinear, Layer2NoNorm, NoNorm],
+            )
+            qat_patcher.patch(model)
+            model.train()
+            model.qconfig = qconfig
+            model = torch.quantization.prepare_qat(model)
 
         return patcher
 
@@ -713,4 +747,3 @@ class ModelPatchingCoordinator:
         pruner = BertHeadsPruner(model)
         removed_heads, total_heads = pruner.run()
         return removed_heads, total_heads
-

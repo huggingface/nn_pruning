@@ -460,4 +460,3 @@ class XPTrainer(Trainer):
                 s = json.dumps(v.__dict__, indent=4, sort_keys=True)
                 with open(os.path.join(checkpoint_dir, filename), "w") as f:
                     f.write(s)
-
