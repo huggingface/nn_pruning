@@ -7,6 +7,7 @@ import tempfile
 from nn_pruning.patch_coordinator import ModelPatchingCoordinator
 from nn_pruning.inference_model_patcher import optimize_model
 
+
 class SparseXP:
     def __init__(self):
         self.patch_coordinator = self.create_patching_coordinator(self.sparse_args,
@@ -137,9 +138,9 @@ class SparseXP:
                 correct_shape = (hidden_size,)
             elif "attention" in k and "LayerNorm" not in k and remove_head_pruning:
                 if "weight" in k:
-                    correct_shape =  (hidden_size, hidden_size)
+                    correct_shape = (hidden_size, hidden_size)
                 elif "bias" in k:
-                    correct_shape =  (hidden_size,)
+                    correct_shape = (hidden_size,)
                 else:
                     raise Exception("Unhandled case")
 

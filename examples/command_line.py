@@ -123,6 +123,8 @@ task2teacher = {
 @click.option("--ampere-pruning-method", default="disabled", type=click.Choice(["disabled", "topk"]))
 @click.option('--layer_norm_patch', is_flag=True)
 @click.option('--gelu_patch', is_flag=True)
+@click.option("--qat", is_flag=True)
+@click.option("--qconfig", default="default", type=str) # TODO: make it a click.Choice instead.
 
 def finetune(
     ctx,
@@ -136,7 +138,9 @@ def finetune(
     ampere_pruning_method,
     output_dir,
     layer_norm_patch,
-    gelu_patch
+    gelu_patch,
+    qat,
+    qconfig
 ):
 
     if json_path is not None:
@@ -167,6 +171,8 @@ def finetune(
         param_dict["logging_dir"] = output_dir
         param_dict["layer_norm_patch"] = layer_norm_patch
         param_dict["gelu_patch"] = gelu_patch
+        param_dict["qat"] = qat
+        param_dict["qconfig"] = qconfig
 
         if teacher == "auto":
             name_teacher = task
