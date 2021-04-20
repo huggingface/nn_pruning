@@ -103,6 +103,7 @@ class GlueTrainer(XPTrainer):
             if "label" in test_dataset.column_names:
                 test_dataset.remove_columns_("label")
             predictions = self.predict(test_dataset=test_dataset).predictions
+            predictions = predictions[0] if isinstance(predictions, tuple) else predictions
             predictions = np.squeeze(predictions) if self.is_regression else np.argmax(predictions, axis=1)
 
             output_test_file = os.path.join(checkpoint_dir, f"test_results_{task}.txt")
