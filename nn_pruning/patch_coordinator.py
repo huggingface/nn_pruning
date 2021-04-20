@@ -16,7 +16,7 @@
 Sparse Fine-tuning the library models for question answering.
 """
 # You can also adapt this script on your own question answering task. Pointers for this are left as comments.
-
+import copy
 import numpy as np
 import torch
 import torch.nn as nn
@@ -511,12 +511,12 @@ class ModelPatchingCoordinator:
 
         temperature = sparse_args.distil_temperature
 
+        teacher_inputs = model_inputs.copy()
+        if 'labels' in teacher_inputs:
+            del teacher_inputs['labels']
+
         with torch.no_grad():
-            teacher_outputs = teacher(
-                input_ids=model_inputs["input_ids"],
-                token_type_ids=model_inputs["token_type_ids"],
-                attention_mask=model_inputs["attention_mask"],
-            )
+            teacher_outputs = teacher(**teacher_inputs)
 
         loss_logits = 0
         for logit_name in self.logit_names:
@@ -540,7 +540,7 @@ class ModelPatchingCoordinator:
 
     def create_optimizer_groups(self, model, args, sparse_args):
         # Prepare optimizer and schedule (linear warmup and decay)
-        no_decay = ["bias", "LayerNorm.weight", "NoNorm.weight", "layer_norm.weight", "layernorm.weight"]
+        no_decay = ["bias", "LayerNorm.weight", "NoNorm.weight", "layer_norm.weight", "layernorm_embedding.weight"]
 
         mask_params = []
         no_decay_params = []
