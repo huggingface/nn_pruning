@@ -1,11 +1,21 @@
-from .model_patcher import ModelPatcher
 import torch
 import torch.nn as nn
+from transformers import BertConfig
+from .model_patcher import ModelPatcher
+from .model_structure import struct_from_config, count_num_heads
 
 
 class BertHeadsPruner:
     def __init__(self, model):
         self.model = model
+        self.model_structure = struct_from_config(model)
+        attention_layers = [self.model_structure.LAYER_PATTERNS[i] for i in self.model_structure.ATTENTION_LAYERS]
+        if hasattr(self.model_structure, "ATTENTION_PREFIX"):
+            ATTENTION_PREFIX = self.model_structure.ATTENTION_PREFIX
+            self.attention_prefix = ATTENTION_PREFIX[0] if isinstance(ATTENTION_PREFIX, tuple) else ATTENTION_PREFIX
+        else:
+            self.attention_prefix = ".".join(attention_layers[0].split('.')[:-1])
+        self.attention_layers = [attention_layer[len(self.attention_prefix)+1:] for attention_layer in attention_layers]
 
     def analyze_head(self, p, head_size):
         p0 = (p != 0).reshape(p.shape[0] // head_size, head_size, p.shape[1]).any(-1).any(-1)
@@ -15,10 +25,10 @@ class BertHeadsPruner:
         heads_count = 0
         to_prune = {}
         for name, module in self.model.named_modules():
-            if name.endswith("attention.self"):
+            if name.endswith(self.attention_prefix):
                 layer_number = int("".join(ch for ch in name if ch.isnumeric()))
                 parts = []
-                for a in ["value", "query", "key"]:
+                for a in self.attention_layers:
                     p = self.analyze_head(getattr(module, a).weight, module.attention_head_size)
                     parts.append(p)
                 parts = list(torch.stack(parts, 0).all(0).cpu().detach().numpy())
@@ -34,11 +44,11 @@ class BertHeadsPruner:
 
     def run(self):
         model = self.model
-
-        to_prune, heads_count = self.get_pruned_heads()
-
-        model.prune_heads(to_prune)
-        return sum([len(p) for p in to_prune.values()]), heads_count
+        if isinstance(self.model.config, BertConfig):
+            to_prune, heads_count = self.get_pruned_heads()
+            model.prune_heads(to_prune)
+            return sum([len(p) for p in to_prune.values()]), heads_count
+        return 0, count_num_heads(model)
 
 
 class SparseDimensionsLinear(nn.Module):
@@ -222,38 +232,42 @@ def optimize_model(model, mode, clone=True):
     if clone == True:
         model = copy.deepcopy(model)
 
+    model_structure = struct_from_config(model)
+
+    # Further prune
     params = {}
     for name, parameter in model.named_parameters():
         params[name] = parameter
-
-    # Further prune
-    for layer_number in range(12):
-        n0 = f"bert.encoder.layer.{layer_number}.intermediate.dense.weight"
-        n1 = f"bert.encoder.layer.{layer_number}.output.dense.weight"
-
-        output_mask = params[n0].abs().sum(1) == 0
-        input_mask = params[n1].abs().sum(0) == 0
-
-        with torch.no_grad():
-            params[n0][input_mask] = 0
-            params[n1][:, output_mask] = 0
+        if name.endswith("weight"):
+            if model_structure.is_ffn(name):
+                pos, _ = model_structure.get_module_intra_layer_position(name)
+                if pos % 2 == 0:
+                    output_mask = params[name].abs().sum(1) == 0
+                    n0 = name
+                else:
+                    input_mask = params[name].abs().sum(0) == 0
+                    with torch.no_grad():
+                        params[n0][input_mask] = 0
+                        params[name][:, output_mask] = 0
 
     # Create a model patcher
     mp = InferenceModelPatcher(prune_heads=True, mode=mode)
-    #    for l in mp.get_patchable_layers(model):
-    #        print(l)
-    # mp.add_pattern("bert\\.encoder\\.layer\\.[0-9+]\\.attention\\.self\\.(query|key|value)", {})
-    # mp.add_pattern("bert\\.encoder\\.layer\\.[0-9]+\\.attention\\.output\\.dense", {})
-    mp.add_pattern(
-        "bert\\.encoder\\.layer\\.[0-9]+\\.intermediate\\.dense",
-        {"input_keep_dimension": True, "output_keep_dimension": False, "prune_input":False, "prune_output":True},
-    )
-    mp.add_pattern(
-        "bert\\.encoder\\.layer\\.[0-9]+\\.output\\.dense",
-        {"output_keep_dimension": True, "input_keep_dimension": False, "prune_input":True, "prune_output":False},
-    )
+    pattern_prefix = model_structure.PATTERN_PREFIX
+    for i, pattern in enumerate(model_structure.FFN_LAYERS):
+        pattern_name = (pattern_prefix + model_structure.LAYER_PATTERNS[pattern]).replace(".", "\\.")
+        if i == 0:
+            mp.add_pattern(
+                pattern_name,
+                {"input_keep_dimension": True, "output_keep_dimension": False, "prune_input":False, "prune_output":True},
+            )
+        else:
+            mp.add_pattern(
+                pattern_name,
+                {"output_keep_dimension": True, "input_keep_dimension": False, "prune_input":True, "prune_output":False},
+            )
 
     mp.patch_model(model)
+
     if hasattr(model.config, "layer_norm_type") and model.config.layer_norm_type == "no_norm":
         from nn_pruning.modules.nonorm import NoNormPatcher
         nnc = NoNormPatcher()

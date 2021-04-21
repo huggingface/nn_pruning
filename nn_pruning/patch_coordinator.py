@@ -25,7 +25,8 @@ from transformers import AutoConfig, AutoModelForQuestionAnswering
 from dataclasses import dataclass, field
 from collections import defaultdict
 
-from nn_pruning.model_structure import BertStructure, BartStructure
+from nn_pruning.model_structure import struct_from_name
+
 from .modules.masked_nn import (
     ChannelPruningModulePatcher,
     JointPruningModulePatcher,
@@ -265,10 +266,6 @@ class SparseTrainingArguments:
 
 
 class ModelPatchingCoordinator:
-    model2struct = {
-        "bert-base-uncased": BertStructure,
-        "facebook/bart-base": BartStructure
-    }
 
     def __init__(self, sparse_args, device, cache_dir, model_name_or_path, logit_names, teacher_constructor):
         # logit_names is ["start_logits", "end_logits"] for qa, ["logits"] for glue etc
@@ -279,7 +276,7 @@ class ModelPatchingCoordinator:
         self.teacher = self.create_teacher(device, cache_dir)
         self.layer_head_mask = self.create_head_rewind_info(device, cache_dir)
         self.logit_names = logit_names
-        self.model_structure = self.model2struct.get(model_name_or_path, BertStructure)
+        self.model_structure = struct_from_name(model_name_or_path)
 
     def parse_pruning_method(self, method):
         parts = method.split(":")
@@ -448,11 +445,9 @@ class ModelPatchingCoordinator:
                     module_nnz_info = module.get_sparsity_info()
             else:
                 continue
-            # TEMPORARY : use model info to perform this dispatch
-            if not hasattr(self.sparse_args, "attention_output_with_dense") or self.sparse_args.attention_output_with_dense:
-                key = "attention" if self.model_structure.is_attention(name) else "dense"
-            else:
-                key = "attention" if "att" in name else "dense"
+
+            exclude_att_dense = not hasattr(self.sparse_args, "attention_output_with_dense") or self.sparse_args.attention_output_with_dense
+            key = "attention" if self.model_structure.is_attention(name, exclude_att_dense=exclude_att_dense) else "dense"
 
             if key not in info:
                 info[key] = defaultdict(float)
