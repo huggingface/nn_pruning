@@ -6,6 +6,7 @@ import torch
 import tempfile
 from nn_pruning.patch_coordinator import ModelPatchingCoordinator
 from nn_pruning.inference_model_patcher import optimize_model
+from nn_pruning.model_structure import struct_from_model
 
 
 class SparseXP:
@@ -89,8 +90,12 @@ class SparseXP:
         model_args.model_name_or_path = str(src_path)
 
         model = cls._model_init(model_args, model_config)
-        patcher = cls.create_patching_coordinator(sparse_args=sparse_args, device="cuda", cache_dir=None)
-
+        patcher = cls.create_patching_coordinator(
+            sparse_args=sparse_args,
+            device="cuda",
+            cache_dir=None,
+            model_name_or_path=model_args.model_name_or_path
+        )
         patcher.patch_model(model, trial=None)
 
         state_dict = torch.load(src_path / model_bin_name)
@@ -117,29 +122,39 @@ class SparseXP:
         with (src_path / "config.json").open() as f:
             config = json.load(f)
 
-        hidden_size = config["hidden_size"]
-
         m = torch.load(src_path / "pytorch_model.bin")
 
+        model_structure = struct_from_model(m)
+
+        hidden_size_name = model_structure.NAME_CONFIG["hidden_size"]
+        hidden_size = config.get(hidden_size_name, None)
+        intermediate_size_name = model_structure.NAME_CONFIG["intermediate_size"]
+        intermediate_size = config.get(intermediate_size_name, None)
+        if hidden_size is None:
+            raise RuntimeError(f"Hidden size name {hidden_size_name} not found in config file")
+        if intermediate_size is None:
+            raise RuntimeError(f"Intermediate size name {intermediate_size_name} not found in config file")
+
         new_m = {}
-        # TODO : depends on the network
-        ffn_multiplier = 4
 
         for k, v in m.items():
             correct_shape = None
-            if k.endswith("intermediate.dense.linear.weight") or k.endswith("intermediate.dense.weight"):
-                correct_shape = (hidden_size * ffn_multiplier, hidden_size)
-            elif k.endswith("intermediate.dense.linear.bias") or k.endswith("intermediate.dense.bias"):
-                correct_shape = (hidden_size * ffn_multiplier,)
-            elif k.endswith("output.dense.linear.weight") or (
-                    k.endswith("output.dense.weight") and "attention" not in k):
-                correct_shape = (hidden_size, hidden_size * ffn_multiplier)
-            elif k.endswith("output.dense.linear.bias") or k.endswith("output.dense.bias"):
-                correct_shape = (hidden_size,)
-            elif "attention" in k and "LayerNorm" not in k and remove_head_pruning:
-                if "weight" in k:
+            if model_structure.is_ffn(k):
+                pos = model_structure.get_position_ffn(k)
+                if pos == 0:
+                    if k.endswith("weight"):
+                        correct_shape = (intermediate_size, hidden_size)
+                    elif k.endswith("bias"):
+                        correct_shape = (intermediate_size,)
+                else:
+                    if k.endswith("weight"):
+                        correct_shape = (hidden_size, intermediate_size)
+                    elif k.endswith("bias"):
+                        correct_shape = (hidden_size,)
+            elif remove_head_pruning and model_structure.is_attention(k, exclude_att_dense=False):
+                if k.endswith("weight"):
                     correct_shape = (hidden_size, hidden_size)
-                elif "bias" in k:
+                elif k.endswith("bias"):
                     correct_shape = (hidden_size,)
                 else:
                     raise Exception("Unhandled case")
@@ -149,7 +164,6 @@ class SparseXP:
                 k = k.replace("linear.", "")
             else:
                 print(k, "unchanged", v.shape)
-
 
             if correct_shape is not None and v.shape != correct_shape:
                 z = torch.zeros(correct_shape, device=v.device)

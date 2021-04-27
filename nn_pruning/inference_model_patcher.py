@@ -8,7 +8,7 @@ from .model_structure import struct_from_config, count_num_heads
 class BertHeadsPruner:
     def __init__(self, model):
         self.model = model
-        self.model_structure = struct_from_config(model)
+        self.model_structure = struct_from_config(model.config_class)
         attention_layers = [self.model_structure.LAYER_PATTERNS[i] for i in self.model_structure.ATTENTION_LAYERS]
         if hasattr(self.model_structure, "ATTENTION_PREFIX"):
             ATTENTION_PREFIX = self.model_structure.ATTENTION_PREFIX
@@ -232,7 +232,7 @@ def optimize_model(model, mode, clone=True):
     if clone == True:
         model = copy.deepcopy(model)
 
-    model_structure = struct_from_config(model)
+    model_structure = struct_from_config(model.config_class)
 
     # Further prune
     params = {}
@@ -240,8 +240,8 @@ def optimize_model(model, mode, clone=True):
         params[name] = parameter
         if name.endswith("weight"):
             if model_structure.is_ffn(name):
-                pos, _ = model_structure.get_module_intra_layer_position(name)
-                if pos % 2 == 0:
+                pos = model_structure.get_position_ffn(name)
+                if pos == 0:
                     output_mask = params[name].abs().sum(1) == 0
                     n0 = name
                 else:

@@ -34,6 +34,14 @@ class ModelStructure:
         return False
 
     @classmethod
+    def get_position_ffn(cls, module_name):
+        for i, pattern in enumerate(cls.FFN_LAYERS):
+            if cls.LAYER_PATTERNS[pattern] in module_name:
+                return i
+        FFN_PATTERNS_STRING = ", ".join([f"{v}" for k, v in cls.LAYER_PATTERNS.items() if k in cls.FFN_LAYERS])
+        raise RuntimeError(f"Module name {module_name} does not match any of the FFN patterns : {FFN_PATTERNS_STRING}")
+
+    @classmethod
     def layer_index(cls, child_module_name):
         extracts = re.findall(r"[0-9]+", child_module_name)
         if len(extracts) != 1:
@@ -55,6 +63,10 @@ class BertStructure(ModelStructure):
     ATTENTION_LAYERS = ("query", "key", "value")
     MHA_LAYERS = ATTENTION_LAYERS + ("att_dense",)
     FFN_LAYERS = ("interm_dense", "output_dense")
+    NAME_CONFIG = dict(
+        hidden_size="hidden_size",
+        intermediate_size="intermediate_size",
+    )
 
 class BartStructure(ModelStructure):
     PATTERN_PREFIX = "model.(en|de)coder.layers.[0-9]+."
@@ -74,7 +86,10 @@ class BartStructure(ModelStructure):
     ATTENTION_LAYERS = ("query", "key", "value", "encoder_decoder_query", "encoder_decoder_key", "encoder_decoder_value")
     MHA_LAYERS = ATTENTION_LAYERS + ("att_dense", "encoder_decoder_att_dense")
     FFN_LAYERS = ("interm_dense", "output_dense")
-
+    NAME_CONFIG = dict(
+        hidden_size="d_model",
+        intermediate_size="encoder_ffn_dim",
+    )
 
 config2struct = {
     BertConfig: BertStructure,
@@ -86,8 +101,8 @@ name2struct = {
     "bart": BartStructure
 }
 
-def struct_from_config(model):
-    structure = config2struct.get(model.config_class, None)
+def struct_from_config(config_class):
+    structure = config2struct.get(config_class, None)
     if structure is None:
         raise RuntimeError(f"Model config does not match any of the defined structures.")
     return structure
@@ -98,9 +113,23 @@ def struct_from_name(model_name):
             return name2struct[name]
     raise RuntimeError(f"Model name does not match any of the defined structures.")
 
+def struct_from_model(model):
+    for structure in config2struct.values():
+        layer_pattern = structure.LAYER_PATTERNS
+        num_pattern = len(layer_pattern)
+        for pattern in layer_pattern.values():
+            for k, v in model.items():
+                if pattern in k:
+                    num_pattern -= 1
+                    break
+        if num_pattern == 0:
+            return structure
+    else:
+        raise RuntimeError("Model does not match any of the defined structures.")
+
 def count_num_heads(model):
     head_count = 0
-    model_structure = struct_from_config(model)
+    model_structure = struct_from_config(model.config_class)
     for name, module in model.named_modules():
         for attention_prefix in model_structure.ATTENTION_PREFIX:
             if name.endswith(attention_prefix):
@@ -112,3 +141,4 @@ def count_num_heads(model):
                     raise RuntimeError(f"Not able to retrieve number of attention head")
                 head_count += num_attention_heads
     return head_count
+
