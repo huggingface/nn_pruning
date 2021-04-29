@@ -39,7 +39,6 @@ from .modules.masked_nn import (
 )
 from .modules.nonorm import Layer2NoNorm, NoNorm, NoNormCompiler, Layer2NoNormPatcher
 from .modules.gelu2relu import GeLU2ReLUModelPatcher
-from .modules.quantized_layers import create_qconfig, QATPatcher
 from .inference_model_patcher import BertHeadsPruner
 
 from nn_pruning.training_patcher import (
@@ -612,15 +611,6 @@ class ModelPatchingCoordinator:
 
         device = model.device
 
-        qconfig = None
-        if hasattr(sparse_args, "qat") and sparse_args.qat:
-            qconfig = create_qconfig(sparse_args.qconfig)
-            qat_patcher = QATPatcher(
-                qconfig,
-                layers_not_to_patch=[Layer2NoNorm, NoNorm],
-            )
-            qat_patcher.patch(model)
-
         attention_pruning_method_parts = self.parse_pruning_method(sparse_args.attention_pruning_method)
 
         if hasattr(sparse_args, "bias_mask"):
@@ -747,16 +737,6 @@ class ModelPatchingCoordinator:
             gelu_patcher = GeLU2ReLUModelPatcher(schedule_callback=schedule_callback)
             gelu_patcher.patch(model)
             self.stats["gelu"] = gelu_patcher.stats
-
-        if hasattr(sparse_args, "qat") and sparse_args.qat:
-            qat_patcher = QATPatcher(
-                qconfig,
-                layers_to_patch=[MaskedLinear, Layer2NoNorm, NoNorm],
-            )
-            qat_patcher.patch(model)
-            model.train()
-            model.qconfig = qconfig
-            model = torch.quantization.prepare_qat(model)
 
         return patcher
 
