@@ -1,0 +1,11 @@
+{
+    "bert": [
+        {
+            "annotate": "BERT",
+            "exact": 80.8,
+            "f1": 88.5,
+            "fill_rate": 1.0,
+            "speedup": 1
+        }
+    ]
+}

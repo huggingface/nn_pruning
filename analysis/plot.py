@@ -18,7 +18,7 @@ from bokeh.models import Label, Range1d
 import itertools
 
 def bert_reference_label(accuracy_key, reference_accuracy, index):
-    return f"BERT-base reference ({accuracy_key.capitalize()} = {reference_accuracy}){'' if index == 0 else str(-index)}"
+    return f"BERT-base ({accuracy_key.capitalize()} = {reference_accuracy}){'' if index == 0 else str(-index)}"
 
 class Plotter:
     def __init__(self, dest_dir, dest_file_name, only_dots, draw_labels, limits, title, x_label, y_label,
@@ -58,7 +58,7 @@ class MatplotlibPlotter(Plotter):
         )
 
     def run(self, plots, key):
-        self.fontsize = 15
+        self.fontsize = 18
         draw_labels = self.draw_labels
 
         x_min = self.limits[key]["x_min"]
@@ -88,7 +88,7 @@ class MatplotlibPlotter(Plotter):
                     if x_min is None or x[i] >= x_min and x[i] <= x_max:
                         if y_min is None or y[i] >= y_min and y[i] <= y_max:
                             a = annotate[i] or label_text
-                            ax1.annotate(a, (x[i] + 0.005, y[i] + 0.005))
+                            ax1.annotate(a, (x[i] + 0.005, y[i] + 0.005), fontsize=self.fontsize)
         if self.draw_bert_reference_lines:
             if isinstance(self.draw_bert_reference_lines, int):
                 line_count = self.draw_bert_reference_lines
@@ -379,7 +379,8 @@ class PlotManager:
 #            label_text = self.label_mapping.get(label, label.capitalize())
             plots[label_text] = {"x":x, "y":y, "annotate": annotate, "points":data}
 
-        x_label = key.capitalize()
+        x_label_mapping = {"fill_rate":"density"}
+        x_label = x_label_mapping.get(key, key).capitalize()
         y_label = accuracy_key.capitalize()
 
         if self.add_title:
@@ -439,8 +440,8 @@ def draw_all_plots(input_file_name, task, x_axis, cleanup_cache=False):
                 "Full block method, bs= 4x4+.*": "Block Size=4",
             },
             limits=dict(
-                squadv1=dict(speedup=dict(legend_pos="upper right", x_min=0.75, x_max=2.5, y_min=None, y_max=None),
-                             fill_rate=dict(legend_pos="lower right", x_min=0.0, x_max=0.75, y_min=None, y_max=None)),
+                squadv1=dict(speedup=dict(legend_pos="upper right", x_min=0.85, x_max=2.5, y_min=None, y_max=None),
+                             fill_rate=dict(legend_pos="lower right", x_min=0.0, x_max=0.8, y_min=None, y_max=None)),
                 mnli=dict(speedup=dict(legend_pos="upper right", x_min=0.75, x_max=6.0, y_min=79, y_max=86),
                           fill_rate=dict(legend_pos="lower right", x_min=0.0, x_max=0.75, y_min=79, y_max=86))
             )
