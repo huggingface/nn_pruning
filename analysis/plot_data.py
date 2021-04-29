@@ -24,18 +24,24 @@ class PointProvider:
 
     def points(self, task, force = False):
         filename = self.get_filename(task)
-        if filename in self.CACHE:
-            return self.CACHE[filename]
 
-        full_path = self.cache_dir / filename
-        if full_path.exists() and not force:
-            with full_path.open() as f:
-                ret = json.load(f)
+        if filename in self.CACHE:
+            ret = self.CACHE[filename]
         else:
-            ret = self.points_(task)
-            with full_path.open("w") as f:
-                json.dump(ret, f, indent=4, sort_keys=True)
-        self.CACHE[filename] = ret
+            full_path = self.cache_dir / filename
+            if full_path.exists() and not force:
+                with full_path.open() as f:
+                    ret = json.load(f)
+            else:
+                ret = self.points_(task)
+                with full_path.open("w") as f:
+                    json.dump(ret, f, indent=4, sort_keys=True)
+                with full_path.open("r") as f:
+                    reload = json.load(f)
+                    assert(ret == reload)
+
+            self.CACHE[filename] = ret
+        ret = copy.deepcopy(ret)
         return ret
 
 
@@ -78,7 +84,6 @@ class ExperimentClassifier:
     def categorize(self, xp):
         print("STARTING")
         for fun_name in self.cat_fun_names:
-            print(f"fun_name={fun_name}")
             fun_name = "is_" + fun_name
             ret = getattr(self, fun_name)(xp)
             if ret is None:
@@ -184,6 +189,8 @@ class ExperimentClassifier:
 
         sparse_args = xp["sparse_args"]
         if self.check(sparse_args, compare, compare_different):
+            path = xp["path"]
+
             cols = sparse_args["attention_block_cols"]
             rows = sparse_args["attention_block_rows"]
             d_cols = sparse_args["dense_block_cols"]
@@ -193,9 +200,9 @@ class ExperimentClassifier:
             if d_rows != rows:
                 return None
 
-            ver = 1 - int(sparse_args.get("attention_output_with_dense", True))
-            if ver == 0:
-                return "full block version 0"
+#            ver = 1 - int(sparse_args.get("attention_output_with_dense", True))
+#            if ver == 0:
+#                return "full block version 0"
 
             ret = f"Full block method, bs= {rows}x{cols}"
             # ret += ", fw=" + str(sparse_args["final_warmup"])
@@ -204,6 +211,7 @@ class ExperimentClassifier:
             annotate = "%d" % (100 - xp["stats"]["linear_sparsity"])
 
             ret += ", dl=" + str(sparse_args.get("dense_lambda", 1.0))
+
             return ret, annotate
 
     def is_block_unstructured(self, xp):
@@ -423,6 +431,28 @@ class HFModelStats:
         finally:
             tmpfile.cleanup()
 
+class Bert(PointProvider):
+    def points_(self, task):
+
+        # From https://www.aclweb.org/anthology/N19-1423.pdf
+        if task == "squadv1":
+            ret = {
+                "f1": 88.5,
+                "exact": 80.8,
+            }
+        elif task == "mnli":
+            ret = {
+                "matched":84.6,
+                "mismatched":83.4
+            }
+
+        else:
+            raise Exception(f"Unkwnon task {task}")
+
+        ret.update({"fill_rate": 1.0, "annotate": "BERT", "speedup": 1})
+
+        return dict(bert=[ret])
+
 class DistilBert(PointProvider):
     def points_(self, task):
         sd = HFModelStats(
@@ -622,6 +652,7 @@ class MultiProvider:
     def points(self, task, cache_dir, analyze_result_file):
         ret = {}
         ret.update(MovementPruning(cache_dir).points(task))
+        ret.update(Bert(cache_dir).points(task))
         ret.update(DistilBert(cache_dir).points(task))
         ret.update(TinyBert(cache_dir).points(task))
         ret.update(MobileBert(cache_dir).points(task))

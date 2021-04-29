@@ -17,11 +17,14 @@ from bokeh.models import Label, Range1d
 
 import itertools
 
+def bert_reference_label(accuracy_key, reference_accuracy, index):
+    return f"BERT-base reference ({accuracy_key.capitalize()} = {reference_accuracy}){'' if index == 0 else str(-index)}"
 
 class Plotter:
     def __init__(self, dest_dir, dest_file_name, only_dots, draw_labels, limits, title, x_label, y_label,
                  accuracy_key,
-                 reference_accuracy):
+                 reference_accuracy,
+                 draw_bert_reference_lines):
         self.dest_dir = dest_dir
         self.dest_file_name = dest_file_name
         self.only_dots = only_dots
@@ -32,6 +35,7 @@ class Plotter:
         self.y_label = y_label
         self.accuracy_key = accuracy_key
         self.reference_accuracy = reference_accuracy
+        self.draw_bert_reference_lines=draw_bert_reference_lines
 
     @staticmethod
     def label_cleanup(label):
@@ -40,7 +44,7 @@ class Plotter:
         return label
 
 class MatplotlibPlotter(Plotter):
-    def save_fig(self, extension):
+    def save_fig(self, extension, **kwargs):
         pyplot.savefig(
             self.dest_dir / (self.dest_file_name + "." + extension),
             dpi=None,
@@ -49,9 +53,8 @@ class MatplotlibPlotter(Plotter):
             orientation="portrait",
             format=None,
             transparent=False,
-            bbox_inches=None,
-            pad_inches=0.1,
             metadata=None,
+            **kwargs
         )
 
     def run(self, plots, key):
@@ -86,12 +89,17 @@ class MatplotlibPlotter(Plotter):
                         if y_min is None or y[i] >= y_min and y[i] <= y_max:
                             a = annotate[i] or label_text
                             ax1.annotate(a, (x[i] + 0.005, y[i] + 0.005))
+        if self.draw_bert_reference_lines:
+            if isinstance(self.draw_bert_reference_lines, int):
+                line_count = self.draw_bert_reference_lines
+            else:
+                line_count = 1
 
-        for i in range(3):
-            f1 = self.reference_accuracy - i
-            pyplot.plot(
-                [0, 10], [self.reference_accuracy - i] * 2, label=f"original BERT-base {'' if i == 0 else str(-i) + '% '}({self.accuracy_key.capitalize()} = {self.reference_accuracy})"
-            )
+            for i in range(line_count):
+                f1 = self.reference_accuracy - i
+                pyplot.plot(
+                    [0, 10], [self.reference_accuracy - i] * 2, label=bert_reference_label(self.accuracy_key, self.reference_accuracy, i)
+                )
 
         legend_pos = self.limits[key]["legend_pos"]
         pyplot.legend(loc=legend_pos, prop={"size": self.fontsize})
@@ -103,10 +111,12 @@ class MatplotlibPlotter(Plotter):
 
         pyplot.xlabel(self.x_label, fontsize=self.fontsize)
         pyplot.ylabel(self.y_label, fontsize=self.fontsize)
-        pyplot.title(self.title, fontsize=self.fontsize)
+        if self.title is not None:
+            pyplot.title(self.title, fontsize=self.fontsize)
 
-        self.save_fig("png")
-        self.save_fig("eps")
+        self.save_fig("png", bbox_inches=None, pad_inches=0.1)
+        self.save_fig("pdf", bbox_inches='tight')
+        self.save_fig("eps", bbox_inches='tight')
 
 
 
@@ -119,7 +129,7 @@ class BokehPlot(BokehHelper):
             pos = pos.replace(s,d)
         return pos
 
-    def create_fig(self, plots, key, title, width, x_label, y_label, limits, only_dots, accuracy_key, reference_accuracy):
+    def create_fig(self, plots, key, title, width, x_label, y_label, limits, only_dots, accuracy_key, reference_accuracy,draw_bert_reference_lines):
         # select a palette
         from bokeh.palettes import Dark2_5 as palette
 
@@ -159,17 +169,23 @@ class BokehPlot(BokehHelper):
             else:
                 fig.line(x, y, legend_label=label_text, line_width=2, color=color)
 
-            for i in range(3):
-                f1 = reference_accuracy - i
-                line_args = dict(legend_label=f"Reference {accuracy_key.capitalize()}={reference_accuracy} BERT-base")
+            if draw_bert_reference_lines:
+                if isinstance(draw_bert_reference_lines, int):
+                    line_count = draw_bert_reference_lines
+                else:
+                    line_count = 1
 
-                fig.line(
-                    x = [0, x_max],
-                    y = [reference_accuracy - i] * 2,
-                    color="red",
-                    alpha=0.5**(i + 2),
-                    **line_args
-                )
+                for i in range(line_count):
+                    f1 = reference_accuracy - i
+                    line_args = dict(legend_label=bert_reference_label(accuracy_key, reference_accuracy, i))
+
+                    fig.line(
+                        x = [0, x_max],
+                        y = [reference_accuracy - i] * 2,
+                        color="red",
+                        alpha=0.5**(i + 2),
+                        **line_args
+                    )
 
             if False:
                 if draw_labels or len(x) == 1:
@@ -205,7 +221,8 @@ class BokehPlotter(Plotter):
                               limits = self.limits,
                               only_dots = self.only_dots,
                               accuracy_key = self.accuracy_key,
-                              reference_accuracy = self.reference_accuracy)
+                              reference_accuracy = self.reference_accuracy,
+                              draw_bert_reference_lines=self.draw_bert_reference_lines)
 
         export_png(fig, filename=self.dest_dir / (self.dest_file_name + "_static.png"), width=WIDTH)
 
@@ -247,6 +264,8 @@ class PlotManager:
         fontsize=15,
         limits=None,
         label_mapping=None,
+        draw_bert_reference_lines=False,
+        add_title = True
     ):
         self.cache_dir = Path(__file__).parent / "cache"
         self.cache_dir.mkdir(exist_ok=True)
@@ -263,6 +282,9 @@ class PlotManager:
 
         self.label_mapping = label_mapping
 
+        self.draw_bert_reference_lines = draw_bert_reference_lines
+        self.add_title = add_title
+
     def convexity_filter_checkpoints(self, checkpoints, key="speedup", filt=True):
         margin = 1.0005
         if key == "fill_rate":
@@ -273,18 +295,21 @@ class PlotManager:
         sort_by_key = lambda x: sgn * x.get(key, 1.0)
         checkpoints.sort(key=sort_by_key, reverse=True)
         best_c = checkpoints[0]
+        accuracy_key = self.TASK_KEYS[self.task]
 
         filtered_checkpoints = [best_c]
-        accuracy_key = self.TASK_KEYS[self.task]
         for checkpoint in checkpoints[1:]:
-            f1_margin = checkpoint[accuracy_key] > filtered_checkpoints[-1][accuracy_key] * margin
-            key_margin = abs(checkpoint[key] - filtered_checkpoints[-1][key])
-            if key_margin < key_margin_min:
-                if checkpoint[accuracy_key] > filtered_checkpoints[-1][accuracy_key]:
-                    filtered_checkpoints[-1] = checkpoint
+            if True:
+                f1_margin = checkpoint[accuracy_key] > filtered_checkpoints[-1][accuracy_key] * margin
+                key_margin = abs(checkpoint[key] - filtered_checkpoints[-1][key])
+                if key_margin < key_margin_min:
+                    if checkpoint[accuracy_key] > filtered_checkpoints[-1][accuracy_key]:
+                        filtered_checkpoints[-1] = checkpoint
+                else:
+                    if not filt or f1_margin:
+                        filtered_checkpoints.append(checkpoint)
             else:
-                if not filt or f1_margin:
-                    filtered_checkpoints.append(checkpoint)
+                filtered_checkpoints.append(checkpoint)
 
         filtered_checkpoints.sort(key=sort_by_key, reverse=False)
 
@@ -331,32 +356,36 @@ class PlotManager:
         indexed_labels.sort(key=lambda x:x[0])
 
         for _, labels in indexed_labels:
+            data = []
             for label in labels:
-                data = final_plots[label]
+                data += final_plots[label]
 
-                print(data, key)
-                x0 = [e.get(key, 1.0) for e in data]
+            print(data, key)
+            x0 = [e.get(key, 1.0) for e in data]
 
-                if self.convex_envelop:  # and len(set(x0)) > 1:
-                    data = self.convexity_filter_checkpoints(data, key=key, filt=len(set(x0)) > 1)
-                print(data, key)
-                x = [e.get(key, 1.0) for e in data]
-                max_x = max(max_x, max(x))
-                print(accuracy_key, json.dumps(data, indent=4, sort_keys=True))
-                y = [e[accuracy_key] for e in data]
-                annotate = [e.get("annotate","") for e in data]
+            if self.convex_envelop:  # and len(set(x0)) > 1:
+                data = self.convexity_filter_checkpoints(data, key=key, filt=len(set(x0)) > 1)
+            print(data, key)
+            x = [e.get(key, 1.0) for e in data]
+            max_x = max(max_x, max(x))
+            print(accuracy_key, json.dumps(data, indent=4, sort_keys=True))
+            y = [e[accuracy_key] for e in data]
+            annotate = [e.get("annotate","") for e in data]
 
-                _, label_text  = self.match_regexp_dict(label, label_mapping)
-                if label_text is None:
-                    print(label)
-                assert(label_text is not None)
-    #            label_text = self.label_mapping.get(label, label.capitalize())
-                plots[label_text] = {"x":x, "y":y, "annotate": annotate, "points":data}
+            _, label_text  = self.match_regexp_dict(label, label_mapping)
+            if label_text is None:
+                print(label)
+            assert(label_text is not None)
+#            label_text = self.label_mapping.get(label, label.capitalize())
+            plots[label_text] = {"x":x, "y":y, "annotate": annotate, "points":data}
 
         x_label = key.capitalize()
         y_label = accuracy_key.capitalize()
 
-        title = "%s against %s (BERT-base reference)" % (y_label, x_label)
+        if self.add_title:
+            title = "%s against %s (BERT-base reference)" % (y_label, x_label)
+        else:
+            title = None
 
         if task == "squadv1":
             reference_accuracy = 88.5
@@ -373,7 +402,8 @@ class PlotManager:
                       x_label=x_label,
                       y_label=y_label,
                       accuracy_key=accuracy_key,
-                      reference_accuracy=reference_accuracy)
+                      reference_accuracy=reference_accuracy,
+                      draw_bert_reference_lines=self.draw_bert_reference_lines)
 
         constructors = [MatplotlibPlotter, TextFilePlotter, BokehPlotter]
 
@@ -393,6 +423,30 @@ def draw_all_plots(input_file_name, task, x_axis, cleanup_cache=False):
             xp_file.unlink()
 
     plots = {
+        "paper_block_size_influence": dict(
+            draw_labels=False,
+            add_title=False,
+#            convex_envelop=False,
+            label_mapping={
+                "bert": "BERT-base",
+                "distilbert": "DistilBERT",
+                "tinybert": "TinyBERT",
+                "mobile_bert_no_opt": "Mobile Bert (w/o opt)",
+                "improved soft movement with distillation": "Soft Movement",
+                "Full block method, bs= 32x32+.*": "Block Size=32",
+                "Full block method, bs= 16x16+.*": "Block Size=16",
+                "Full block method, bs= 8x8+.*": "Block Size=8",
+                "Full block method, bs= 4x4+.*": "Block Size=4",
+            },
+            limits=dict(
+                squadv1=dict(speedup=dict(legend_pos="upper right", x_min=0.75, x_max=2.5, y_min=None, y_max=None),
+                             fill_rate=dict(legend_pos="lower right", x_min=0.0, x_max=0.75, y_min=None, y_max=None)),
+                mnli=dict(speedup=dict(legend_pos="upper right", x_min=0.75, x_max=6.0, y_min=79, y_max=86),
+                          fill_rate=dict(legend_pos="lower right", x_min=0.0, x_max=0.75, y_min=79, y_max=86))
+            )
+        ),
+    }
+    plots_old = {
         "summary": dict(
             draw_labels=False,
             label_mapping={
@@ -521,6 +575,10 @@ def draw_all_plots(input_file_name, task, x_axis, cleanup_cache=False):
 #        if name not in ["block_size_influence_basic"]:
 #            continue
 
+        if x_axis == "fill_rate":
+            configuration["draw_bert_reference_lines"] = True
+            del configuration["label_mapping"]["bert"]
+
         p = PlotManager(
             task,
             input_file_name,
@@ -553,7 +611,7 @@ def copy_plots(task):
 if __name__ == "__main__":
     import sys
     input_file_name = sys.argv[1]
-    for task in ["mnli", "squadv1"]:
+    for task in ["squadv1"]: # "mnli",
         input_file_name_ = input_file_name + "_" + task + ".json"
         for x_axis in ["speedup", "fill_rate"]:
             draw_all_plots(input_file_name_, task, x_axis, cleanup_cache=False)
