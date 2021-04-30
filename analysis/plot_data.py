@@ -599,7 +599,7 @@ MobileBERT w/o OPT 25.3M 5.7B 192 ms 51.1 92.6 88.8 84.8 70.5 84.3/83.4 91.6 70.
         paper_speedup = 342 / 192
         mobile_bert_no_opt.update({"fill_rate": fill_rate, "speedup":paper_speedup, "annotate": "MobileBERT w/o opt"})
 
-        mobile_bert_measured.update({"fill_rate": fill_rate, "speedup": speed_info["speedup"], "annotate": "MobileBERT (transformers lib)"})
+        mobile_bert_measured.update({"fill_rate": fill_rate, "speedup": speed_info["speedup"], "annotate": "MobileBERT"})
 
         return dict(mobile_bert_measured=[mobile_bert_measured], mobile_bert_no_opt=[mobile_bert_no_opt]) # mobile_bert=[mobile_bert],
 

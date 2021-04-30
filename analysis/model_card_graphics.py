@@ -117,7 +117,7 @@ class DensityBokehPlotter(BokehHelper):
         return m_final
 
     def create_image(self, matrix, file):
-        ratio = 8
+        ratio = self.ratio
         fig = px.imshow(matrix)
         fig.update_layout(width = int(matrix.shape[1] * ratio), height = int(matrix.shape[0] * ratio), margin=dict(l=2, r=2, b=2, t=2))
         fig.write_image(file)
@@ -194,7 +194,8 @@ class DensityBokehPlotter(BokehHelper):
                    div_id="density",
                    block_size=(32, 32),
                    full_color=[0, 0, 255],
-                   empty_color=[255, 190, 190]):
+                   empty_color=[255, 190, 190],
+                   ratio = 8):
         self.model = model
         self.dest_path = Path(dest_path)
         self.width = width
@@ -208,6 +209,7 @@ class DensityBokehPlotter(BokehHelper):
         self.attention_size = model.config.hidden_size
 
         self.process_matrices()
+        self.ratio = ratio
 
 
         traces = {}

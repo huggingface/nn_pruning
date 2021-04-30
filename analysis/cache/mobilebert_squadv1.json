@@ -1,7 +1,7 @@
 {
     "mobile_bert_measured": [
         {
-            "annotate": "MobileBERT (transformers lib)",
+            "annotate": "MobileBERT",
             "exact": 82.9,
             "f1": 90.0,
             "fill_rate": 0.25333333333333335,

@@ -423,16 +423,40 @@ def draw_all_plots(input_file_name, task, x_axis, cleanup_cache=False):
         if xp_file.exists():
             xp_file.unlink()
 
+    max_squad_speed = 3.0
     plots = {
-        "paper_block_size_influence": dict(
+        "paper_summary": dict(
             draw_labels=False,
-            add_title=False,
-#            convex_envelop=False,
             label_mapping={
                 "bert": "BERT-base",
                 "distilbert": "DistilBERT",
                 "tinybert": "TinyBERT",
-                "mobile_bert_no_opt": "Mobile Bert (w/o opt)",
+                "mobile_bert_measured": "MobileBERT",
+                "improved soft movement with distillation": "Soft Movement",
+                "Full block method, bs= 32x32+.*": "All Block",
+                "Block/struct method, bs= 32x32, v=1, s=b": "Hybrid",
+                "Block/struct method, bs= 32x32, v=1, s=b, t=l": "Hybrid, large teacher",
+                "Block/struct method, final fine tuned, s=b, t=l": "Hybrid Filled, large teacher",
+            },
+            limits=dict(
+                squadv1=dict(
+                    speedup=dict(legend_pos="upper right", x_min=0.85, x_max=max_squad_speed, y_min=None, y_max=None),
+                    fill_rate=dict(legend_pos="lower right", x_min=0.0, x_max=0.8, y_min=None, y_max=None)),
+                mnli=dict(speedup=dict(legend_pos="upper right", x_min=0.75, x_max=6.0, y_min=79, y_max=86),
+                          fill_rate=dict(legend_pos="lower right", x_min=0.0, x_max=0.75, y_min=79, y_max=86))
+            )
+        ),
+    }
+    plots_paper = {
+        "paper_block_size_influence": dict(
+            draw_labels=False,
+            add_title=False,
+            #            convex_envelop=False,
+            label_mapping={
+                "bert": "BERT-base",
+                "distilbert": "DistilBERT",
+                "tinybert": "TinyBERT",
+                "mobile_bert_measured": "MobileBERT",
                 "improved soft movement with distillation": "Soft Movement",
                 "Full block method, bs= 32x32+.*": "Block Size=32",
                 "Full block method, bs= 16x16+.*": "Block Size=16",
@@ -440,13 +464,55 @@ def draw_all_plots(input_file_name, task, x_axis, cleanup_cache=False):
                 "Full block method, bs= 4x4+.*": "Block Size=4",
             },
             limits=dict(
-                squadv1=dict(speedup=dict(legend_pos="upper right", x_min=0.85, x_max=2.5, y_min=None, y_max=None),
+                squadv1=dict(
+                    speedup=dict(legend_pos="upper right", x_min=0.85, x_max=max_squad_speed, y_min=None, y_max=None),
+                    fill_rate=dict(legend_pos="lower right", x_min=0.0, x_max=0.8, y_min=None, y_max=None)),
+                mnli=dict(speedup=dict(legend_pos="upper right", x_min=0.75, x_max=6.0, y_min=79, y_max=86),
+                          fill_rate=dict(legend_pos="lower right", x_min=0.0, x_max=0.75, y_min=79, y_max=86))
+            )
+        ),
+        "paper_hybrid": dict(
+            draw_labels=False,
+            label_mapping={
+                "bert": "BERT-base",
+                "distilbert": "DistilBERT",
+                "tinybert": "TinyBERT",
+                "mobile_bert_measured": "MobileBERT",
+                "improved soft movement with distillation": "Soft Movement",
+                "Block/struct method, bs= 32x32, v=1, s=b": "Hybrid",
+                "Block/struct method, bs= 32x32, v=1, s=l": "Hybrid, large",
+                "Block/struct method, bs= 32x32, v=1, s=b, t=l": "Hybrid, large teacher",
+            },
+            limits=dict(
+                squadv1=dict(speedup=dict(legend_pos="upper right", x_min=0.85, x_max=max_squad_speed, y_min=None, y_max=None),
+                             fill_rate=dict(legend_pos="lower right", x_min=0.0, x_max=0.8, y_min=None, y_max=None)),
+                mnli=dict(speedup=dict(legend_pos="upper right", x_min=0.75, x_max=6.0, y_min=79, y_max=86),
+                          fill_rate=dict(legend_pos="lower right", x_min=0.0, x_max=0.75, y_min=79, y_max=86))
+            )
+        ),
+        "paper_hybrid_filled": dict(
+            draw_labels=False,
+            label_mapping={
+                "bert": "BERT-base",
+                "distilbert": "DistilBERT",
+                "tinybert": "TinyBERT",
+                "mobile_bert_measured": "MobileBERT",
+                "improved soft movement with distillation": "Soft Movement",
+                "Block/struct method, final fine tuned, s=b, t=l": "Hybrid Filled, large teacher",
+                "Block/struct method, bs= 32x32, v=1, s=b, t=l": "Hybrid, large teacher",
+                "Block/struct method, final fine tuned, s=b": "Hybrid Filled",
+                "Block/struct method, bs= 32x32, v=1, s=b": "Hybrid",
+            },
+            limits=dict(
+                squadv1=dict(speedup=dict(legend_pos="upper right", x_min=0.85, x_max=max_squad_speed, y_min=None, y_max=None),
                              fill_rate=dict(legend_pos="lower right", x_min=0.0, x_max=0.8, y_min=None, y_max=None)),
                 mnli=dict(speedup=dict(legend_pos="upper right", x_min=0.75, x_max=6.0, y_min=79, y_max=86),
                           fill_rate=dict(legend_pos="lower right", x_min=0.0, x_max=0.75, y_min=79, y_max=86))
             )
         ),
     }
+    #plots.update(plots_paper)
+
     plots_old = {
         "summary": dict(
             draw_labels=False,
@@ -592,13 +658,10 @@ def draw_all_plots(input_file_name, task, x_axis, cleanup_cache=False):
 
         p.plot(x_axis, dest, f"{plot_name}_{x_axis}")
 
-def copy_plots(task):
+def copy_plots_single(task, dest_dir, parts, suffixes):
     graph_path = (Path(__file__).parent / "graphs" / task).resolve()
-    dest_dir = (Path(__file__).parent.parent.parent / "docs" / "assets" / "media" / task / "graphs").resolve()
     dest_dir.mkdir(exist_ok=True, parents=True)
 
-    parts = ["summary"]
-    suffixes = [".html", ".js", ".png"]
     for part in parts:
         part_dir = graph_path / part
         for name in part_dir.iterdir():
@@ -607,12 +670,34 @@ def copy_plots(task):
                 dst = str(dest_dir / name.name)
                 shutil.copyfile(src, dst)
 
+
+def copy_plots(task):
+    # To nn_pruning home page
+    git_root_dir = Path(__file__).resolve().parent.parent
+    dest_dir = (git_root_dir / "docs" / "assets" / "media" / task / "graphs").resolve()
+    parts = ["summary"]
+    suffixes = [".html", ".js", ".png"]
+
+    copy_plots_single(task, dest_dir, parts, suffixes)
+
+    # To nn_pruning home page
+    dest_dir = (git_root_dir.parent / "article_nn_pruning" / "images").resolve()
+    graph_path = (Path(__file__).parent / "graphs" / task).resolve()
+
+    parts = [""]
+    for f in graph_path.iterdir():
+        if f.name.startswith("paper_"):
+            parts.append(f)
+    suffixes = [".pdf"]
+    copy_plots_single(task, dest_dir, parts, suffixes)
+
+
 #
 
 if __name__ == "__main__":
     import sys
     input_file_name = sys.argv[1]
-    for task in ["squadv1"]: # "mnli",
+    for task in ["squadv2"]: #"squadv1", "mnli"]
         input_file_name_ = input_file_name + "_" + task + ".json"
         for x_axis in ["speedup", "fill_rate"]:
             draw_all_plots(input_file_name_, task, x_axis, cleanup_cache=False)
