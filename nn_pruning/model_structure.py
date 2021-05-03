@@ -1,11 +1,12 @@
 from typing import Dict
 import re
-from transformers import BertConfig, BartConfig
+from transformers import BertConfig, BartConfig, T5Config
 
 class ModelStructure:
     PATTERN_PREFIX: str = ""
     LAYER_PATTERNS: Dict[str, str] = {}
     ATTENTION_LAYERS = ("query", "key", "value")
+    FFN_LAYERS = ("interm_dense", "output_dense")
 
     @classmethod
     def get_module_intra_layer_position(cls, module_name):
@@ -64,7 +65,6 @@ class BertStructure(ModelStructure):
     ATTENTION_PREFIX = ("attention.self",)
     ATTENTION_LAYERS = ("query", "key", "value")
     MHA_LAYERS = ATTENTION_LAYERS + ("att_dense",)
-    FFN_LAYERS = ("interm_dense", "output_dense")
     NAME_CONFIG = dict(
         hidden_size="hidden_size",
         intermediate_size="intermediate_size",
@@ -87,20 +87,43 @@ class BartStructure(ModelStructure):
     ATTENTION_PREFIX = ("self_attn", "encoder_attn")
     ATTENTION_LAYERS = ("query", "key", "value", "encoder_decoder_query", "encoder_decoder_key", "encoder_decoder_value")
     MHA_LAYERS = ATTENTION_LAYERS + ("att_dense", "encoder_decoder_att_dense")
-    FFN_LAYERS = ("interm_dense", "output_dense")
     NAME_CONFIG = dict(
         hidden_size="d_model",
         intermediate_size="encoder_ffn_dim",
     )
 
+class T5Structure(ModelStructure):
+    PATTERN_PREFIX = "(en|de)coder.block.[0-9]+.layer.[0-9]+."
+    LAYER_PATTERNS = dict(
+        query="SelfAttention.q",
+        key="SelfAttention.k",
+        value="SelfAttention.v",
+        att_dense="SelfAttention.o",
+        encoder_decoder_query="EncDecAttention.q",
+        encoder_decoder_key="EncDecAttention.k",
+        encoder_decoder_value="EncDecAttention.v",
+        encoder_decoder_att_dense="EncDecAttention.o",
+        interm_dense="DenseReluDense.wi",
+        output_dense="DenseReluDense.wo",
+    )
+    ATTENTION_PREFIX = ("SelfAttention", "EncDecAttention")
+    ATTENTION_LAYERS = ("query", "key", "value", "encoder_decoder_query", "encoder_decoder_key", "encoder_decoder_value")
+    MHA_LAYERS = ATTENTION_LAYERS + ("att_dense", "encoder_decoder_att_dense")
+    NAME_CONFIG = dict(
+        hidden_size="d_model",
+        intermediate_size="d_ff",
+    )
+
 config2struct = {
     BertConfig: BertStructure,
-    BartConfig: BartStructure
+    BartConfig: BartStructure,
+    T5Config: T5Structure,
 }
 
 name2struct = {
     "bert": BertStructure,
-    "bart": BartStructure
+    "bart": BartStructure,
+    "t5": T5Structure,
 }
 
 class ModelStructureNotFound(RuntimeError):

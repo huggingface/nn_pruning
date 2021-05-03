@@ -451,8 +451,9 @@ class ModelPatchingCoordinator:
             else:
                 continue
 
+            key = "decoder_" if self.model_structure.is_decoder(name) else ""
             exclude_att_dense = not hasattr(self.sparse_args, "attention_output_with_dense") or self.sparse_args.attention_output_with_dense
-            key = "attention" if self.model_structure.is_attention(name, exclude_att_dense=exclude_att_dense) else "dense"
+            key += "attention" if self.model_structure.is_attention(name, exclude_att_dense=exclude_att_dense) else "dense"
 
             if key not in info:
                 info[key] = defaultdict(float)
@@ -466,12 +467,16 @@ class ModelPatchingCoordinator:
 
         if mode not in regul_modes:
             lamb = 0
-            lambdas = dict(attention=0, dense=0)
+            lambdas = {k: 0 for k in info.keys()}
         else:
             lamb = self.patcher_context.get_context_data("regu_lambda")
-
-            lambdas = dict(attention=self.sparse_args.attention_lambda * 0.5,
-                           dense=self.sparse_args.dense_lambda * 0.5)
+            n = len(info)
+            lambdas = {}
+            for k in info.keys():
+                if k.endswith('attention'):
+                    lambdas[k] = self.sparse_args.attention_lambda / n
+                else:
+                    lambdas[k] = self.sparse_args.dense_lambda / n
 
         info["total"] = defaultdict(float)
 
@@ -540,8 +545,8 @@ class ModelPatchingCoordinator:
 
     def create_optimizer_groups(self, model, args, sparse_args):
         # Prepare optimizer and schedule (linear warmup and decay)
-        no_decay = ["bias", "LayerNorm.weight", "NoNorm.weight", "layer_norm.weight", "layernorm_embedding.weight"]
-
+        no_decay = ["bias", "LayerNorm.weight", "NoNorm.weight", "layer_norm.weight", "layernorm_embedding.weight",
+                    "final_layer_norm.weight"]
         mask_params = []
         no_decay_params = []
         decay_params = []

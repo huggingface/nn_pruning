@@ -1,7 +1,11 @@
 import unittest
 from unittest import TestCase
 from nn_pruning.patch_coordinator import SparseTrainingArguments, ModelPatchingCoordinator
-
+from nn_pruning.modules.masked_nn import (
+    GenericLinearPruningContextModule,
+    BlockLinearPruningContextModule,
+    SingleDimensionLinearPruningContextModule,
+)
 from transformers import AutoConfig, AutoModelForQuestionAnswering
 
 import copy
