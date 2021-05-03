@@ -534,7 +534,8 @@ class JointPruningModulePatcher(LinearPruningModulePatcher):
             return (kind, child_module_name)
         elif kind == "mask":
             layer_number = self.layer_index(child_module_name)
-            return (kind, f"{layer_number}.{self.suffix}")
+            network_component = 'decoder' if self.model_structure.is_decoder(child_module_name) else 'encoder'
+            return (kind, f"{network_component}.{layer_number}.{self.suffix}")
         else:
             raise RuntimeError(f"Unknown kind {kind}")
 
@@ -568,7 +569,8 @@ class ChannelPruningModulePatcher(LinearPruningModulePatcher):
                     if kind == "mask_col":
                         return None
 
-            return ("mask_1d", f"{layer_number}.{position+offset}.{self.suffix}")
+            network_component = 'decoder' if self.model_structure.is_decoder(child_module_name) else 'encoder'
+            return ("mask_1d", f"{network_component}.{layer_number}.{position+offset}.{self.suffix}")
         else:
             raise RuntimeError(f"Unknown kind {kind}")
 
