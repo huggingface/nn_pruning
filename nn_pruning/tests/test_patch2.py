@@ -44,6 +44,34 @@ class TestFun(TestCase):
 
             self.assertEqual(stats, ref_stats[model_name_or_path])
 
+    def test_context_module(self):
+        sparse_args = SparseTrainingArguments.hybrid(20.0)
+        sparse_args.layer_norm_patch = True
+        sparse_args.gelu_patch = True
+
+        ref_context_module = {
+            "bert-base-uncased":  {"generic": 60, "block": 48, "single": 12},
+            "bert-large-uncased": {"generic": 120, "block": 96, "single": 24},
+            "facebook/bart-base": {"generic": 84, "block": 72, "single": 12},
+        }
+
+        for model_name_or_path in ref_context_module.keys():
+            config, model, coordinator = self.helper(sparse_args, model_name_or_path)
+
+            coordinator.patch_model(model)
+
+            context_module = {"generic": 0, "block": 0, "single": 0}
+
+            for name, module in model.named_modules():
+                if isinstance(module, GenericLinearPruningContextModule):
+                    context_module["generic"] += 1
+                    if isinstance(module, BlockLinearPruningContextModule):
+                        context_module["block"] += 1
+                    elif isinstance(module, SingleDimensionLinearPruningContextModule):
+                        context_module["single"] += 1
+
+            self.assertEqual(context_module, ref_context_module[model_name_or_path])
+
 
 if __name__ == "__main__":
     unittest.main()

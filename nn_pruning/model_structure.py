@@ -42,10 +42,12 @@ class ModelStructure:
         raise RuntimeError(f"Module name {module_name} does not match any of the FFN patterns : {FFN_PATTERNS_STRING}")
 
     @classmethod
+    def is_decoder(cls, module_name):
+        return True if 'decoder' in module_name else False
+
+    @classmethod
     def layer_index(cls, child_module_name):
         extracts = re.findall(r"[0-9]+", child_module_name)
-        if len(extracts) != 1:
-            return None
         return int(extracts[0])
 
 
