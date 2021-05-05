@@ -25,7 +25,7 @@ from transformers import AutoConfig, AutoModelForQuestionAnswering
 from dataclasses import dataclass, field
 from collections import defaultdict
 
-from nn_pruning.model_structure import struct_from_name
+from nn_pruning.model_structure import struct_from_name, struct_from_config, ModelStructureNotFound
 
 from .modules.masked_nn import (
     ChannelPruningModulePatcher,
@@ -276,7 +276,12 @@ class ModelPatchingCoordinator:
         self.teacher = self.create_teacher(device, cache_dir)
         self.layer_head_mask = self.create_head_rewind_info(device, cache_dir)
         self.logit_names = logit_names
-        self.model_structure = struct_from_name(model_name_or_path)
+        try:
+            self.model_structure = struct_from_name(model_name_or_path)
+        except ModelStructureNotFound:
+            config = AutoConfig.from_pretrained(model_name_or_path, cache_dir=cache_dir)
+            self.model_structure = struct_from_config(config.__class__)
+
 
     def parse_pruning_method(self, method):
         parts = method.split(":")
@@ -348,7 +353,7 @@ class ModelPatchingCoordinator:
         if not training:
             step -= 1
 
-        use_scheduler = training or sparse_args.eval_with_current_patch_params
+        use_scheduler = training or (hasattr(sparse_args, "eval_with_current_patch_params") and sparse_args.eval_with_current_patch_params)
 
         if use_scheduler:
             if step <= initial_warmup * warmup_steps:
@@ -578,7 +583,7 @@ class ModelPatchingCoordinator:
         device = model.device
 
         qconfig = None
-        if sparse_args.qat:
+        if hasattr(sparse_args, "qat") and sparse_args.qat:
             qconfig = create_qconfig(sparse_args.qconfig)
             qat_patcher = QATPatcher(
                 qconfig,
@@ -713,7 +718,7 @@ class ModelPatchingCoordinator:
             gelu_patcher.patch(model)
             self.stats["gelu"] = gelu_patcher.stats
 
-        if sparse_args.qat:
+        if hasattr(sparse_args, "qat") and sparse_args.qat:
             qat_patcher = QATPatcher(
                 qconfig,
                 layers_to_patch=[MaskedLinear, Layer2NoNorm, NoNorm],

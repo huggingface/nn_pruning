@@ -101,17 +101,20 @@ name2struct = {
     "bart": BartStructure
 }
 
+class ModelStructureNotFound(RuntimeError):
+    pass
+
 def struct_from_config(config_class):
     structure = config2struct.get(config_class, None)
     if structure is None:
-        raise RuntimeError(f"Model config does not match any of the defined structures.")
+        raise ModelStructureNotFound(f"Model config does not match any of the defined structures.")
     return structure
 
 def struct_from_name(model_name):
     for name in name2struct.keys():
         if name in model_name:
             return name2struct[name]
-    raise RuntimeError(f"Model name does not match any of the defined structures.")
+    raise ModelStructureNotFound(f"Model name {model_name} does not match any of the defined structures.")
 
 def struct_from_model(model):
     for structure in config2struct.values():
