@@ -108,7 +108,7 @@ class QAXP(XP):
             padding="max_length" if data_args.pad_to_max_length else False,
         )
 
-        # Since one example might give us several features if it has a long context, we need a map from a feature to
+        # Since one example might give us several features if it hasanalyze_run.py /data_2to/devel_data/nn_pruning/output/ files/results squadv2 all a long context, we need a map from a feature to
         # its corresponding example. This key gives us just that.
         sample_mapping = tokenized_examples.pop("overflow_to_sample_mapping")
 
@@ -357,7 +357,7 @@ class QAXP(XP):
         output_dir = output_dir.resolve()
 
         parameters = {
-            "model_name_or_path": model_name_or_path,
+            "model_name_or_path": str(model_name_or_path),
             "dataset_name": task,
             "do_train": 0,
             "do_eval": 1,
@@ -369,7 +369,8 @@ class QAXP(XP):
             "overwrite_cache": 0,
             "overwrite_output_dir": 0,
             "per_device_eval_batch_size":128,
-            "optimize_model_before_eval":optimize_mode
+            "optimize_model_before_eval":optimize_mode,
+            "version_2_with_negative": task == "squad_v2"
         }
 
         cls.run_from_dict(parameters)

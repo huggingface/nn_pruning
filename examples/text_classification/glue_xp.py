@@ -371,7 +371,7 @@ class GlueXP(XP):
         output_dir = output_dir.resolve()
 
         parameters = {
-            "model_name_or_path": model_name_or_path,
+            "model_name_or_path": str(model_name_or_path),
             "dataset_name": task,
             "dataset_cache_dir": "dataset_cache_dir",
             "do_train": 0,
