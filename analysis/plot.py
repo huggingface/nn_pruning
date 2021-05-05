@@ -58,7 +58,7 @@ class MatplotlibPlotter(Plotter):
         )
 
     def run(self, plots, key):
-        self.fontsize = 18
+        self.fontsize = 25
         draw_labels = self.draw_labels
 
         x_min = self.limits[key]["x_min"]
@@ -79,7 +79,8 @@ class MatplotlibPlotter(Plotter):
             max_x = max(max_x, max(x))
 
             if len(x) == 1 or self.only_dots:
-                pyplot.scatter(x, y, cmap="viridis", alpha=1.0, label=label_text)  # , marker=markers[i]) # cool
+                l = label_text if len(x) != 1 else None
+                pyplot.scatter(x, y, cmap="viridis", alpha=1.0, label=l)  # , marker=markers[i]) # cool
             else:
                 pyplot.plot(x, y, label=label_text)  # , marker=markers[i]) # cool
 
@@ -416,13 +417,6 @@ class PlotManager:
 
 
 def draw_all_plots(input_file_name, task, x_axis, cleanup_cache=False):
-    cache_dir = Path(__file__).parent / task / "cache"
-    cache_dir.mkdir(exist_ok=True, parents=True)
-    if cleanup_cache:
-        xp_file = cache_dir / "experiments_squadv1.json"
-        if xp_file.exists():
-            xp_file.unlink()
-
     max_squad_speed = 3.0
     plots = {
         "paper_summary": dict(
@@ -435,13 +429,14 @@ def draw_all_plots(input_file_name, task, x_axis, cleanup_cache=False):
                 "improved soft movement with distillation": "Soft Movement",
                 "Full block method, bs= 32x32+.*": "All Block",
                 "Block/struct method, bs= 32x32, v=1, s=b": "Hybrid",
+                "Block/struct method, final fine tuned, s=b": "Hybrid Filled",
                 "Block/struct method, bs= 32x32, v=1, s=b, t=l": "Hybrid, large teacher",
                 "Block/struct method, final fine tuned, s=b, t=l": "Hybrid Filled, large teacher",
             },
             limits=dict(
                 squadv1=dict(
-                    speedup=dict(legend_pos="upper right", x_min=0.85, x_max=max_squad_speed, y_min=None, y_max=None),
-                    fill_rate=dict(legend_pos="lower right", x_min=0.0, x_max=0.8, y_min=None, y_max=None)),
+                    speedup=dict(legend_pos="upper right", x_min=0.85, x_max=max_squad_speed, y_min=84.5, y_max=90.75),
+                    fill_rate=dict(legend_pos="lower right", x_min=0.0, x_max=0.8, y_min=84.5, y_max=90.75)),
                 mnli=dict(speedup=dict(legend_pos="upper right", x_min=0.75, x_max=6.0, y_min=79, y_max=86),
                           fill_rate=dict(legend_pos="lower right", x_min=0.0, x_max=0.75, y_min=79, y_max=86))
             )
@@ -465,8 +460,8 @@ def draw_all_plots(input_file_name, task, x_axis, cleanup_cache=False):
             },
             limits=dict(
                 squadv1=dict(
-                    speedup=dict(legend_pos="upper right", x_min=0.85, x_max=max_squad_speed, y_min=None, y_max=None),
-                    fill_rate=dict(legend_pos="lower right", x_min=0.0, x_max=0.8, y_min=None, y_max=None)),
+                    speedup=dict(legend_pos="upper right", x_min=0.85, x_max=max_squad_speed, y_min=84.5, y_max=90.75),
+                    fill_rate=dict(legend_pos="lower right", x_min=0.0, x_max=0.8, y_min=84.5, y_max=90.75)),
                 mnli=dict(speedup=dict(legend_pos="upper right", x_min=0.75, x_max=6.0, y_min=79, y_max=86),
                           fill_rate=dict(legend_pos="lower right", x_min=0.0, x_max=0.75, y_min=79, y_max=86))
             )
@@ -504,14 +499,14 @@ def draw_all_plots(input_file_name, task, x_axis, cleanup_cache=False):
                 "Block/struct method, bs= 32x32, v=1, s=b": "Hybrid",
             },
             limits=dict(
-                squadv1=dict(speedup=dict(legend_pos="upper right", x_min=0.85, x_max=max_squad_speed, y_min=None, y_max=None),
-                             fill_rate=dict(legend_pos="lower right", x_min=0.0, x_max=0.8, y_min=None, y_max=None)),
+                squadv1=dict(speedup=dict(legend_pos="upper right", x_min=0.85, x_max=max_squad_speed, y_min=84.5, y_max=90.75),
+                             fill_rate=dict(legend_pos="lower right", x_min=0.0, x_max=0.8, y_min=84.5, y_max=90.75)),
                 mnli=dict(speedup=dict(legend_pos="upper right", x_min=0.75, x_max=6.0, y_min=79, y_max=86),
                           fill_rate=dict(legend_pos="lower right", x_min=0.0, x_max=0.75, y_min=79, y_max=86))
             )
         ),
     }
-    #plots.update(plots_paper)
+    plots.update(plots_paper)
 
     plots_old = {
         "summary": dict(
@@ -681,7 +676,7 @@ def copy_plots(task):
     copy_plots_single(task, dest_dir, parts, suffixes)
 
     # To nn_pruning home page
-    dest_dir = (git_root_dir.parent / "article_nn_pruning" / "images").resolve()
+    dest_dir = (git_root_dir.parent / "article_nn_pruning" / "images" / task).resolve()
     graph_path = (Path(__file__).parent / "graphs" / task).resolve()
 
     parts = [""]
@@ -697,7 +692,7 @@ def copy_plots(task):
 if __name__ == "__main__":
     import sys
     input_file_name = sys.argv[1]
-    for task in ["squadv2"]: #"squadv1", "mnli"]
+    for task in ["mnli"]: #, #"squadv1", "mnli"]
         input_file_name_ = input_file_name + "_" + task + ".json"
         for x_axis in ["speedup", "fill_rate"]:
             draw_all_plots(input_file_name_, task, x_axis, cleanup_cache=False)

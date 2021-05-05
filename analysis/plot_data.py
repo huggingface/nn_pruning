@@ -110,6 +110,9 @@ class ExperimentClassifier:
         is_relu = "gelu_patch" in sparse_args and sparse_args["gelu_patch"] or xp["config"]["hidden_act"] == "relu"
         is_rewind = "rewind_model_name_or_path" in sparse_args and sparse_args["rewind_model_name_or_path"] is not None
 
+        if xp["config"]["_name_or_path"] == 'aloxatel/bert-base-mnli':
+            return None
+
         compare_different = {}
         if self.check(sparse_args, compare, compare_different):
             ret = f"Block/struct method, final fine tuned, s={size}"

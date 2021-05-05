@@ -1,7 +1,7 @@
 {
     "base_speed_report": {
-        "cuda_eval_elapsed_time": 49.09445574951172,
-        "eval_elapsed_time": 50.67104367632419
+        "cuda_eval_elapsed_time": 7.908688941955567,
+        "eval_elapsed_time": 9.376834483991843
     },
     "checkpoints": {
         "/data_2to/devel_data/nn_pruning/output/mnli_test2/hp_mnop-aloxatel__bert-base-mnli_od-output__mnli_test2___pdtbs32_pdebs128_nte12_ws12000_rn-output__mnli_test2___fw4_rfl30/checkpoint-145000": {
@@ -76,14 +76,14 @@
                 "regularization_final_lambda": 30
             },
             "speed": {
-                "cuda_eval_elapsed_time": 2.85058770942688,
-                "eval_elapsed_time": 4.325579055584967
+                "cuda_eval_elapsed_time": 2.866868467330933,
+                "eval_elapsed_time": 4.332565343007445
             },
             "speed_mm": {
-                "cuda_eval_elapsed_time": 2.844103899002075,
-                "eval_elapsed_time": 4.3065507067367435
+                "cuda_eval_elapsed_time": 2.864719102859497,
+                "eval_elapsed_time": 4.323034589993767
             },
-            "speedup": 17.22257329152041,
+            "speedup": 2.758650782928521,
             "stats": {
                 "layers": {
                     "0": {
@@ -370,6 +370,7 @@
                 "label_names": null,
                 "label_smoothing_factor": 0.0,
                 "learning_rate": 3e-05,
+                "length_column_name": "length",
                 "load_best_model_at_end": false,
                 "local_rank": -1,
                 "logging_dir": "output/mnli_test2/",
@@ -380,6 +381,7 @@
                 "max_grad_norm": 1.0,
                 "max_steps": -1,
                 "metric_for_best_model": null,
+                "mp_parameters": "",
                 "no_cuda": false,
                 "num_train_epochs": 12,
                 "optimize_model_before_eval": "disabled",
@@ -479,14 +481,14 @@
                 "regularization_final_lambda": 10
             },
             "speed": {
-                "cuda_eval_elapsed_time": 20.968112411499025,
-                "eval_elapsed_time": 22.53923809621483
+                "cuda_eval_elapsed_time": 4.551092224121094,
+                "eval_elapsed_time": 6.081991313025355
             },
             "speed_mm": {
-                "cuda_eval_elapsed_time": 21.05781527709961,
-                "eval_elapsed_time": 22.641935867257416
+                "cuda_eval_elapsed_time": 4.167509643554688,
+                "eval_elapsed_time": 5.680759868002497
             },
-            "speedup": 2.3413865199705843,
+            "speedup": 1.7377562467398453,
             "stats": {
                 "layers": {
                     "0": {
@@ -740,6 +742,7 @@
                 "label_names": null,
                 "label_smoothing_factor": 0.0,
                 "learning_rate": 3e-05,
+                "length_column_name": "length",
                 "load_best_model_at_end": false,
                 "local_rank": -1,
                 "logging_dir": "output/mnli_test2/",
@@ -750,6 +753,7 @@
                 "max_grad_norm": 1.0,
                 "max_steps": -1,
                 "metric_for_best_model": null,
+                "mp_parameters": "",
                 "no_cuda": false,
                 "num_train_epochs": 12,
                 "optimize_model_before_eval": "disabled",
@@ -849,14 +853,14 @@
                 "regularization_final_lambda": 10
             },
             "speed": {
-                "cuda_eval_elapsed_time": 20.611759689331056,
-                "eval_elapsed_time": 22.18333603721112
+                "cuda_eval_elapsed_time": 4.103777130126953,
+                "eval_elapsed_time": 5.565289871999994
             },
             "speed_mm": {
-                "cuda_eval_elapsed_time": 20.717923553466797,
-                "eval_elapsed_time": 22.301769183017313
+                "cuda_eval_elapsed_time": 4.11156921005249,
+                "eval_elapsed_time": 5.57619989401428
             },
-            "speedup": 2.381866298146476,
+            "speedup": 1.927173111789067,
             "stats": {
                 "layers": {
                     "0": {
@@ -1112,6 +1116,7 @@
                 "label_names": null,
                 "label_smoothing_factor": 0.0,
                 "learning_rate": 3e-05,
+                "length_column_name": "length",
                 "load_best_model_at_end": false,
                 "local_rank": -1,
                 "logging_dir": "output/mnli_test2/",
@@ -1122,6 +1127,7 @@
                 "max_grad_norm": 1.0,
                 "max_steps": -1,
                 "metric_for_best_model": null,
+                "mp_parameters": "",
                 "no_cuda": false,
                 "num_train_epochs": 12,
                 "optimize_model_before_eval": "disabled",
@@ -1221,14 +1227,14 @@
                 "regularization_final_lambda": 10
             },
             "speed": {
-                "cuda_eval_elapsed_time": 20.451122985839845,
-                "eval_elapsed_time": 22.043534694239497
+                "cuda_eval_elapsed_time": 4.0793492813110355,
+                "eval_elapsed_time": 5.54691025801003
             },
             "speed_mm": {
-                "cuda_eval_elapsed_time": 20.540529357910156,
-                "eval_elapsed_time": 22.19288508500904
+                "cuda_eval_elapsed_time": 4.081156753540039,
+                "eval_elapsed_time": 5.55136655800743
             },
-            "speedup": 2.4005750580789247,
+            "speedup": 1.9387133575906608,
             "stats": {
                 "layers": {
                     "0": {
@@ -1485,6 +1491,7 @@
                 "label_names": null,
                 "label_smoothing_factor": 0.0,
                 "learning_rate": 3e-05,
+                "length_column_name": "length",
                 "load_best_model_at_end": false,
                 "local_rank": -1,
                 "logging_dir": "output/mnli_test2/",
@@ -1495,6 +1502,7 @@
                 "max_grad_norm": 1.0,
                 "max_steps": -1,
                 "metric_for_best_model": null,
+                "mp_parameters": "",
                 "no_cuda": false,
                 "num_train_epochs": 12,
                 "optimize_model_before_eval": "disabled",
@@ -1594,14 +1602,14 @@
                 "regularization_final_lambda": 20
             },
             "speed": {
-                "cuda_eval_elapsed_time": 16.94356623840332,
-                "eval_elapsed_time": 18.50567529629916
+                "cuda_eval_elapsed_time": 3.727703468322754,
+                "eval_elapsed_time": 5.2443070280132815
             },
             "speed_mm": {
-                "cuda_eval_elapsed_time": 16.96883401489258,
-                "eval_elapsed_time": 18.56157809589058
+                "cuda_eval_elapsed_time": 3.3338991622924805,
+                "eval_elapsed_time": 4.816707149962895
             },
-            "speedup": 2.8975278910432105,
+            "speedup": 2.121598192871819,
             "stats": {
                 "layers": {
                     "0": {
@@ -1875,6 +1883,7 @@
                 "label_names": null,
                 "label_smoothing_factor": 0.0,
                 "learning_rate": 3e-05,
+                "length_column_name": "length",
                 "load_best_model_at_end": false,
                 "local_rank": -1,
                 "logging_dir": "output/mnli_test2/",
@@ -1885,6 +1894,7 @@
                 "max_grad_norm": 1.0,
                 "max_steps": -1,
                 "metric_for_best_model": null,
+                "mp_parameters": "",
                 "no_cuda": false,
                 "num_train_epochs": 12,
                 "optimize_model_before_eval": "disabled",
@@ -1984,14 +1994,14 @@
                 "regularization_final_lambda": 20
             },
             "speed": {
-                "cuda_eval_elapsed_time": 16.52580699157715,
-                "eval_elapsed_time": 18.086638130247593
+                "cuda_eval_elapsed_time": 3.2771262454986574,
+                "eval_elapsed_time": 4.717985921015497
             },
             "speed_mm": {
-                "cuda_eval_elapsed_time": 16.60585534667969,
-                "eval_elapsed_time": 18.22978367190808
+                "cuda_eval_elapsed_time": 3.2631096725463866,
+                "eval_elapsed_time": 4.693277594982646
             },
-            "speedup": 2.9707750898055454,
+            "speedup": 2.4133000530018203,
             "stats": {
                 "layers": {
                     "0": {
@@ -2266,6 +2276,7 @@
                 "label_names": null,
                 "label_smoothing_factor": 0.0,
                 "learning_rate": 3e-05,
+                "length_column_name": "length",
                 "load_best_model_at_end": false,
                 "local_rank": -1,
                 "logging_dir": "output/mnli_test2/",
@@ -2276,6 +2287,7 @@
                 "max_grad_norm": 1.0,
                 "max_steps": -1,
                 "metric_for_best_model": null,
+                "mp_parameters": "",
                 "no_cuda": false,
                 "num_train_epochs": 12,
                 "optimize_model_before_eval": "disabled",
@@ -2375,14 +2387,14 @@
                 "regularization_final_lambda": 20
             },
             "speed": {
-                "cuda_eval_elapsed_time": 16.467503906250002,
-                "eval_elapsed_time": 18.033160428516567
+                "cuda_eval_elapsed_time": 3.253888786315918,
+                "eval_elapsed_time": 4.69515823898837
             },
             "speed_mm": {
-                "cuda_eval_elapsed_time": 16.515043060302734,
-                "eval_elapsed_time": 18.09035024512559
+                "cuda_eval_elapsed_time": 3.255559986114502,
+                "eval_elapsed_time": 4.696093907987233
             },
-            "speedup": 2.9812930987603186,
+            "speedup": 2.4305344962050333,
             "stats": {
                 "layers": {
                     "0": {
@@ -2658,6 +2670,7 @@
                 "label_names": null,
                 "label_smoothing_factor": 0.0,
                 "learning_rate": 3e-05,
+                "length_column_name": "length",
                 "load_best_model_at_end": false,
                 "local_rank": -1,
                 "logging_dir": "output/mnli_test2/",
@@ -2668,6 +2681,7 @@
                 "max_grad_norm": 1.0,
                 "max_steps": -1,
                 "metric_for_best_model": null,
+                "mp_parameters": "",
                 "no_cuda": false,
                 "num_train_epochs": 12,
                 "optimize_model_before_eval": "disabled",
@@ -2767,14 +2781,14 @@
                 "regularization_final_lambda": 20
             },
             "speed": {
-                "cuda_eval_elapsed_time": 16.484155334472657,
-                "eval_elapsed_time": 18.08931072242558
+                "cuda_eval_elapsed_time": 3.262935705184937,
+                "eval_elapsed_time": 4.7702814530348405
             },
             "speed_mm": {
-                "cuda_eval_elapsed_time": 16.524008483886718,
-                "eval_elapsed_time": 18.107759995386004
+                "cuda_eval_elapsed_time": 3.2620955810546874,
+                "eval_elapsed_time": 4.768320298055187
             },
-            "speedup": 2.9782815530039586,
+            "speedup": 2.4237955192890683,
             "stats": {
                 "layers": {
                     "0": {
@@ -3050,6 +3064,7 @@
                 "label_names": null,
                 "label_smoothing_factor": 0.0,
                 "learning_rate": 3e-05,
+                "length_column_name": "length",
                 "load_best_model_at_end": false,
                 "local_rank": -1,
                 "logging_dir": "output/mnli_test2/",
@@ -3060,6 +3075,7 @@
                 "max_grad_norm": 1.0,
                 "max_steps": -1,
                 "metric_for_best_model": null,
+                "mp_parameters": "",
                 "no_cuda": false,
                 "num_train_epochs": 12,
                 "optimize_model_before_eval": "disabled",
@@ -3159,14 +3175,14 @@
                 "regularization_final_lambda": 30
             },
             "speed": {
-                "cuda_eval_elapsed_time": 14.742925094604493,
-                "eval_elapsed_time": 16.3213126398623
+                "cuda_eval_elapsed_time": 2.938657444000244,
+                "eval_elapsed_time": 4.415867980977055
             },
             "speed_mm": {
-                "cuda_eval_elapsed_time": 14.796650604248047,
-                "eval_elapsed_time": 16.36922346521169
+                "cuda_eval_elapsed_time": 2.9375949478149415,
+                "eval_elapsed_time": 4.412288173974957
             },
-            "speedup": 3.3300349445225725,
+            "speedup": 2.6912592204656125,
             "stats": {
                 "layers": {
                     "0": {
@@ -3451,6 +3467,7 @@
                 "label_names": null,
                 "label_smoothing_factor": 0.0,
                 "learning_rate": 3e-05,
+                "length_column_name": "length",
                 "load_best_model_at_end": false,
                 "local_rank": -1,
                 "logging_dir": "output/mnli_test2/",
@@ -3461,6 +3478,7 @@
                 "max_grad_norm": 1.0,
                 "max_steps": -1,
                 "metric_for_best_model": null,
+                "mp_parameters": "",
                 "no_cuda": false,
                 "num_train_epochs": 12,
                 "optimize_model_before_eval": "disabled",
@@ -3560,14 +3578,14 @@
                 "regularization_final_lambda": 30
             },
             "speed": {
-                "cuda_eval_elapsed_time": 14.763623336791992,
-                "eval_elapsed_time": 16.32821988593787
+                "cuda_eval_elapsed_time": 2.9386929168701172,
+                "eval_elapsed_time": 4.403750384983141
             },
             "speed_mm": {
-                "cuda_eval_elapsed_time": 14.803303848266602,
-                "eval_elapsed_time": 16.384684168733656
+                "cuda_eval_elapsed_time": 2.9343686294555664,
+                "eval_elapsed_time": 4.401557100005448
             },
-            "speedup": 3.3253663162189233,
+            "speedup": 2.691226734360115,
             "stats": {
                 "layers": {
                     "0": {
@@ -3852,6 +3870,7 @@
                 "label_names": null,
                 "label_smoothing_factor": 0.0,
                 "learning_rate": 3e-05,
+                "length_column_name": "length",
                 "load_best_model_at_end": false,
                 "local_rank": -1,
                 "logging_dir": "output/mnli_test2/",
@@ -3862,6 +3881,7 @@
                 "max_grad_norm": 1.0,
                 "max_steps": -1,
                 "metric_for_best_model": null,
+                "mp_parameters": "",
                 "no_cuda": false,
                 "num_train_epochs": 12,
                 "optimize_model_before_eval": "disabled",
@@ -3961,14 +3981,14 @@
                 "regularization_final_lambda": 30
             },
             "speed": {
-                "cuda_eval_elapsed_time": 14.748979888916017,
-                "eval_elapsed_time": 16.32735802885145
+                "cuda_eval_elapsed_time": 2.9406659507751467,
+                "eval_elapsed_time": 4.401760962966364
             },
             "speed_mm": {
-                "cuda_eval_elapsed_time": 14.786631912231446,
-                "eval_elapsed_time": 16.38811536040157
+                "cuda_eval_elapsed_time": 2.934020566940308,
+                "eval_elapsed_time": 4.402762397017796
             },
-            "speedup": 3.3286678888488157,
+            "speedup": 2.689421061195635,
             "stats": {
                 "layers": {
                     "0": {
@@ -4253,6 +4273,7 @@
                 "label_names": null,
                 "label_smoothing_factor": 0.0,
                 "learning_rate": 3e-05,
+                "length_column_name": "length",
                 "load_best_model_at_end": false,
                 "local_rank": -1,
                 "logging_dir": "output/mnli_test2/",
@@ -4263,6 +4284,7 @@
                 "max_grad_norm": 1.0,
                 "max_steps": -1,
                 "metric_for_best_model": null,
+                "mp_parameters": "",
                 "no_cuda": false,
                 "num_train_epochs": 12,
                 "optimize_model_before_eval": "disabled",
@@ -4362,14 +4384,14 @@
                 "regularization_final_lambda": 40
             },
             "speed": {
-                "cuda_eval_elapsed_time": 13.990292449951172,
-                "eval_elapsed_time": 15.553386124782264
+                "cuda_eval_elapsed_time": 2.7851051235198976,
+                "eval_elapsed_time": 4.25756017700769
             },
             "speed_mm": {
-                "cuda_eval_elapsed_time": 14.01429052734375,
-                "eval_elapsed_time": 15.591836652718484
+                "cuda_eval_elapsed_time": 2.7823165760040283,
+                "eval_elapsed_time": 4.24939920095494
             },
-            "speedup": 3.509180092206226,
+            "speedup": 2.8396374970436784,
             "stats": {
                 "layers": {
                     "0": {
@@ -4657,6 +4679,7 @@
                 "label_names": null,
                 "label_smoothing_factor": 0.0,
                 "learning_rate": 3e-05,
+                "length_column_name": "length",
                 "load_best_model_at_end": false,
                 "local_rank": -1,
                 "logging_dir": "output/mnli_test2/",
@@ -4667,6 +4690,7 @@
                 "max_grad_norm": 1.0,
                 "max_steps": -1,
                 "metric_for_best_model": null,
+                "mp_parameters": "",
                 "no_cuda": false,
                 "num_train_epochs": 12,
                 "optimize_model_before_eval": "disabled",
@@ -4766,14 +4790,14 @@
                 "regularization_final_lambda": 40
             },
             "speed": {
-                "cuda_eval_elapsed_time": 13.992682876586914,
-                "eval_elapsed_time": 15.55313719343394
+                "cuda_eval_elapsed_time": 2.787053628921509,
+                "eval_elapsed_time": 4.259478310996201
             },
             "speed_mm": {
-                "cuda_eval_elapsed_time": 14.010611160278321,
-                "eval_elapsed_time": 15.598591247573495
+                "cuda_eval_elapsed_time": 2.779660322189331,
+                "eval_elapsed_time": 4.247222014004365
             },
-            "speedup": 3.5085806047715424,
+            "speedup": 2.837652228822001,
             "stats": {
                 "layers": {
                     "0": {
@@ -5061,6 +5085,7 @@
                 "label_names": null,
                 "label_smoothing_factor": 0.0,
                 "learning_rate": 3e-05,
+                "length_column_name": "length",
                 "load_best_model_at_end": false,
                 "local_rank": -1,
                 "logging_dir": "output/mnli_test2/",
@@ -5071,6 +5096,7 @@
                 "max_grad_norm": 1.0,
                 "max_steps": -1,
                 "metric_for_best_model": null,
+                "mp_parameters": "",
                 "no_cuda": false,
                 "num_train_epochs": 12,
                 "optimize_model_before_eval": "disabled",
@@ -5170,14 +5196,14 @@
                 "regularization_final_lambda": 5
             },
             "speed": {
-                "cuda_eval_elapsed_time": 24.612513916015626,
-                "eval_elapsed_time": 26.227325464598835
+                "cuda_eval_elapsed_time": 4.912171455383301,
+                "eval_elapsed_time": 6.383564734016545
             },
             "speed_mm": {
-                "cuda_eval_elapsed_time": 24.69035372924805,
-                "eval_elapsed_time": 26.292322852648795
+                "cuda_eval_elapsed_time": 4.911236637115478,
+                "eval_elapsed_time": 6.384157330030575
             },
-            "speedup": 1.9946948904542998,
+            "speedup": 1.6100189119596693,
             "stats": {
                 "layers": {
                     "0": {
@@ -5420,6 +5446,7 @@
                 "label_names": null,
                 "label_smoothing_factor": 0.0,
                 "learning_rate": 3e-05,
+                "length_column_name": "length",
                 "load_best_model_at_end": false,
                 "local_rank": -1,
                 "logging_dir": "output/mnli_test2/",
@@ -5430,6 +5457,7 @@
                 "max_grad_norm": 1.0,
                 "max_steps": -1,
                 "metric_for_best_model": null,
+                "mp_parameters": "",
                 "no_cuda": false,
                 "num_train_epochs": 12,
                 "optimize_model_before_eval": "disabled",
@@ -5529,14 +5557,14 @@
                 "regularization_final_lambda": 5
             },
             "speed": {
-                "cuda_eval_elapsed_time": 24.52424349975586,
-                "eval_elapsed_time": 26.1085445843637
+                "cuda_eval_elapsed_time": 4.88622314453125,
+                "eval_elapsed_time": 6.3626542639685795
             },
             "speed_mm": {
-                "cuda_eval_elapsed_time": 24.615995880126952,
-                "eval_elapsed_time": 26.190075170248747
+                "cuda_eval_elapsed_time": 4.891370742797852,
+                "eval_elapsed_time": 6.349922476045322
             },
-            "speedup": 2.0018744207135466,
+            "speedup": 1.6185689249184445,
             "stats": {
                 "layers": {
                     "0": {
@@ -5779,6 +5807,7 @@
                 "label_names": null,
                 "label_smoothing_factor": 0.0,
                 "learning_rate": 3e-05,
+                "length_column_name": "length",
                 "load_best_model_at_end": false,
                 "local_rank": -1,
                 "logging_dir": "output/mnli_test2/",
@@ -5789,6 +5818,7 @@
                 "max_grad_norm": 1.0,
                 "max_steps": -1,
                 "metric_for_best_model": null,
+                "mp_parameters": "",
                 "no_cuda": false,
                 "num_train_epochs": 12,
                 "optimize_model_before_eval": "disabled",
@@ -5888,14 +5918,14 @@
                 "regularization_final_lambda": 5
             },
             "speed": {
-                "cuda_eval_elapsed_time": 24.514598022460937,
-                "eval_elapsed_time": 26.127468508668244
+                "cuda_eval_elapsed_time": 4.896168910980225,
+                "eval_elapsed_time": 6.36810104601318
             },
             "speed_mm": {
-                "cuda_eval_elapsed_time": 24.603808868408205,
-                "eval_elapsed_time": 26.16779050324112
+                "cuda_eval_elapsed_time": 4.895356410980225,
+                "eval_elapsed_time": 6.350895608949941
             },
-            "speedup": 2.002662075247167,
+            "speedup": 1.6152810668397115,
             "stats": {
                 "layers": {
                     "0": {
@@ -6138,6 +6168,7 @@
                 "label_names": null,
                 "label_smoothing_factor": 0.0,
                 "learning_rate": 3e-05,
+                "length_column_name": "length",
                 "load_best_model_at_end": false,
                 "local_rank": -1,
                 "logging_dir": "output/mnli_test2/",
@@ -6148,6 +6179,7 @@
                 "max_grad_norm": 1.0,
                 "max_steps": -1,
                 "metric_for_best_model": null,
+                "mp_parameters": "",
                 "no_cuda": false,
                 "num_train_epochs": 12,
                 "optimize_model_before_eval": "disabled",
@@ -6247,14 +6279,14 @@
                 "regularization_final_lambda": 30
             },
             "speed": {
-                "cuda_eval_elapsed_time": 3.3547179946899415,
-                "eval_elapsed_time": 4.847926817834377
+                "cuda_eval_elapsed_time": 2.943488393783569,
+                "eval_elapsed_time": 4.410695620987099
             },
             "speed_mm": {
-                "cuda_eval_elapsed_time": 2.9051672096252443,
-                "eval_elapsed_time": 4.3689205115661025
+                "cuda_eval_elapsed_time": 2.938521566390991,
+                "eval_elapsed_time": 4.407899483048823
             },
-            "speedup": 14.634450891914463,
+            "speedup": 2.68684223748194,
             "stats": {
                 "layers": {
                     "0": {
@@ -6544,6 +6576,7 @@
                 "label_names": null,
                 "label_smoothing_factor": 0.0,
                 "learning_rate": 3e-05,
+                "length_column_name": "length",
                 "load_best_model_at_end": false,
                 "local_rank": -1,
                 "logging_dir": "output/mnli_test2/",
@@ -6554,6 +6587,7 @@
                 "max_grad_norm": 1.0,
                 "max_steps": -1,
                 "metric_for_best_model": null,
+                "mp_parameters": "",
                 "no_cuda": false,
                 "num_train_epochs": 6,
                 "optimize_model_before_eval": "disabled",
@@ -6653,14 +6687,14 @@
                 "regularization_final_lambda": 30
             },
             "speed": {
-                "cuda_eval_elapsed_time": 2.9162877101898195,
-                "eval_elapsed_time": 4.395200597122312
+                "cuda_eval_elapsed_time": 2.9340266551971435,
+                "eval_elapsed_time": 4.408449824957643
             },
             "speed_mm": {
-                "cuda_eval_elapsed_time": 2.9124035663604735,
-                "eval_elapsed_time": 4.383452212437987
+                "cuda_eval_elapsed_time": 2.9365532932281493,
+                "eval_elapsed_time": 4.400402541039512
             },
-            "speedup": 16.834572109593463,
+            "speedup": 2.6955068482239692,
             "stats": {
                 "layers": {
                     "0": {
@@ -6950,6 +6984,7 @@
                 "label_names": null,
                 "label_smoothing_factor": 0.0,
                 "learning_rate": 3e-05,
+                "length_column_name": "length",
                 "load_best_model_at_end": false,
                 "local_rank": -1,
                 "logging_dir": "output/mnli_test2/",
@@ -6960,6 +6995,7 @@
                 "max_grad_norm": 1.0,
                 "max_steps": -1,
                 "metric_for_best_model": null,
+                "mp_parameters": "",
                 "no_cuda": false,
                 "num_train_epochs": 6,
                 "optimize_model_before_eval": "disabled",
@@ -7059,14 +7095,14 @@
                 "regularization_final_lambda": 30
             },
             "speed": {
-                "cuda_eval_elapsed_time": 2.892913621902466,
-                "eval_elapsed_time": 4.359820336103439
+                "cuda_eval_elapsed_time": 2.9214051380157473,
+                "eval_elapsed_time": 4.384791766002309
             },
             "speed_mm": {
-                "cuda_eval_elapsed_time": 2.882220129013062,
-                "eval_elapsed_time": 4.349696953780949
+                "cuda_eval_elapsed_time": 2.916045207977295,
+                "eval_elapsed_time": 4.3803141649696045
             },
-            "speedup": 16.97059164774707,
+            "speedup": 2.7071524038351082,
             "stats": {
                 "layers": {
                     "0": {
@@ -7356,6 +7392,7 @@
                 "label_names": null,
                 "label_smoothing_factor": 0.0,
                 "learning_rate": 3e-05,
+                "length_column_name": "length",
                 "load_best_model_at_end": false,
                 "local_rank": -1,
                 "logging_dir": "output/mnli_test2/",
@@ -7366,6 +7403,7 @@
                 "max_grad_norm": 1.0,
                 "max_steps": -1,
                 "metric_for_best_model": null,
+                "mp_parameters": "",
                 "no_cuda": false,
                 "num_train_epochs": 6,
                 "optimize_model_before_eval": "disabled",
@@ -7465,14 +7503,14 @@
                 "regularization_final_lambda": 30
             },
             "speed": {
-                "cuda_eval_elapsed_time": 2.87759080696106,
-                "eval_elapsed_time": 4.352866631932557
+                "cuda_eval_elapsed_time": 2.9071207199096682,
+                "eval_elapsed_time": 4.375925072992686
             },
             "speed_mm": {
-                "cuda_eval_elapsed_time": 2.8725717697143556,
-                "eval_elapsed_time": 4.329632396809757
+                "cuda_eval_elapsed_time": 2.9029239292144777,
+                "eval_elapsed_time": 4.359898468013853
             },
-            "speedup": 17.060957948138203,
+            "speedup": 2.7204542583292897,
             "stats": {
                 "layers": {
                     "0": {
@@ -7762,6 +7800,7 @@
                 "label_names": null,
                 "label_smoothing_factor": 0.0,
                 "learning_rate": 3e-05,
+                "length_column_name": "length",
                 "load_best_model_at_end": false,
                 "local_rank": -1,
                 "logging_dir": "output/mnli_test2/",
@@ -7772,6 +7811,7 @@
                 "max_grad_norm": 1.0,
                 "max_steps": -1,
                 "metric_for_best_model": null,
+                "mp_parameters": "",
                 "no_cuda": false,
                 "num_train_epochs": 6,
                 "optimize_model_before_eval": "disabled",
@@ -7968,14 +8008,14 @@
                 "regularization_final_lambda": 0
             },
             "speed": {
-                "cuda_eval_elapsed_time": 20.46962840270996,
-                "eval_elapsed_time": 21.966628784313798
+                "cuda_eval_elapsed_time": 4.101254341125489,
+                "eval_elapsed_time": 5.612949337984901
             },
             "speed_mm": {
-                "cuda_eval_elapsed_time": 20.541734985351564,
-                "eval_elapsed_time": 22.030214177444577
+                "cuda_eval_elapsed_time": 4.099252922058105,
+                "eval_elapsed_time": 5.60740703297779
             },
-            "speedup": 2.398404835869523,
+            "speedup": 1.9283585664636496,
             "stats": {
                 "layers": {
                     "0": {
@@ -8232,6 +8272,7 @@
                 "label_names": null,
                 "label_smoothing_factor": 0.0,
                 "learning_rate": 3e-05,
+                "length_column_name": "length",
                 "load_best_model_at_end": false,
                 "local_rank": -1,
                 "logging_dir": "/data_2to/devel_data/nn_pruning/output/mnli_test_final_fine_tune/fine_tuned_hp_od-output__mnli_test2___pdtbs32_pdebs128_nte12_ws12000_rn-output__mnli_test2___fw4",
@@ -8242,6 +8283,7 @@
                 "max_grad_norm": 1.0,
                 "max_steps": -1,
                 "metric_for_best_model": null,
+                "mp_parameters": "",
                 "no_cuda": false,
                 "num_train_epochs": 6,
                 "optimize_model_before_eval": "disabled",
@@ -8455,14 +8497,14 @@
                 "regularization_final_lambda": 0
             },
             "speed": {
-                "cuda_eval_elapsed_time": 17.147825485229493,
-                "eval_elapsed_time": 18.60521282814443
+                "cuda_eval_elapsed_time": 3.3609662036895753,
+                "eval_elapsed_time": 4.861376054992434
             },
             "speed_mm": {
-                "cuda_eval_elapsed_time": 16.814879684448243,
-                "eval_elapsed_time": 18.297247163951397
+                "cuda_eval_elapsed_time": 3.355545082092285,
+                "eval_elapsed_time": 4.823694552993402
             },
-            "speedup": 2.8630134935651097,
+            "speedup": 2.353099811974791,
             "stats": {
                 "layers": {
                     "0": {
@@ -8736,6 +8778,7 @@
                 "label_names": null,
                 "label_smoothing_factor": 0.0,
                 "learning_rate": 3e-05,
+                "length_column_name": "length",
                 "load_best_model_at_end": false,
                 "local_rank": -1,
                 "logging_dir": "/data_2to/devel_data/nn_pruning/output/mnli_test_final_fine_tune/fine_tuned_hp_od-output__mnli_test2___pdtbs32_pdebs128_nte12_ws12000_rn-output__mnli_test2___fw4_rfl20",
@@ -8746,6 +8789,7 @@
                 "max_grad_norm": 1.0,
                 "max_steps": -1,
                 "metric_for_best_model": null,
+                "mp_parameters": "",
                 "no_cuda": false,
                 "num_train_epochs": 6,
                 "optimize_model_before_eval": "disabled",
@@ -8959,14 +9003,14 @@
                 "regularization_final_lambda": 0
             },
             "speed": {
-                "cuda_eval_elapsed_time": 16.80277032470703,
-                "eval_elapsed_time": 18.324330019764602
+                "cuda_eval_elapsed_time": 3.375915107727051,
+                "eval_elapsed_time": 4.860952043964062
             },
             "speed_mm": {
-                "cuda_eval_elapsed_time": 16.830738342285155,
-                "eval_elapsed_time": 18.355786813423038
+                "cuda_eval_elapsed_time": 3.372425807952881,
+                "eval_elapsed_time": 4.844316225033253
             },
-            "speedup": 2.9218072258788506,
+            "speedup": 2.342680040695798,
             "stats": {
                 "layers": {
                     "0": {
@@ -9240,6 +9284,7 @@
                 "label_names": null,
                 "label_smoothing_factor": 0.0,
                 "learning_rate": 3e-05,
+                "length_column_name": "length",
                 "load_best_model_at_end": false,
                 "local_rank": -1,
                 "logging_dir": "/data_2to/devel_data/nn_pruning/output/mnli_test_final_fine_tune/fine_tuned_hp_od-output__mnli_test2___pdtbs32_pdebs128_nte12_ws12000_rn-output__mnli_test2___fw4_rfl20",
@@ -9250,6 +9295,7 @@
                 "max_grad_norm": 1.0,
                 "max_steps": -1,
                 "metric_for_best_model": null,
+                "mp_parameters": "",
                 "no_cuda": false,
                 "num_train_epochs": 6,
                 "optimize_model_before_eval": "disabled",
@@ -9477,14 +9523,14 @@
                 "regularization_final_lambda": 0
             },
             "speed": {
-                "cuda_eval_elapsed_time": 14.28297381591797,
-                "eval_elapsed_time": 15.819611034356058
+                "cuda_eval_elapsed_time": 3.1686680355072023,
+                "eval_elapsed_time": 4.6596582240308635
             },
             "speed_mm": {
-                "cuda_eval_elapsed_time": 13.850817779541016,
-                "eval_elapsed_time": 15.406974045559764
+                "cuda_eval_elapsed_time": 2.7620845451354983,
+                "eval_elapsed_time": 4.23644794797292
             },
-            "speedup": 3.4372712841353343,
+            "speedup": 2.495903279653477,
             "stats": {
                 "layers": {
                     "0": {
@@ -9772,6 +9818,7 @@
                 "label_names": null,
                 "label_smoothing_factor": 0.0,
                 "learning_rate": 3e-05,
+                "length_column_name": "length",
                 "load_best_model_at_end": false,
                 "local_rank": -1,
                 "logging_dir": "/data_2to/devel_data/nn_pruning/output/mnli_test_final_fine_tune/fine_tuned_hp_od-output__mnli_test2___pdtbs32_pdebs128_nte12_ws12000_rn-output__mnli_test2___fw4_rfl40",
@@ -9782,6 +9829,7 @@
                 "max_grad_norm": 1.0,
                 "max_steps": -1,
                 "metric_for_best_model": null,
+                "mp_parameters": "",
                 "no_cuda": false,
                 "num_train_epochs": 6,
                 "optimize_model_before_eval": "disabled",
@@ -9964,14 +10012,14 @@
                 "regularization_final_lambda": 0
             },
             "speed": {
-                "cuda_eval_elapsed_time": 24.553811492919923,
-                "eval_elapsed_time": 26.061392509378493
+                "cuda_eval_elapsed_time": 4.920967769622803,
+                "eval_elapsed_time": 6.397641357034445
             },
             "speed_mm": {
-                "cuda_eval_elapsed_time": 24.65311068725586,
-                "eval_elapsed_time": 26.166672149673104
+                "cuda_eval_elapsed_time": 4.921992198944092,
+                "eval_elapsed_time": 6.402600315050222
             },
-            "speedup": 1.9994637396181068,
+            "speedup": 1.6071409755568822,
             "stats": {
                 "layers": {
                     "0": {
@@ -10214,6 +10262,7 @@
                 "label_names": null,
                 "label_smoothing_factor": 0.0,
                 "learning_rate": 3e-05,
+                "length_column_name": "length",
                 "load_best_model_at_end": false,
                 "local_rank": -1,
                 "logging_dir": "/data_2to/devel_data/nn_pruning/output/mnli_test_final_fine_tune/fine_tuned_hp_od-output__mnli_test2___pdtbs32_pdebs128_nte12_ws12000_rn-output__mnli_test2___fw4_rfl5",
@@ -10224,6 +10273,7 @@
                 "max_grad_norm": 1.0,
                 "max_steps": -1,
                 "metric_for_best_model": null,
+                "mp_parameters": "",
                 "no_cuda": false,
                 "num_train_epochs": 6,
                 "optimize_model_before_eval": "disabled",
@@ -10406,14 +10456,14 @@
                 "regularization_final_lambda": 0
             },
             "speed": {
-                "cuda_eval_elapsed_time": 24.5699239654541,
-                "eval_elapsed_time": 26.07937575969845
+                "cuda_eval_elapsed_time": 4.93040259552002,
+                "eval_elapsed_time": 6.40524855296826
             },
             "speed_mm": {
-                "cuda_eval_elapsed_time": 24.643021484375,
-                "eval_elapsed_time": 26.15799339208752
+                "cuda_eval_elapsed_time": 4.9217018699646,
+                "eval_elapsed_time": 6.409950888948515
             },
-            "speedup": 1.9981525306525039,
+            "speedup": 1.6040655481444352,
             "stats": {
                 "layers": {
                     "0": {
@@ -10656,6 +10706,7 @@
                 "label_names": null,
                 "label_smoothing_factor": 0.0,
                 "learning_rate": 3e-05,
+                "length_column_name": "length",
                 "load_best_model_at_end": false,
                 "local_rank": -1,
                 "logging_dir": "/data_2to/devel_data/nn_pruning/output/mnli_test_final_fine_tune/fine_tuned_hp_od-output__mnli_test2___pdtbs32_pdebs128_nte12_ws12000_rn-output__mnli_test2___fw4_rfl5",
@@ -10666,6 +10717,7 @@
                 "max_grad_norm": 1.0,
                 "max_steps": -1,
                 "metric_for_best_model": null,
+                "mp_parameters": "",
                 "no_cuda": false,
                 "num_train_epochs": 6,
                 "optimize_model_before_eval": "disabled",
@@ -10848,14 +10900,14 @@
                 "regularization_final_lambda": 0
             },
             "speed": {
-                "cuda_eval_elapsed_time": 24.566403701782228,
-                "eval_elapsed_time": 26.104158860631287
+                "cuda_eval_elapsed_time": 4.924318470001221,
+                "eval_elapsed_time": 6.427888987993356
             },
             "speed_mm": {
-                "cuda_eval_elapsed_time": 24.638316284179687,
-                "eval_elapsed_time": 26.13123631104827
+                "cuda_eval_elapsed_time": 4.911393100738525,
+                "eval_elapsed_time": 6.421059479995165
             },
-            "speedup": 1.9984388576155345,
+            "speedup": 1.6060474134918423,
             "stats": {
                 "layers": {
                     "0": {
@@ -11098,6 +11150,7 @@
                 "label_names": null,
                 "label_smoothing_factor": 0.0,
                 "learning_rate": 3e-05,
+                "length_column_name": "length",
                 "load_best_model_at_end": false,
                 "local_rank": -1,
                 "logging_dir": "/data_2to/devel_data/nn_pruning/output/mnli_test_final_fine_tune/fine_tuned_hp_od-output__mnli_test2___pdtbs32_pdebs128_nte12_ws12000_rn-output__mnli_test2___fw4_rfl5",
@@ -11108,6 +11161,7 @@
                 "max_grad_norm": 1.0,
                 "max_steps": -1,
                 "metric_for_best_model": null,
+                "mp_parameters": "",
                 "no_cuda": false,
                 "num_train_epochs": 6,
                 "optimize_model_before_eval": "disabled",
