@@ -24,7 +24,7 @@ class ModelStatsExtractBase:
         else:
             self.dest_path = None
 
-        if self.task == "squadv1":
+        if self.task in ["squadv1", "squadv2"]:
             cls = QASparseXP
         elif self.task == "mnli":
             cls = GlueSparseXP
@@ -137,8 +137,9 @@ class ModelSpeedEvaluate(ModelStatsExtractBase):
         super().__init__(path, filename, task, copy_to_tmp_path=True)
 
     def run_(self, model):
-        if self.task == "squadv1":
-            ret = QAXP.evaluate_model(model_name_or_path=self.dest_path, task="squad", optimize_mode=self.optimize_mode)
+        if self.task in ["squadv1", "squadv2"]:
+            task = "squad" if self.task == "squadv1" else "squad_v2"
+            ret = QAXP.evaluate_model(model_name_or_path=self.dest_path, task=task, optimize_mode=self.optimize_mode)
         elif self.task == "mnli":
             ret = GlueXP.evaluate_model(model_name_or_path=self.dest_path, task=self.task, optimize_mode=self.optimize_mode)
         else:
@@ -207,6 +208,7 @@ class ModelAddBasicReport:
 
 class ModelAnalysis:
     TASK_EVAL_INFO = {"squadv1":{"key":"eval_metrics.f1", "files":["eval_metrics"], "min":85},
+                      "squadv2": {"key": "eval_metrics.f1", "files": ["eval_metrics"], "min": 70},
                       "mnli":{"key":"eval_results_mnli.eval_accuracy", "files":["eval_results_mnli", "eval_results_mnli-mm"], "min":0.7}}
 
     def __init__(self,
