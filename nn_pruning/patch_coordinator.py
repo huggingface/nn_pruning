@@ -516,9 +516,13 @@ class ModelPatchingCoordinator:
 
         temperature = sparse_args.distil_temperature
 
-        teacher_inputs = model_inputs.copy()
-        if 'labels' in teacher_inputs:
-            del teacher_inputs['labels']
+        teacher_inputs_ = model_inputs.copy()
+        if 'labels' in teacher_inputs_:
+            del teacher_inputs_['labels']
+
+        teacher_inputs = {}
+        for k,v in teacher_inputs_.items():
+            teacher_inputs[k] = v.detach().clone()
 
         with torch.no_grad():
             teacher_outputs = teacher(**teacher_inputs)
@@ -526,7 +530,7 @@ class ModelPatchingCoordinator:
         loss_logits = 0
         for logit_name in self.logit_names:
             logits_stu = model_outputs[logit_name]
-            logits_tea = teacher_outputs[logit_name]
+            logits_tea = teacher_outputs[logit_name].detach().clone()
 
             loss_logits_part = nn_functional.kl_div(
                 input=nn_functional.log_softmax(logits_stu / temperature, dim=-1),
@@ -534,9 +538,9 @@ class ModelPatchingCoordinator:
                 reduction="batchmean",
             ) * (temperature ** 2)
 
-            loss_logits += loss_logits_part
+            loss_logits = loss_logits + loss_logits_part
 
-        loss_logits /= len(self.logit_names)
+        loss_logits = loss_logits / len(self.logit_names)
 
         loss = sparse_args.distil_alpha_teacher * loss_logits + sparse_args.distil_alpha_ce * ce_loss
 
