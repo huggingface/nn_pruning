@@ -307,10 +307,7 @@ class XP:
 
     def train(self):
         # Training
-        model_path = self.model_args.model_name_or_path if os.path.isdir(self.model_args.model_name_or_path) else None
-        self.trainer.train(
-            model_path= model_path
-        )
+        self.trainer.train()
         self.trainer.save_model()  # Saves the tokenizer too for easy upload
 
     def evaluate(self):
