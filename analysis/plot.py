@@ -252,7 +252,8 @@ class TextFilePlotter(Plotter):
 
 
 class PlotManager:
-    TASK_KEYS={"squadv1":"f1", "mnli":"matched"}
+    TASK_KEYS={"squadv1":"f1", "squadv2":"f1", "mnli":"matched"}
+    REFERENCES = {"squadv1": 88.5, "squadv2": 76.70, "mnli": 84.6}
 
     def __init__(
         self,
@@ -389,11 +390,7 @@ class PlotManager:
         else:
             title = None
 
-        if task == "squadv1":
-            reference_accuracy = 88.5
-        elif task == "mnli":
-            # matched = 84.6, mismatched = 85.9
-            reference_accuracy = 84.6
+        reference_accuracy = self.REFERENCES[task]
 
         params = dict(dest_dir=dest_dir,
                       dest_file_name=dest_file_name,
@@ -426,6 +423,7 @@ def draw_all_plots(input_file_name, task, x_axis, cleanup_cache=False):
                 "distilbert": "DistilBERT",
                 "tinybert": "TinyBERT",
                 "mobile_bert_measured": "MobileBERT",
+                "structured_pruning": "Structured Pruning",
                 "improved soft movement with distillation": "Soft Movement",
                 "Full block method, bs= 32x32+.*": "All Block",
                 "Block/struct method, bs= 32x32, v=1, s=b": "Hybrid",
@@ -437,6 +435,9 @@ def draw_all_plots(input_file_name, task, x_axis, cleanup_cache=False):
                 squadv1=dict(
                     speedup=dict(legend_pos="upper right", x_min=0.85, x_max=max_squad_speed, y_min=84.5, y_max=90.75),
                     fill_rate=dict(legend_pos="lower right", x_min=0.0, x_max=0.8, y_min=84.5, y_max=90.75)),
+                squadv2=dict(
+                    speedup=dict(legend_pos="upper right", x_min=0.35, x_max=max_squad_speed, y_min=None, y_max=None),
+                    fill_rate=dict(legend_pos="lower right", x_min=0.0, x_max=0.8, y_min=None, y_max=None)),
                 mnli=dict(speedup=dict(legend_pos="upper right", x_min=0.75, x_max=6.0, y_min=79, y_max=86),
                           fill_rate=dict(legend_pos="lower right", x_min=0.0, x_max=0.75, y_min=79, y_max=86))
             )
@@ -462,6 +463,9 @@ def draw_all_plots(input_file_name, task, x_axis, cleanup_cache=False):
                 squadv1=dict(
                     speedup=dict(legend_pos="upper right", x_min=0.85, x_max=max_squad_speed, y_min=84.5, y_max=90.75),
                     fill_rate=dict(legend_pos="lower right", x_min=0.0, x_max=0.8, y_min=84.5, y_max=90.75)),
+                squadv2=dict(
+                    speedup=dict(legend_pos="upper right", x_min=0.85, x_max=max_squad_speed, y_min=None, y_max=None),
+                    fill_rate=dict(legend_pos="lower right", x_min=0.0, x_max=0.8, y_min=None, y_max=None)),
                 mnli=dict(speedup=dict(legend_pos="upper right", x_min=0.75, x_max=6.0, y_min=79, y_max=86),
                           fill_rate=dict(legend_pos="lower right", x_min=0.0, x_max=0.75, y_min=79, y_max=86))
             )
@@ -481,6 +485,9 @@ def draw_all_plots(input_file_name, task, x_axis, cleanup_cache=False):
             limits=dict(
                 squadv1=dict(speedup=dict(legend_pos="upper right", x_min=0.85, x_max=max_squad_speed, y_min=None, y_max=None),
                              fill_rate=dict(legend_pos="lower right", x_min=0.0, x_max=0.8, y_min=None, y_max=None)),
+                squadv2=dict(
+                    speedup=dict(legend_pos="upper right", x_min=0.85, x_max=max_squad_speed, y_min=None, y_max=None),
+                    fill_rate=dict(legend_pos="lower right", x_min=0.0, x_max=0.8, y_min=None, y_max=None)),
                 mnli=dict(speedup=dict(legend_pos="upper right", x_min=0.75, x_max=6.0, y_min=79, y_max=86),
                           fill_rate=dict(legend_pos="lower right", x_min=0.0, x_max=0.75, y_min=79, y_max=86))
             )
@@ -501,6 +508,9 @@ def draw_all_plots(input_file_name, task, x_axis, cleanup_cache=False):
             limits=dict(
                 squadv1=dict(speedup=dict(legend_pos="upper right", x_min=0.85, x_max=max_squad_speed, y_min=84.5, y_max=90.75),
                              fill_rate=dict(legend_pos="lower right", x_min=0.0, x_max=0.8, y_min=84.5, y_max=90.75)),
+                squadv2=dict(
+                    speedup=dict(legend_pos="upper right", x_min=0.85, x_max=max_squad_speed, y_min=None, y_max=None),
+                    fill_rate=dict(legend_pos="lower right", x_min=0.0, x_max=0.8, y_min=None, y_max=None)),
                 mnli=dict(speedup=dict(legend_pos="upper right", x_min=0.75, x_max=6.0, y_min=79, y_max=86),
                           fill_rate=dict(legend_pos="lower right", x_min=0.0, x_max=0.75, y_min=79, y_max=86))
             )
@@ -659,6 +669,7 @@ def copy_plots_single(task, dest_dir, parts, suffixes):
 
     for part in parts:
         part_dir = graph_path / part
+        part_dir.mkdir(exist_ok=True, parents=True)
         for name in part_dir.iterdir():
             if name.suffix in suffixes:
                 src = name
@@ -692,7 +703,7 @@ def copy_plots(task):
 if __name__ == "__main__":
     import sys
     input_file_name = sys.argv[1]
-    for task in ["mnli"]: #, #"squadv1", "mnli"]
+    for task in ["squadv2"]: #, #"squadv1", "mnli"]
         input_file_name_ = input_file_name + "_" + task + ".json"
         for x_axis in ["speedup", "fill_rate"]:
             draw_all_plots(input_file_name_, task, x_axis, cleanup_cache=False)

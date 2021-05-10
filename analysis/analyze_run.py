@@ -126,6 +126,22 @@ class ModelStatsExtract(ModelStatsExtractBase):
 
         return self.stats
 
+class ModelReferenceSpeedEvaluate(ModelStatsExtractBase):
+    def __init__(self, model_name, task):
+        self.model_name = model_name
+        self.task = task
+
+    def run(self):
+        if self.task in ["squadv1", "squadv2"]:
+            task = "squad" if self.task == "squadv1" else "squad_v2"
+            ret = QAXP.evaluate_model(model_name_or_path=self.model_name, task=task, optimize_mode="disabled")
+        elif self.task == "mnli":
+            ret = GlueXP.evaluate_model(model_name_or_path=self.model_name, task=self.task, optimize_mode="disabled")
+        else:
+            raise Exception(f"Unknown task {self.task}")
+
+        return ret
+
 class ModelSpeedEvaluate(ModelStatsExtractBase):
     def __init__(self, path, task, optimize_mode = "dense"):
         if optimize_mode == "disabled":
@@ -146,6 +162,8 @@ class ModelSpeedEvaluate(ModelStatsExtractBase):
             raise Exception(f"Unknown task {self.task}")
 
         return ret
+
+
 
 class ModelAddBasicReport:
     def __init__(self, checkpoint_path, checkpoint, base_speed_report, exclude_non_matching_f1=True, task=None):
@@ -210,6 +228,10 @@ class ModelAnalysis:
     TASK_EVAL_INFO = {"squadv1":{"key":"eval_metrics.f1", "files":["eval_metrics"], "min":85},
                       "squadv2": {"key": "eval_metrics.f1", "files": ["eval_metrics"], "min": 70},
                       "mnli":{"key":"eval_results_mnli.eval_accuracy", "files":["eval_results_mnli", "eval_results_mnli-mm"], "min":0.7}}
+    REFERENCE_MODELS = {"squadv1":"csarron/bert-base-uncased-squad-v1",
+                        "squadv2": "twmkn9/bert-base-uncased-squad2",
+                        "mnli":"textattack/bert-base-uncased-MNLI"
+                        }
 
     def __init__(self,
                  path,
@@ -232,19 +254,6 @@ class ModelAnalysis:
     def process_checkpoint(self, checkpoint_path, force_speed = False):
         checkpoint_info = {}
 
-        # Create base report
-        base_speed_report_file = Path(f"files/base_speed_report_file_{self.task}.json")
-        base_speed_report = None
-        if base_speed_report_file.exists():
-            base_speed_report = json.load(base_speed_report_file.open())
-        else:
-            # Fine tuned models are already pruned, so faster, so not appropriate to have a base speed evaluation
-            if "fine_tuned" not in str(checkpoint_path):
-                mse2 = ModelSpeedEvaluate(checkpoint_path, self.task, optimize_mode="disabled")
-                base_speed_report = mse2.run(force=True, write=False)["timings"]
-                with base_speed_report_file.open("w") as f:
-                    json.dump(base_speed_report, f)
-
         # Extract statistics
         self.total_checkpoints += 1
         mse_stats = ModelStatsExtract(checkpoint_path, self.task)
@@ -262,7 +271,21 @@ class ModelAnalysis:
                 k = k.replace("metrics", "eval_metrics").replace("timings", "speed")
                 checkpoint_info[k] = v
 
-        return checkpoint_info, base_speed_report
+        return checkpoint_info
+
+    def base_speed_report_get(self):
+        # Create base report
+        base_speed_report_file = Path(f"files/base_speed_report_file_{self.task}.json")
+        if base_speed_report_file.exists():
+            base_speed_report = json.load(base_speed_report_file.open())
+        else:
+            # Fine tuned models are already pruned, so faster, so not appropriate to have a base speed evaluation
+            mse2 = ModelReferenceSpeedEvaluate(self.REFERENCE_MODELS[self.task], self.task)
+            base_speed_report = mse2.run()["timings"]
+            with base_speed_report_file.open("w") as f:
+                json.dump(base_speed_report, f)
+        return base_speed_report
+
 
     def analyze_run(self, path, force_speed= False):
         checkpoints = []
@@ -298,14 +321,13 @@ class ModelAnalysis:
             max_eval_value = max(max_eval_value, eval_value)
 
         ret = {}
-        base_speed_report = None
         for i, k in enumerate(filtered):
             checkpoint_path = path / k[0]
 
             print("Processing", self.total_checkpoints)
-            ret[str(checkpoint_path)], base_speed_report = self.process_checkpoint(checkpoint_path, force_speed=force_speed)
+            ret[str(checkpoint_path)] = self.process_checkpoint(checkpoint_path, force_speed=force_speed)
 
-        return ret, base_speed_report
+        return ret
 
     def check_prefix(self, name):
         for prefix in self.prefixes:
@@ -314,23 +336,35 @@ class ModelAnalysis:
         return False
 
     def run(self):
+
+        base_speed_report = self.base_speed_report_get()
         checkpoints = {}
         missings = {}
         for i in range(2):
             if i == 0:
                 for root_dir in self.path.iterdir():
-                    task_prefix = "squad" if self.task == "squadv1" else self.task
-                    if not root_dir.name.startswith(task_prefix + "_"):
+                    TASK_PREFIXES = {"squadv1":["squad_"], "squadv2":["squadv2", "squad_v2"]}
+                    task_prefixes = TASK_PREFIXES.get(self.task, [self.task])
+                    found = False
+                    for task_prefix in task_prefixes:
+                        if root_dir.name.startswith(task_prefix + "_"):
+                            found = True
+                            break
+                    if not found:
+                        print(f"EXCLUDING {root_dir}")
                         continue
+                    else:
+                        print(f"PROCESSING {root_dir}")
+
                     for name in root_dir.iterdir():
                         if self.check_prefix(name.name):
-                            new_checkpoints, base_speed_report = self.analyze_run(name.resolve(), force_speed=self.force_speed)
+                            new_checkpoints = self.analyze_run(name.resolve(), force_speed=self.force_speed)
                             checkpoints.update(new_checkpoints)
             elif i == 1:
                 for missing in missings:
                     assert(missing is not None)
                     assert(missing not in checkpoints)
-                    new_checkpoint, _ = self.process_checkpoint(missing, force_speed=self.force_speed)
+                    new_checkpoint = self.process_checkpoint(missing, force_speed=self.force_speed)
                     checkpoints[missing] = new_checkpoint
 
             to_delete = {}

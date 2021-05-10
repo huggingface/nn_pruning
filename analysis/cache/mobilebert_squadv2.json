@@ -1,0 +1,20 @@
+{
+    "mobile_bert_measured": [
+        {
+            "annotate": "MobileBERT",
+            "exact": 76.2,
+            "f1": 79.2,
+            "fill_rate": 0.25333333333333335,
+            "speedup": 1.612951511916643
+        }
+    ],
+    "mobile_bert_no_opt": [
+        {
+            "annotate": "MobileBERT w/o opt",
+            "exact": 77.6,
+            "f1": 80.2,
+            "fill_rate": 0.25333333333333335,
+            "speedup": 1.78125
+        }
+    ]
+}

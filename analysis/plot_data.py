@@ -336,7 +336,7 @@ class Experiments(PointProvider):
 
         ret = dict(fill_rate=fill_rate, speedup=checkpoint["speedup"], checkpoint=checkpoint)
 
-        if task == "squadv1":
+        if task in ["squadv1", "squadv2"]:
             additional = {"f1":checkpoint["eval_metrics"]["f1"]}
         else:
             additional = {"matched":checkpoint["eval_metrics"]["eval_accuracy"] * 100,
@@ -420,6 +420,8 @@ class HFModelStats:
                 task = self.task
                 if self.task == "squadv1":
                     task = "squad"
+                elif self.task == "squadv2":
+                    task = "squad_v2"
                 ret = QAXP.evaluate_model(model_name_or_path=self.model_name,
                                           task=task,
                                           optimize_mode="disabled",
@@ -442,6 +444,12 @@ class Bert(PointProvider):
             ret = {
                 "f1": 88.5,
                 "exact": 80.8,
+            }
+        elif task == "squadv2":
+            # from https://web.stanford.edu/class/archive/cs/cs224n/cs224n.1194/reports/default/15848021.pdf
+            ret = {
+                "f1": 76.70,
+                "exact": 73.85,
             }
         elif task == "mnli":
             ret = {
@@ -479,9 +487,16 @@ class DistilBert(PointProvider):
         fill_rate = total_distilbert / total_bert
 
         if task == "squadv1":
+            #From https://arxiv.org/pdf/1910.01108.pdf
             ret = {
                 "f1": 86.9,
                 "exact": 79.1,
+            }
+        elif task == "squadv2":
+            # From https://huggingface.co/twmkn9/distilbert-base-uncased-squad2
+            ret = {
+                'exact': 64.88976637051661,
+                'f1': 68.1776176526635,
             }
         elif task == "mnli":
             # From https://arxiv.org/abs/1910.01108 and
@@ -534,10 +549,11 @@ class TinyBert(PointProvider):
     TinyBERT6 (ours) 67.0M 11.3B 2.0x 84.6/83.2 71.6 90.4 93.1 51.1 83.7 87.3 70.0 79.4"""
 
         if task == "squadv1":
-            # From https://arxiv.org/pdf/1910.01108.pdf
             ret = {"f1": 87.5, "exact": 79.7}
-
             # [{"f1":82.1, "exact": 72.7, "fill_rate": 0.5, "speedup": 9.4, "annotate":"TinyBERT4"}]
+        elif task == "squadv2":
+            ret = {"f1": 77.7, "exact": 74.7}
+            # Tiny bert 4:  68.2 71.8
         elif task == "mnli":
             ret = {"matched": 84.6, "mismatched": 83.2}
         else:
@@ -578,6 +594,10 @@ MobileBERT w/o OPT 25.3M 5.7B 192 ms 51.1 92.6 88.8 84.8 70.5 84.3/83.4 91.6 70.
             mobile_bert = {"f1": 90.0, "exact": 82.9}
             mobile_bert_measured =  copy.copy(mobile_bert)
             mobile_bert_no_opt = {"f1": 90.3, "exact": 83.4}
+        elif task == "squadv2":
+            mobile_bert = {"f1": 79.2, "exact": 76.2}
+            mobile_bert_measured = copy.copy(mobile_bert)
+            mobile_bert_no_opt = {"f1": 80.2, "exact": 77.6}
         elif task == "mnli":
             mobile_bert = {"matched": 83.3, "mismatched": 82.6}
             mobile_bert_measured = copy.copy(mobile_bert)
@@ -619,6 +639,8 @@ class MovementPruning(PointProvider):
         xcel_file_name = Path(__file__).parent / "files" / "mvmt_pruning.xlsx"
         if task == "squadv1":
             sheet_name = "SQuAD"
+        elif task == "squadv2":
+            return {}
         elif task == "mnli":
             sheet_name = "MNLI"
         else:
@@ -651,6 +673,72 @@ class MovementPruning(PointProvider):
         return ret
 
 
+
+class StructuredPruningOfBert(PointProvider):
+    def __init__(self, cache_dir):
+        super().__init__(cache_dir)
+
+        s = """a : no pruning 0 0 2712 84.6 0 0 1279
+                b : attn(Sq) 1 0 2288 84.2 44.3 0 1112
+                c : ff(Sq) 0 1 2103 83.2 0 48.1 908
+                d : ff(Sq) + attn(Sq) 1 1 1667 83.7 82.6 44.0 48.1 740
+                e : ff(Sq) + attn(Sq) 2 2 1391 83.2 80.9 53.1 64.9 576
+                f : ff(Sq) + attn(Sq) 3 3 1213 82.4 76.8 57.6 73.7 492
+                g : ff(Sq) + attn(Sq) 4 4 1128 81.5 67.8 60.1 78.4 441"""
+
+        replacements = [("ff(Sq) + attn(Sq)", "ff + attn)"),
+                        ("ff(Sq)", "ff)"),
+                        ("attn(Sq)", "attn"),
+                        ("attn ", "attn)"),
+                        ("no pruning", "no pruning)"),
+                        ]
+        s2 = s
+        for r in replacements:
+            s2 = s2.replace(*r)
+
+        headers = ["index", "type", "lambda_att", "lambda_ff", 'time', 'F1 +retrain', 'F1 no retrain',
+                   '% attn removed', '% ff removed', 'size']
+        print(headers)
+
+        final_info = {}
+        for i, l in enumerate(s2.split("\n")):
+            s0, s2 = l.split(")")
+            s0, s1 = s0.split(" : ")
+            s0 = s0.strip()
+            s2 = [float(x) for x in s2.split(" ") if x != ""]
+            if i < 3:
+                s2.insert(3, 0)
+
+            print(s0, "|", s1, "|", s2)
+
+            parts = [s0, s1] + s2
+
+            new_info = {}
+            for i, h in enumerate(headers):
+                new_info[h] = parts[i]
+            final_info[new_info["type"] + " (" + new_info["index"] + ")"] = new_info
+
+        self.info = final_info
+
+    def points_(self, task):
+        if task == "squadv2":
+            info = self.info
+            points = []
+            for k, v in info.items():
+                size_ratio = v["size"] / info["no pruning (a)"]["size"]
+                speedup = info["no pruning (a)"]["time"] / v["time"]
+                # The speedup number is for BERT-large, we convert to BERT-base speedup (1024 instead of 768 dim, twice the layers)
+                speedup = speedup * 3 / 8
+                removed = (v['% ff removed'] * 4 + v['% attn removed']) / 5
+
+                f1 = v["F1 +retrain"] or v["F1 no retrain"]
+                points.append({"f1":f1, "fill_rate": 1.0 - (removed / 100), "speedup":speedup})
+        else:
+            return {}
+
+        return dict(structured_pruning=points)
+
+
 class MultiProvider:
     def points(self, task, cache_dir, analyze_result_file):
         ret = {}
@@ -659,6 +747,7 @@ class MultiProvider:
         ret.update(DistilBert(cache_dir).points(task))
         ret.update(TinyBert(cache_dir).points(task))
         ret.update(MobileBert(cache_dir).points(task))
+        ret.update(StructuredPruningOfBert(cache_dir).points(task))
 
         xps = Experiments(cache_dir, analyze_result_file).points(task, force=False)
 
