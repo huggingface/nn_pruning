@@ -144,6 +144,10 @@ class SparseQAShortNamer(TrialShortNamer):
         'dataloader_pin_memory': True,
         'skip_memory_metrics': False,
         '_n_gpu': 1,
+        'length_column_name': 'length',
+        'mp_parameters': '',
+        'qat': False,
+        'qconfig': 'default',
     }
 
 
@@ -200,6 +204,7 @@ class QASparseXP(SparseXP, QAXP):
             "distil_alpha_teacher": 0.9,
             "final_finetune": 1,
             "attention_output_with_dense": 0,
+            "version_2_with_negative": task == "squad_v2"
         }
 
         qa = cls(param_dict)

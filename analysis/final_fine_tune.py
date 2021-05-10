@@ -31,13 +31,14 @@ def main(checkpoint_list_file, task):
         key = src_path.parent.name
         assert(key.startswith("hp_") or key.startswith("aws_") or key.startswith("large_"))
         dest_key = "fine_tuned_" + key
-        dest_path = src_path.parent.parent.parent / f"{task}_test_final_fine_tune" / dest_key
+        task_rewrite = "squadv2" if task == "squad_v2" else task
+        dest_path = src_path.parent.parent.parent / f"{task_rewrite}_test_final_fine_tune" / dest_key
         dest_path = dest_path.resolve()
         if dest_path.exists():
-            print("SKIPPING", dest_path.name)
+            print("SKIPPING", dest_path)
             continue
         else:
-            print("PROCESSING", dest_path.name)
+            print("PROCESSING", dest_path)
 
         tmp_path = Path("tmp_finetune/").resolve()
         if tmp_path.exists():
@@ -50,7 +51,7 @@ def main(checkpoint_list_file, task):
             if file_to_remove_.exists():
                 file_to_remove_.unlink()
 
-        dest_path.mkdir(exist_ok=True)
+        dest_path.mkdir(exist_ok=True, parents=True)
         with (dest_path / "source.txt").open("w") as f:
             f.write(str(src_path))
 
@@ -58,7 +59,7 @@ def main(checkpoint_list_file, task):
             sparse_args = json.load(f)
             teacher = sparse_args["distil_teacher_name_or_path"]
 
-        if task == "squad":
+        if "squad" in task:
             QASparseXP.final_finetune(str(tmp_path), str(dest_path), task, teacher=teacher)
         elif task in ["mnli"]:
             GlueSparseXP.final_finetune(str(tmp_path), str(dest_path), task, teacher=teacher)
