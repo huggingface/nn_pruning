@@ -61,10 +61,16 @@ class MatplotlibPlotter(Plotter):
         self.fontsize = 25
         draw_labels = self.draw_labels
 
-        x_min = self.limits[key]["x_min"]
-        x_max = self.limits[key]["x_max"]
-        y_min = self.limits[key]["y_min"]
-        y_max = self.limits[key]["y_max"]
+        if self.limits is not None:
+            x_min = self.limits[key]["x_min"]
+            x_max = self.limits[key]["x_max"]
+            y_min = self.limits[key]["y_min"]
+            y_max = self.limits[key]["y_max"]
+        else:
+            x_min = None
+            x_max = None
+            y_min = None
+            y_max = None
 
         markers = ["o", "v", "s", "+", "v"]
 
@@ -89,6 +95,7 @@ class MatplotlibPlotter(Plotter):
                     if x_min is None or x[i] >= x_min and x[i] <= x_max:
                         if y_min is None or y[i] >= y_min and y[i] <= y_max:
                             a = annotate[i] or label_text
+                            print(x, y)
                             ax1.annotate(a, (x[i] + 0.005, y[i] + 0.005), fontsize=self.fontsize)
         if self.draw_bert_reference_lines:
             if isinstance(self.draw_bert_reference_lines, int):
@@ -102,7 +109,10 @@ class MatplotlibPlotter(Plotter):
                     [0, 10], [self.reference_accuracy - i] * 2, label=bert_reference_label(self.accuracy_key, self.reference_accuracy, i)
                 )
 
-        legend_pos = self.limits[key]["legend_pos"]
+        if self.limits is not None:
+            legend_pos = self.limits[key]["legend_pos"]
+        else:
+            legend_pos = "best"
         pyplot.legend(loc=legend_pos, prop={"size": self.fontsize})
 
         if x_min != None:
@@ -124,10 +134,13 @@ class MatplotlibPlotter(Plotter):
 
 class BokehPlot(BokehHelper):
     def get_legend_pos(self, limits):
-        replacements = [(" ", "_"), ("upper", "top"), ("lower", "bottom")]
-        pos = limits["legend_pos"]
-        for s,d in replacements:
-            pos = pos.replace(s,d)
+        if limits is not None:
+            replacements = [(" ", "_"), ("upper", "top"), ("lower", "bottom")]
+            pos = limits["legend_pos"]
+            for s,d in replacements:
+                pos = pos.replace(s,d)
+        else:
+            pos = "top_left"
         return pos
 
     def create_fig(self, plots, key, title, width, x_label, y_label, limits, only_dots, accuracy_key, reference_accuracy,draw_bert_reference_lines):
@@ -140,11 +153,17 @@ class BokehPlot(BokehHelper):
         fig.xaxis.axis_label = x_label
         fig.yaxis.axis_label = y_label
 
-        limits = limits[key]
-        x_min = limits["x_min"]
-        x_max = limits["x_max"]
-        y_min = limits["y_min"]
-        y_max = limits["y_max"]
+        if limits is not None:
+            limits = limits[key]
+            x_min = limits["x_min"]
+            x_max = limits["x_max"]
+            y_min = limits["y_min"]
+            y_max = limits["y_max"]
+        else:
+            x_min = None
+            x_max = None
+            y_min = None
+            y_max = None
 
         fig.x_range = Range1d(x_min, x_max)
         if y_min is not None and y_max is not None:
@@ -252,8 +271,8 @@ class TextFilePlotter(Plotter):
 
 
 class PlotManager:
-    TASK_KEYS={"squadv1":"f1", "squadv2":"f1", "mnli":"matched"}
-    REFERENCES = {"squadv1": 88.5, "squadv2": 76.70, "mnli": 84.6}
+    TASK_KEYS={"squadv1":"f1", "squadv2":"f1", "mnli":"matched", "qqp":"f1", "sst2":"accuracy"}
+    REFERENCES = {"squadv1": 88.5, "squadv2": 76.70, "mnli": 84.6, "qqp":88.12, "sst2":92.66}
 
     def __init__(
         self,
@@ -280,7 +299,7 @@ class PlotManager:
         self.only_dots = only_dots or not convex_envelop
         self.fontsize = fontsize
 
-        self.limits = limits[task]
+        self.limits = limits.get(task, None)
 
         self.label_mapping = label_mapping
 
@@ -430,6 +449,8 @@ def draw_all_plots(input_file_name, task, x_axis, cleanup_cache=False):
                 "Block/struct method, final fine tuned, s=b": "Hybrid Filled",
                 "Block/struct method, bs= 32x32, v=1, s=b, t=l": "Hybrid, large teacher",
                 "Block/struct method, final fine tuned, s=b, t=l": "Hybrid Filled, large teacher",
+                "glue_experiment_bert":"Hybrid w/o teacher",
+                "glue_experiment_bert_teacher": "Hybrid",
             },
             limits=dict(
                 squadv1=dict(
@@ -439,8 +460,12 @@ def draw_all_plots(input_file_name, task, x_axis, cleanup_cache=False):
                     speedup=dict(legend_pos="upper right", x_min=0.35, x_max=max_squad_speed, y_min=None, y_max=None),
                     fill_rate=dict(legend_pos="lower right", x_min=0.0, x_max=0.8, y_min=None, y_max=None)),
                 mnli=dict(speedup=dict(legend_pos="upper right", x_min=0.75, x_max=6.0, y_min=79, y_max=86),
-                          fill_rate=dict(legend_pos="lower right", x_min=0.0, x_max=0.75, y_min=79, y_max=86))
-            )
+                          fill_rate=dict(legend_pos="lower right", x_min=0.0, x_max=0.75, y_min=79, y_max=86)),
+                qqp = dict(speedup=dict(legend_pos="upper right", x_min=0.75, x_max=6.0, y_min=85, y_max=89),
+                           fill_rate=dict(legend_pos="lower right", x_min=0.0, x_max=0.75, y_min=85, y_max=89)),
+                sst2 = dict(speedup=dict(legend_pos="upper right", x_min=0.75, x_max=6.0, y_min=86, y_max=94),
+                           fill_rate=dict(legend_pos="lower right", x_min=0.0, x_max=0.75, y_min=86, y_max=94))
+    )
         ),
     }
     plots_paper = {
@@ -517,6 +542,11 @@ def draw_all_plots(input_file_name, task, x_axis, cleanup_cache=False):
         ),
     }
     plots.update(plots_paper)
+
+    if task == "qqp":
+        for k,v in plots.items():
+            v["label_mapping"]["soft_movement_with_distillation"] = "Soft Movement"
+            del v["label_mapping"]["distilbert"]
 
     plots_old = {
         "summary": dict(
@@ -703,7 +733,7 @@ def copy_plots(task):
 if __name__ == "__main__":
     import sys
     input_file_name = sys.argv[1]
-    for task in ["squadv2"]: #, #"squadv1", "mnli"]
+    for task in ["qqp"]: #, "qqp", "squadv2"]: #, #"squadv1", "mnli"]
         input_file_name_ = input_file_name + "_" + task + ".json"
         for x_axis in ["speedup", "fill_rate"]:
             draw_all_plots(input_file_name_, task, x_axis, cleanup_cache=False)

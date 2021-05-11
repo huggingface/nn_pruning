@@ -1,0 +1,6 @@
+{"fill_rate": 0.6057, "f1": 88.13, "meta": {"accuracy": 91.16, "architecture": "bert", "combined": 89.64, "f1": 88.13, "fill_rate": 0.6057, "name": "qqp-l1-wr2-epoch8 (epoch 8)", "speedup": 1.0, "with_teacher": false}}
+{"fill_rate": 0.282, "f1": 87.17, "meta": {"accuracy": 90.49, "architecture": "bert", "combined": 88.83, "f1": 87.17, "fill_rate": 0.282, "name": "qqp-a32-l5-dl1-wr8-fw2-epoch6-teach0", "speedup": 1.0, "with_teacher": false}}
+{"fill_rate": 0.2004, "f1": 87.02, "meta": {"accuracy": 90.32, "architecture": "bert", "combined": 88.67, "f1": 87.02, "fill_rate": 0.2004, "name": "qqp-l5-wr1-fw1-epoch12 (epoch 12)", "speedup": 1.0, "with_teacher": false}}
+{"fill_rate": 0.1185, "f1": 86.27, "meta": {"accuracy": 89.82, "architecture": "bert", "combined": 88.05, "f1": 86.27, "fill_rate": 0.1185, "name": "qqp-l10-wr2-fw1-epoch8", "speedup": 1.0, "with_teacher": false}}
+{"fill_rate": 0.0662, "f1": 85.94, "meta": {"accuracy": 89.46, "architecture": "bert", "combined": 87.7, "f1": 85.94, "fill_rate": 0.0662, "name": "qqp-l15-wr2-fw1-epoch12", "speedup": 1.0, "with_teacher": false}}
+{"fill_rate": 0.048, "f1": 85.59, "meta": {"accuracy": 89.23, "architecture": "bert", "combined": 87.41, "f1": 85.59, "fill_rate": 0.048, "name": "qqp-l20-wr2-fw1-epoch12", "speedup": 1.0, "with_teacher": false}}

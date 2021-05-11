@@ -1,0 +1,1 @@
+{"speedup": 1.0, "f1": 88.13, "meta": {"accuracy": 91.16, "architecture": "bert", "combined": 89.64, "f1": 88.13, "fill_rate": 0.6057, "name": "qqp-l1-wr2-epoch8 (epoch 8)", "speedup": 1.0, "with_teacher": false}}

@@ -1,0 +1,6 @@
+{"fill_rate": 0.5034, "accuracy": 91.86, "meta": {"accuracy": 91.86, "architecture": "bert", "fill_rate": 0.5034, "name": "sst2-l5-wr2-fw1-epoch18-teach09 (epoch 6)", "speedup": 1.0, "with_teacher": true}}
+{"fill_rate": 0.2157, "accuracy": 90.6, "meta": {"accuracy": 90.6, "architecture": "bert", "fill_rate": 0.2157, "name": "sst2-l5-wr2-fw1-epoch18-teach09 (epoch 10)", "speedup": 1.0, "with_teacher": true}}
+{"fill_rate": 0.1372, "accuracy": 90.37, "meta": {"accuracy": 90.37, "architecture": "bert", "fill_rate": 0.1372, "name": "sst2-l5-wr2-fw1-epoch18-teach09 (epoch 17)", "speedup": 1.0, "with_teacher": true}}
+{"fill_rate": 0.1009, "accuracy": 89.68, "meta": {"accuracy": 89.68, "architecture": "bert", "fill_rate": 0.1009, "name": "sst2-l10-wr4-fw1-epoch18-teach09 (epoch 12)", "speedup": 1.0, "with_teacher": true}}
+{"fill_rate": 0.0854, "accuracy": 88.42, "meta": {"accuracy": 88.42, "architecture": "bert", "fill_rate": 0.0854, "name": "sst2-l10-wr4-fw1-epoch18-teach09 (epoch 15)", "speedup": 1.0, "with_teacher": true}}
+{"fill_rate": 0.0589, "accuracy": 87.96, "meta": {"accuracy": 87.96, "architecture": "bert", "fill_rate": 0.0589, "name": "sst2-l15-wr2-fw1-epoch18-teach09 (epoch 18)", "speedup": 1.0, "with_teacher": true}}

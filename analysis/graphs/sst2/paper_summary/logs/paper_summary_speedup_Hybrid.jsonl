@@ -1,0 +1,1 @@
+{"speedup": 1.0, "accuracy": 91.86, "meta": {"accuracy": 91.86, "architecture": "bert", "fill_rate": 0.5034, "name": "sst2-l5-wr2-fw1-epoch18-teach09 (epoch 6)", "speedup": 1.0, "with_teacher": true}}

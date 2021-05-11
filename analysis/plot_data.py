@@ -374,7 +374,7 @@ class HFModelStats:
         self.task = self.TASK_NAMES.get(task, task)
         if task in ["squadv1", "squadv2"]:
             model_class = AutoModelForQuestionAnswering
-        elif task == "mnli":
+        elif task in ["mnli", "qqp", "sst2"]:
             model_class = AutoModelForSequenceClassification
 
         self.model_class = model_class
@@ -456,7 +456,16 @@ class Bert(PointProvider):
                 "matched":84.6,
                 "mismatched":83.4
             }
-
+        elif task == "qqp":
+            # Official baseline
+            #ret = {"f1":84.31, "accuracy":88.4}
+            # Our baseline
+            ret = {"f1":88.12, "accuracy":91.15}
+        elif task == "sst2":
+            # Official baseline
+            # ret = {"f1":84.31, "accuracy":88.4}
+            # Our baseline
+            ret = {"accuracy": 92.66}
         else:
             raise Exception(f"Unkwnon task {task}")
 
@@ -506,6 +515,10 @@ class DistilBert(PointProvider):
                 "matched": 82.2,
                 #                    "mismatched": 0.8216, # to be checked : from https://huggingface.co/ishan/distilbert-base-uncased-mnli
             }
+        elif task == "qqp":
+            ret = {"accuracy":88.5}
+        elif task == "sst2":
+            ret = {"accuracy":91.3}
         else:
             raise Exception(f"Unkwnon task {task}")
 
@@ -556,6 +569,12 @@ class TinyBert(PointProvider):
             # Tiny bert 4:  68.2 71.8
         elif task == "mnli":
             ret = {"matched": 84.6, "mismatched": 83.2}
+        elif task == "qqp":
+            ret = {"f1":88.0, "accuracy": 91.1}
+            # This is test set
+            #ret = {"accuracy": 71.6}
+        elif task == "sst2":
+            ret = {"accuracy": 93.0}
         else:
             raise Exception(f"Unkwnon task {task}")
 
@@ -602,6 +621,12 @@ MobileBERT w/o OPT 25.3M 5.7B 192 ms 51.1 92.6 88.8 84.8 70.5 84.3/83.4 91.6 70.
             mobile_bert = {"matched": 83.3, "mismatched": 82.6}
             mobile_bert_measured = copy.copy(mobile_bert)
             mobile_bert_no_opt = {"matched": 84.3, "mismatched": 83.4}
+        elif task == "qqp":
+            return {}
+        elif task == "sst2":
+            mobile_bert = {"accuracy":92.1}
+            mobile_bert_measured = copy.copy(mobile_bert)
+            mobile_bert_no_opt = {"accuracy":92.1}
         else:
             raise Exception(f"Unkwnon task {task}")
 
@@ -643,6 +668,10 @@ class MovementPruning(PointProvider):
             return {}
         elif task == "mnli":
             sheet_name = "MNLI"
+        elif task == "qqp":
+            sheet_name = "QQP"
+        elif task in ["sst2"]:
+            return {}
         else:
             raise ValueError(f"Unkwnown task {task}")
         xcel = pandas.read_excel(xcel_file_name, index_col=0, sheet_name="Details - " + sheet_name)
@@ -662,6 +691,8 @@ class MovementPruning(PointProvider):
                             d = dict(name=name, fill_rate=d[3] / 100.0, exact=d[4], f1=d[5])
                         elif task == "mnli":
                             d = dict(name=name, fill_rate=d[3] / 100.0, matched=d[4] * 100, mismatched=d[6] * 100)
+                        elif task == "qqp":
+                            d = dict(name=name, fill_rate=d[3] / 100.0, accuracy=d[4] * 100, f1=d[7] * 100)
                         else:
                             raise ValueError(f"Unknown task {task}")
 
@@ -698,7 +729,6 @@ class StructuredPruningOfBert(PointProvider):
 
         headers = ["index", "type", "lambda_att", "lambda_ff", 'time', 'F1 +retrain', 'F1 no retrain',
                    '% attn removed', '% ff removed', 'size']
-        print(headers)
 
         final_info = {}
         for i, l in enumerate(s2.split("\n")):
@@ -708,8 +738,6 @@ class StructuredPruningOfBert(PointProvider):
             s2 = [float(x) for x in s2.split(" ") if x != ""]
             if i < 3:
                 s2.insert(3, 0)
-
-            print(s0, "|", s1, "|", s2)
 
             parts = [s0, s1] + s2
 
@@ -739,16 +767,91 @@ class StructuredPruningOfBert(PointProvider):
         return dict(structured_pruning=points)
 
 
+class GlueExperiments(PointProvider):
+    FILENAME = "BERT glue benchmark.xlsx"
+
+    def __init__(self, cache_dir):
+        super().__init__(cache_dir)
+
+    def points_(self, task):
+        if task not in ["qqp", "sst2"]:
+            return {}
+
+        xcel_file_name = Path(__file__).parent / "files" / self.FILENAME
+        sheet_name = "Sheet1"
+
+        xcel = pandas.read_excel(xcel_file_name, index_col=0, sheet_name=sheet_name)
+        xcel = pandas.DataFrame(xcel)
+
+        rows = list(xcel.iterrows())
+
+        values = defaultdict(dict)
+
+        keys = ["name"]
+
+        if task == "qqp":
+            info_range = [0, 5]
+        else:
+            info_range = [13, 17]
+
+        row_part = rows[info_range[0]:info_range[1]]
+        for i, r in enumerate(row_part[1:]):
+            keys.append(r[0])
+
+        for i, (r, d) in enumerate(row_part):
+            # print(r[1])
+
+            for j, c in enumerate(d):
+                if str(c) != "nan":
+                    values[j][keys[i]] = c
+
+        for v in values.values():
+            if v["name"] == "bartbasetestqqp-a32-l20-dl1-wr8-fw2-epoch10-teach09":
+                v["name"] = "bertbasetestqqp-a32-l20-dl1-wr8-fw2-epoch10-teach09"
+
+            v["with_teacher"] = "teach09" in v["name"]
+            v["architecture"] = "bart" if "bart" in v["name"] else "bert"
+            fill_rate = v["nnz_perc"]
+            if not isinstance(fill_rate, (float, int)):
+                assert ("%" in fill_rate)
+                fill_rate = fill_rate.replace("%", "")
+                fill_rate = float(fill_rate) / 100.0
+
+            v["fill_rate"] = float(fill_rate)
+            del v["nnz_perc"]
+            if task == "qqp":
+                v["f1"] = float(v["F1"])
+                del v["F1"]
+
+            v["accuracy"] = float(v["accuracy"])
+            v["speedup"] = 1.0
+
+        ret = defaultdict(list)
+
+        for v in values.values():
+            key = "glue_experiment_" + v["architecture"]
+            if v["with_teacher"]:
+                key += "_teacher"
+            if "baseline" not in v["name"]:
+                ret[key].append(v)
+                print(v["name"], v["fill_rate"], v["accuracy"])
+
+        return ret
+
+
 class MultiProvider:
     def points(self, task, cache_dir, analyze_result_file):
         ret = {}
-        ret.update(MovementPruning(cache_dir).points(task))
-        ret.update(Bert(cache_dir).points(task))
-        ret.update(DistilBert(cache_dir).points(task))
-        ret.update(TinyBert(cache_dir).points(task))
-        ret.update(MobileBert(cache_dir).points(task))
-        ret.update(StructuredPruningOfBert(cache_dir).points(task))
 
-        xps = Experiments(cache_dir, analyze_result_file).points(task, force=False)
+        classes = [MovementPruning, Bert, DistilBert, TinyBert, MobileBert, StructuredPruningOfBert, GlueExperiments]
+
+        for cls in classes:
+            force = cls == "GlueExperiments"
+            ret.update(cls(cache_dir).points(task, force=force))
+
+        if task not in ["qqp", "sst2"]:
+            xps = Experiments(cache_dir, analyze_result_file).points(task, force=False)
+        else:
+            xps = {}
 
         return ret, xps

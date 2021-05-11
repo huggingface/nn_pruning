@@ -1,7 +1,7 @@
 %!PS-Adobe-3.0 EPSF-3.0
 %%Title: paper_hybrid_filled_speedup.eps
 %%Creator: Matplotlib v3.4.0, https://matplotlib.org/
-%%CreationDate: Mon May 10 11:40:05 2021
+%%CreationDate: Mon May 10 19:25:28 2021
 %%Orientation: portrait
 %%BoundingBox: -288 21 901 771
 %%HiResBoundingBox: -288.727344 21.222500 900.727344 770.777500
@@ -37,8 +37,8 @@ mpldict begin
 /FontMatrix [0.00048828125 0 0 0.00048828125 0 0] def
 /FontBBox [-2090 -948 3673 2524] def
 /FontType 3 def
-/Encoding [/space /parenleft /parenright /hyphen /period /zero /one /two /three /four /five /six /seven /eight /B /D /E /F /H /M /R /S /T /a /b /c /d /e /f /g /i /l /n /o /p /r /s /t /u /y] def
-/CharStrings 41 dict dup begin
+/Encoding [/space /parenleft /parenright /comma /hyphen /period /zero /one /two /three /four /five /six /seven /eight /B /D /E /F /H /M /R /S /T /a /b /c /d /e /f /g /h /i /l /n /o /p /r /s /t /u /y] def
+/CharStrings 43 dict dup begin
 /.notdef 0 def
 /space{651 0 0 0 0 0 sc
 ce} d
@@ -68,6 +68,16 @@ ce} d
 406 336 428 489 428 643 c
 428 797 406 949 362 1099 c
 319 1249 253 1401 164 1554 c
+
+ce} d
+/comma{651 0 158 -238 451 254 sc
+240 254 m
+451 254 l
+451 82 l
+287 -238 l
+158 -238 l
+240 82 l
+240 254 l
 
 ce} d
 /hyphen{739 0 100 479 639 643 sc
@@ -689,6 +699,26 @@ ce} d
 930 1120 l
 1114 1120 l
 1114 139 l
+
+ce} d
+/h{1298 0 186 0 1124 1556 sc
+1124 676 m
+1124 0 l
+940 0 l
+940 670 l
+940 776 919 855 878 908 c
+837 961 775 987 692 987 c
+593 987 514 955 457 892 c
+400 829 371 742 371 633 c
+371 0 l
+186 0 l
+186 1556 l
+371 1556 l
+371 946 l
+415 1013 467 1064 526 1097 c
+586 1130 655 1147 733 1147 c
+862 1147 959 1107 1025 1027 c
+1091 948 1124 831 1124 676 c
 
 ce} d
 /i{569 0 193 0 377 1556 sc
@@ -1549,24 +1579,31 @@ grestore
 0.122 0.467 0.706 setrgbcolor
 gsave
 1116 665.28 55.122 52.075 clipbox
-490.423527 565.973761 m
-490.430857 534.209893 l
-634.84402 491.373857 l
-635.246357 479.609833 l
-732.705858 375.836699 l
-754.804149 369.085341 l
-755.211641 362.546818 l
+638.756454 497.461496 m
+746.905088 421.42858 l
+762.079604 406.072811 l
 stroke
 grestore
 1.000 0.498 0.055 setrgbcolor
 gsave
 1116 665.28 55.122 52.075 clipbox
-492.372501 531.789788 m
-504.060686 488.692026 l
-644.263571 461.504487 l
-646.146918 437.214414 l
-750.645763 396.75484 l
-770.411326 343.626884 l
+490.423535 565.973761 m
+490.430865 534.209893 l
+634.844029 491.373857 l
+635.246367 479.609833 l
+763.058358 467.622471 l
+763.538169 456.465294 l
+stroke
+grestore
+0.173 0.627 0.173 setrgbcolor
+gsave
+1116 665.28 55.122 52.075 clipbox
+492.372509 531.789788 m
+504.060694 488.692026 l
+644.26358 461.504487 l
+646.146927 437.214414 l
+750.645773 396.75484 l
+770.411336 343.626884 l
 stroke
 grestore
 0.800 setlinewidth
@@ -1694,15 +1731,15 @@ grestore
 0 setlinecap
 0.800 setgray
 gsave
-918.48125 623.94875 m
-1153.621875 623.94875 l
-1156.955208 623.94875 1158.621875 625.615417 1158.621875 628.94875 c
+808.121875 587.245625 m
+1153.621875 587.245625 l
+1156.955208 587.245625 1158.621875 588.912292 1158.621875 592.245625 c
 1158.621875 699.855 l
 1158.621875 703.188333 1156.955208 704.855 1153.621875 704.855 c
-918.48125 704.855 l
-915.147917 704.855 913.48125 703.188333 913.48125 699.855 c
-913.48125 628.94875 l
-913.48125 625.615417 915.147917 623.94875 918.48125 623.94875 c
+808.121875 704.855 l
+804.788542 704.855 803.121875 703.188333 803.121875 699.855 c
+803.121875 592.245625 l
+803.121875 588.912292 804.788542 587.245625 808.121875 587.245625 c
 cl
 gsave
 1.000 setgray
@@ -1715,14 +1752,47 @@ grestore
 2 setlinecap
 0.122 0.467 0.706 setrgbcolor
 gsave
-923.48125 684.605 m
-973.48125 684.605 l
+813.121875 684.605 m
+863.121875 684.605 l
 stroke
 grestore
 0.000 setgray
 gsave
 
-993.481250 675.855000 translate
+883.121875 675.855000 translate
+0.000000 rotate
+0.000000 0 m /H glyphshow
+18.798828 0 m /y glyphshow
+33.593750 0 m /b glyphshow
+49.462891 0 m /r glyphshow
+59.741211 0 m /i glyphshow
+66.687012 0 m /d glyphshow
+82.556152 0 m /comma glyphshow
+90.502930 0 m /space glyphshow
+98.449707 0 m /l glyphshow
+105.395508 0 m /a glyphshow
+120.715332 0 m /r glyphshow
+130.493652 0 m /g glyphshow
+146.362793 0 m /e glyphshow
+161.743652 0 m /space glyphshow
+169.690430 0 m /t glyphshow
+179.492676 0 m /e glyphshow
+194.873535 0 m /a glyphshow
+210.193359 0 m /c glyphshow
+223.938477 0 m /h glyphshow
+239.783203 0 m /e glyphshow
+255.164062 0 m /r glyphshow
+grestore
+1.000 0.498 0.055 setrgbcolor
+gsave
+813.121875 647.901875 m
+863.121875 647.901875 l
+stroke
+grestore
+0.000 setgray
+gsave
+
+883.121875 639.151875 translate
 0.000000 rotate
 0.000000 0 m /H glyphshow
 18.798828 0 m /y glyphshow
@@ -1738,16 +1808,16 @@ gsave
 123.845215 0 m /e glyphshow
 139.226074 0 m /d glyphshow
 grestore
-1.000 0.498 0.055 setrgbcolor
+0.173 0.627 0.173 setrgbcolor
 gsave
-923.48125 647.901875 m
-973.48125 647.901875 l
+813.121875 611.19875 m
+863.121875 611.19875 l
 stroke
 grestore
 0.000 setgray
 gsave
 
-993.481250 639.151875 translate
+883.121875 602.448750 translate
 0.000000 rotate
 0.000000 0 m /H glyphshow
 18.798828 0 m /y glyphshow

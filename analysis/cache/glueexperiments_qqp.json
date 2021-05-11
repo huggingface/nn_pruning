@@ -1,0 +1,186 @@
+{
+    "glue_experiment_bert": [
+        {
+            "accuracy": 91.15,
+            "architecture": "bert",
+            "combined": 89.63,
+            "f1": 88.12,
+            "fill_rate": 1.0,
+            "name": "qqp-l0-wr2-epoch3-teach0",
+            "speedup": 1.0,
+            "with_teacher": false
+        },
+        {
+            "accuracy": 91.01,
+            "architecture": "bert",
+            "combined": 89.53,
+            "f1": 88.04,
+            "fill_rate": 0.7040000000000001,
+            "name": "qqp-l1-wr2-epoch8 (epoch 5)",
+            "speedup": 1.0,
+            "with_teacher": false
+        },
+        {
+            "accuracy": 91.16,
+            "architecture": "bert",
+            "combined": 89.64,
+            "f1": 88.13,
+            "fill_rate": 0.6057,
+            "name": "qqp-l1-wr2-epoch8 (epoch 8)",
+            "speedup": 1.0,
+            "with_teacher": false
+        },
+        {
+            "accuracy": 90.44,
+            "architecture": "bert",
+            "combined": 88.8,
+            "f1": 87.16,
+            "fill_rate": 0.4486,
+            "name": "qqp-a32-l5-dl1-wr2-fw1-epoch3-teach0",
+            "speedup": 1.0,
+            "with_teacher": false
+        },
+        {
+            "accuracy": 90.49,
+            "architecture": "bert",
+            "combined": 88.83,
+            "f1": 87.17,
+            "fill_rate": 0.282,
+            "name": "qqp-a32-l5-dl1-wr8-fw2-epoch6-teach0",
+            "speedup": 1.0,
+            "with_teacher": false
+        },
+        {
+            "accuracy": 90.36,
+            "architecture": "bert",
+            "combined": 88.68,
+            "f1": 87.0,
+            "fill_rate": 0.2498,
+            "name": "qqp-l5-wr2-fw1-epoch8",
+            "speedup": 1.0,
+            "with_teacher": false
+        },
+        {
+            "accuracy": 90.32,
+            "architecture": "bert",
+            "combined": 88.67,
+            "f1": 87.02,
+            "fill_rate": 0.2004,
+            "name": "qqp-l5-wr1-fw1-epoch12 (epoch 12)",
+            "speedup": 1.0,
+            "with_teacher": false
+        },
+        {
+            "accuracy": 89.82,
+            "architecture": "bert",
+            "combined": 88.05,
+            "f1": 86.27,
+            "fill_rate": 0.1185,
+            "name": "qqp-l10-wr2-fw1-epoch8",
+            "speedup": 1.0,
+            "with_teacher": false
+        },
+        {
+            "accuracy": 89.46,
+            "architecture": "bert",
+            "combined": 87.7,
+            "f1": 85.94,
+            "fill_rate": 0.0662,
+            "name": "qqp-l15-wr2-fw1-epoch12",
+            "speedup": 1.0,
+            "with_teacher": false
+        },
+        {
+            "accuracy": 89.23,
+            "architecture": "bert",
+            "combined": 87.41,
+            "f1": 85.59,
+            "fill_rate": 0.048,
+            "name": "qqp-l20-wr2-fw1-epoch12",
+            "speedup": 1.0,
+            "with_teacher": false
+        }
+    ],
+    "glue_experiment_bert_teacher": [
+        {
+            "accuracy": 89.65,
+            "architecture": "bert",
+            "combined": 87.9,
+            "f1": 86.15,
+            "fill_rate": 0.0747,
+            "name": "bertbasetestqqp-a32-l20-dl1-wr8-fw2-epoch10-teach09",
+            "speedup": 1.0,
+            "with_teacher": true
+        },
+        {
+            "accuracy": 90.57,
+            "architecture": "bert",
+            "combined": 88.93,
+            "f1": 87.3,
+            "fill_rate": 0.7103,
+            "name": "qqp-l5-wr2-fw1-epoch12-teach09 (epoch 3)",
+            "speedup": 1.0,
+            "with_teacher": true
+        },
+        {
+            "accuracy": 90.53,
+            "architecture": "bert",
+            "combined": 88.84,
+            "f1": 87.15,
+            "fill_rate": 0.4895,
+            "name": "qqp-l5-wr2-fw1-epoch12-teach09 (epoch 4)",
+            "speedup": 1.0,
+            "with_teacher": true
+        },
+        {
+            "accuracy": 90.41,
+            "architecture": "bert",
+            "combined": 88.77,
+            "f1": 87.14,
+            "fill_rate": 0.2427,
+            "name": "qqp-l5-wr2-fw1-epoch12-teach09 (epoch 7)",
+            "speedup": 1.0,
+            "with_teacher": true
+        },
+        {
+            "accuracy": 90.62,
+            "architecture": "bert",
+            "combined": 89.02,
+            "f1": 87.42,
+            "fill_rate": 0.1822,
+            "name": "qqp-l5-wr2-fw1-epoch12-teach09",
+            "speedup": 1.0,
+            "with_teacher": true
+        },
+        {
+            "accuracy": 90.15,
+            "architecture": "bert",
+            "combined": 88.48,
+            "f1": 86.82,
+            "fill_rate": 0.1132,
+            "name": "qqp-l10-wr2-fw1-epoch12-teach09",
+            "speedup": 1.0,
+            "with_teacher": true
+        },
+        {
+            "accuracy": 89.8,
+            "architecture": "bert",
+            "combined": 88.12,
+            "f1": 86.43,
+            "fill_rate": 0.0844,
+            "name": "qqp-l15-wr2-fw1-epoch12-teach09 (epoch 11)",
+            "speedup": 1.0,
+            "with_teacher": true
+        },
+        {
+            "accuracy": 89.85,
+            "architecture": "bert",
+            "combined": 88.11,
+            "f1": 86.38,
+            "fill_rate": 0.0834,
+            "name": "qqp-l15-wr2-fw1-epoch12-teach09 (epoch 12)",
+            "speedup": 1.0,
+            "with_teacher": true
+        }
+    ]
+}

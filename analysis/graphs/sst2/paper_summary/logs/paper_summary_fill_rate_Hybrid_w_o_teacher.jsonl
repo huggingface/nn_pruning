@@ -1,0 +1,10 @@
+{"fill_rate": 0.9945999999999999, "accuracy": 92.78, "meta": {"accuracy": 92.78, "architecture": "bert", "fill_rate": 0.9945999999999999, "name": "sst2-l1-wr2-epoch8 (epoch 3)", "speedup": 1.0, "with_teacher": false}}
+{"fill_rate": 0.8422, "accuracy": 92.55, "meta": {"accuracy": 92.55, "architecture": "bert", "fill_rate": 0.8422, "name": "sst2-l2-wr2-epoch8 (epoch 4)", "speedup": 1.0, "with_teacher": false}}
+{"fill_rate": 0.8277, "accuracy": 92.2, "meta": {"accuracy": 92.2, "architecture": "bert", "fill_rate": 0.8277, "name": "sst2-l5-wr4-fw1-epoch18 (epoch 4)", "speedup": 1.0, "with_teacher": false}}
+{"fill_rate": 0.6301, "accuracy": 91.74, "meta": {"accuracy": 91.74, "architecture": "bert", "fill_rate": 0.6301, "name": "sst2-l5-wr4-fw1-epoch18 (epoch 5)", "speedup": 1.0, "with_teacher": false}}
+{"fill_rate": 0.4999, "accuracy": 90.71, "meta": {"accuracy": 90.71, "architecture": "bert", "fill_rate": 0.4999, "name": "sst2-l5-wr2-fw1-epoch18 (epoch 6)", "speedup": 1.0, "with_teacher": false}}
+{"fill_rate": 0.2153, "accuracy": 89.79, "meta": {"accuracy": 89.79, "architecture": "bert", "fill_rate": 0.2153, "name": "sst2-l5-wr2-fw1-epoch12", "speedup": 1.0, "with_teacher": false}}
+{"fill_rate": 0.172, "accuracy": 89.11, "meta": {"accuracy": 89.11, "architecture": "bert", "fill_rate": 0.172, "name": "sst2-l10-wr2-fw1-epoch18 (epoch 8)", "speedup": 1.0, "with_teacher": false}}
+{"fill_rate": 0.1219, "accuracy": 88.42, "meta": {"accuracy": 88.42, "architecture": "bert", "fill_rate": 0.1219, "name": "sst2-l5-wr4-fw1-epoch18 (epoch 17)", "speedup": 1.0, "with_teacher": false}}
+{"fill_rate": 0.0865, "accuracy": 86.81, "meta": {"accuracy": 86.81, "architecture": "bert", "fill_rate": 0.0865, "name": "sst2-l10-wr2-fw1-epoch15", "speedup": 1.0, "with_teacher": false}}
+{"fill_rate": 0.0701, "accuracy": 86.47, "meta": {"accuracy": 86.47, "architecture": "bert", "fill_rate": 0.0701, "name": "sst2-l10-wr2-fw1-epoch18 (epoch 16)", "speedup": 1.0, "with_teacher": false}}
