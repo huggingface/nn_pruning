@@ -4,7 +4,7 @@
             "accuracy": 93.0,
             "annotate": "TinyBERT6",
             "fill_rate": 0.5,
-            "speedup": 2.0
+            "speedup": 1.8799112593179124
         }
     ]
 }

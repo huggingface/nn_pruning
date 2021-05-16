@@ -99,10 +99,34 @@
     ],
     "glue_experiment_bert_teacher": [
         {
-            "accuracy": 91.63,
+            "accuracy": 93.12,
             "architecture": "bert",
-            "fill_rate": 0.6687,
-            "name": "sst2-l5-wr2-fw1-epoch18-teach09 (epoch 6)",
+            "fill_rate": 0.9688,
+            "name": "sst2-l1-wr2-fw1-epoch10-teach09 (epoch 4)",
+            "speedup": 1.0,
+            "with_teacher": true
+        },
+        {
+            "accuracy": 92.78,
+            "architecture": "bert",
+            "fill_rate": 0.8884000000000001,
+            "name": "sst2-l2-wr2-fw1-epoch10-teach09 (epoch 4)",
+            "speedup": 1.0,
+            "with_teacher": true
+        },
+        {
+            "accuracy": 92.66,
+            "architecture": "bert",
+            "fill_rate": 0.6679,
+            "name": "sst2-l1-wr2-fw1-epoch10-teach09 (epoch 10)",
+            "speedup": 1.0,
+            "with_teacher": true
+        },
+        {
+            "accuracy": 91.97,
+            "architecture": "bert",
+            "fill_rate": 0.4891,
+            "name": "sst2-l2-wr2-fw1-epoch10-teach09 (epoch 9)",
             "speedup": 1.0,
             "with_teacher": true
         },
