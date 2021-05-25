@@ -25,11 +25,15 @@ import torch.cuda
 import torch.nn as nn
 
 class TimingModule(nn.Module):
-    def __init__(self, model, repeat = 1):
+    def __init__(self, model, repeat=1, method_list=None):
         super().__init__()
         self.model = model
         self.reset()
         self.repeat = repeat
+        if method_list:
+            method_list = list(method_list)
+            for method_name in method_list:
+                setattr(self, method_name, getattr(model, method_name))
 
     def reset(self):
         self.elapsed = 0

@@ -157,6 +157,17 @@ class SparseTrainingArguments:
             "help": "Regularization intensity for dense (attention lambda will be regularization_lambda * dense_lambda)."},
     )
 
+    decoder_attention_lambda: float = field(
+        default=None,
+        metadata={"help": "Regularization intensity for decoder attention (attention lambda will be regularization_lambda * decoder_attention_lambda)."},
+    )
+
+    decoder_dense_lambda: float = field(
+        default=None,
+        metadata={
+            "help": "Regularization intensity for decoder dense (attention lambda will be regularization_lambda * decoder_dense_lambda)."},
+    )
+
     distil_teacher_name_or_path: str = field(
         default=None,
         metadata={"help": "Path to the already SQuAD fine-tuned teacher model. Only for distillation."},
@@ -470,13 +481,23 @@ class ModelPatchingCoordinator:
             lambdas = {k: 0 for k in info.keys()}
         else:
             lamb = self.patcher_context.get_context_data("regu_lambda")
-            n = len(info)
             lambdas = {}
+            n = len(info)
             for k in info.keys():
                 if k.endswith('attention'):
-                    lambdas[k] = self.sparse_args.attention_lambda / n
+                    if k.startswith('decoder'):
+                        if self.sparse_args.decoder_attention_lambda is None:
+                            self.sparse_args.decoder_attention_lambda = self.sparse_args.attention_lambda
+                        lambdas[k] = self.sparse_args.decoder_attention_lambda / n
+                    else:
+                        lambdas[k] = self.sparse_args.attention_lambda / n
                 else:
-                    lambdas[k] = self.sparse_args.dense_lambda / n
+                    if k.startswith('decoder'):
+                        if self.sparse_args.decoder_dense_lambda is None:
+                            self.sparse_args.decoder_dense_lambda = self.sparse_args.dense_lambda
+                        lambdas[k] = self.sparse_args.decoder_dense_lambda / n
+                    else:
+                        lambdas[k] = self.sparse_args.dense_lambda / n
 
         info["total"] = defaultdict(float)
 

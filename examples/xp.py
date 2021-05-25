@@ -176,7 +176,7 @@ class XP:
             setattr(self, k + "_args", parse_results[i])
 
     def model_init(self, trial=None):
-        model =  self._model_init(self.model_args, self.config)
+        model =  self._model_init(self.model_args, self.config, self.data_args)
         if hasattr(model.config, "layer_norm_type") and model.config.layer_norm_type == "no_norm":
             from nn_pruning.modules.nonorm import NoNormPatcher
             nnc = NoNormPatcher()
