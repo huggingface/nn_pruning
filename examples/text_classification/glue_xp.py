@@ -102,7 +102,7 @@ class GlueXP(XP):
     SHORT_NAMER = TrialShortNamer
 
     @classmethod
-    def _model_init(cls, model_args, model_config):
+    def _model_init(cls, model_args, model_config, data_args):
         model = AutoModelForSequenceClassification.from_pretrained(
             model_args.model_name_or_path,
             from_tf=bool(".ckpt" in model_args.model_name_or_path),

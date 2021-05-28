@@ -106,7 +106,7 @@ class GlueTrainer(XPTrainer):
             predictions = predictions[0] if isinstance(predictions, tuple) else predictions
             predictions = np.squeeze(predictions) if self.is_regression else np.argmax(predictions, axis=1)
 
-            output_test_file = os.path.join(checkpoint_dir, f"test_results_{task}.txt")
+            output_test_file = os.path.join(checkpoint_dir, f"test_results_{task}.tsv")
             if self.is_world_process_zero():
                 with open(output_test_file, "w") as writer:
                     logger.info(f"***** Test results {task} *****")
@@ -115,7 +115,8 @@ class GlueTrainer(XPTrainer):
                         if self.is_regression:
                             writer.write(f"{index}\t{item:3.3f}\n")
                         else:
-                            item = self.label_list[item]
+                            if task in {"mnli", "mnli-mm", "rte", "wnli"}:
+                                item = self.label_list[item]
                             writer.write(f"{index}\t{item}\n")
 
         super().finish_evaluate(checkpoint_dir, output0.metrics)
