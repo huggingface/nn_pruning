@@ -1,11 +1,16 @@
 import copy
 import json
+import tempfile
 from collections import defaultdict
 from pathlib import Path
-from transformers import AutoModelForQuestionAnswering, AutoModelForSequenceClassification
-import tempfile
-from examples.question_answering.qa_xp import QAXP
+
 import pandas
+from transformers import (
+    AutoModelForQuestionAnswering,
+    AutoModelForSequenceClassification,
+)
+
+from examples.question_answering.qa_xp import QAXP
 
 
 class PointProvider:
@@ -22,7 +27,7 @@ class PointProvider:
     def get_filename(self, task):
         return self.__class__.__name__.lower() + "_" + task + ".json"
 
-    def points(self, task, force = False):
+    def points(self, task, force=False):
         filename = self.get_filename(task)
 
         if filename in self.CACHE:
@@ -38,7 +43,7 @@ class PointProvider:
                     json.dump(ret, f, indent=4, sort_keys=True)
                 with full_path.open("r") as f:
                     reload = json.load(f)
-                    assert(ret == reload)
+                    assert ret == reload
 
             self.CACHE[filename] = ret
         ret = copy.deepcopy(ret)
@@ -110,7 +115,7 @@ class ExperimentClassifier:
         is_relu = "gelu_patch" in sparse_args and sparse_args["gelu_patch"] or xp["config"]["hidden_act"] == "relu"
         is_rewind = "rewind_model_name_or_path" in sparse_args and sparse_args["rewind_model_name_or_path"] is not None
 
-        if xp["config"]["_name_or_path"] == 'aloxatel/bert-base-mnli':
+        if xp["config"]["_name_or_path"] == "aloxatel/bert-base-mnli":
             return None
 
         compare_different = {}
@@ -203,9 +208,9 @@ class ExperimentClassifier:
             if d_rows != rows:
                 return None
 
-#            ver = 1 - int(sparse_args.get("attention_output_with_dense", True))
-#            if ver == 0:
-#                return "full block version 0"
+            #            ver = 1 - int(sparse_args.get("attention_output_with_dense", True))
+            #            if ver == 0:
+            #                return "full block version 0"
 
             ret = f"Full block method, bs= {rows}x{cols}"
             # ret += ", fw=" + str(sparse_args["final_warmup"])
@@ -337,10 +342,12 @@ class Experiments(PointProvider):
         ret = dict(fill_rate=fill_rate, speedup=checkpoint["speedup"], checkpoint=checkpoint)
 
         if task in ["squadv1", "squadv2"]:
-            additional = {"f1":checkpoint["eval_metrics"]["f1"]}
+            additional = {"f1": checkpoint["eval_metrics"]["f1"]}
         else:
-            additional = {"matched":checkpoint["eval_metrics"]["eval_accuracy"] * 100,
-                          "mismatched":checkpoint["eval_metrics_mm"]["eval_accuracy"] * 100}
+            additional = {
+                "matched": checkpoint["eval_metrics"]["eval_accuracy"] * 100,
+                "mismatched": checkpoint["eval_metrics_mm"]["eval_accuracy"] * 100,
+            }
 
         ret.update(additional)
 
@@ -366,7 +373,7 @@ class Experiments(PointProvider):
 
 
 class HFModelStats:
-    TASK_NAMES = {"squad":"squadv1"}
+    TASK_NAMES = {"squad": "squadv1"}
     TIMING_KEY = "cuda_eval_elapsed_time"
 
     def __init__(self, model_name, task, white_list, black_list):
@@ -403,7 +410,6 @@ class HFModelStats:
             total += v.numel()
         return total
 
-
     def get_base_speed_info(self):
         task = self.TASK_NAMES.get(self.task, self.task)
 
@@ -422,10 +428,9 @@ class HFModelStats:
                     task = "squad"
                 elif self.task == "squadv2":
                     task = "squad_v2"
-                ret = QAXP.evaluate_model(model_name_or_path=self.model_name,
-                                          task=task,
-                                          optimize_mode="disabled",
-                                          output_dir=tmpfile.name)
+                ret = QAXP.evaluate_model(
+                    model_name_or_path=self.model_name, task=task, optimize_mode="disabled", output_dir=tmpfile.name
+                )
 
                 base_speed_info = self.get_base_speed_info()
 
@@ -436,6 +441,7 @@ class HFModelStats:
         finally:
             tmpfile.cleanup()
 
+
 class Bert(PointProvider):
     def points_(self, task):
         # From https://www.aclweb.org/anthology/N19-1423.pdf
@@ -444,7 +450,7 @@ class Bert(PointProvider):
                 "f1": 88.5,
                 "exact": 80.8,
             }
-            ret_large = {} #"f1": 93.15, "exact":86.91}
+            ret_large = {}  # "f1": 93.15, "exact":86.91}
         elif task == "squadv2":
             # from https://web.stanford.edu/class/archive/cs/cs224n/cs224n.1194/reports/default/15848021.pdf
             ret = {
@@ -453,16 +459,13 @@ class Bert(PointProvider):
             }
             ret_large = {}
         elif task == "mnli":
-            ret = {
-                "matched":84.6,
-                "mismatched":83.4
-            }
+            ret = {"matched": 84.6, "mismatched": 83.4}
             ret_large = {}
         elif task == "qqp":
             # Official baseline
-            #ret = {"f1":84.31, "accuracy":88.4}
+            # ret = {"f1":84.31, "accuracy":88.4}
             # Our baseline
-            ret = {"f1":88.12, "accuracy":91.15}
+            ret = {"f1": 88.12, "accuracy": 91.15}
             ret_large = {}
         elif task == "sst2":
             # Official baseline
@@ -485,9 +488,10 @@ class Bert(PointProvider):
 
         ret.update({"fill_rate": 1.0, "annotate": "BERT", "speedup": 1})
 
-        ret_large.update({"fill_rate": 8/4, "annotate": "BERT-large", "speedup": speedup})
+        ret_large.update({"fill_rate": 8 / 4, "annotate": "BERT-large", "speedup": speedup})
 
         return dict(bert=[ret], bert_large=[ret_large])
+
 
 class DistilBert(PointProvider):
     def points_(self, task):
@@ -514,7 +518,7 @@ class DistilBert(PointProvider):
         fill_rate = total_distilbert / total_bert
 
         if task == "squadv1":
-            #From https://arxiv.org/pdf/1910.01108.pdf
+            # From https://arxiv.org/pdf/1910.01108.pdf
             ret = {
                 "f1": 86.9,
                 "exact": 79.1,
@@ -522,8 +526,8 @@ class DistilBert(PointProvider):
         elif task == "squadv2":
             # From https://huggingface.co/twmkn9/distilbert-base-uncased-squad2
             ret = {
-                'exact': 64.88976637051661,
-                'f1': 68.1776176526635,
+                "exact": 64.88976637051661,
+                "f1": 68.1776176526635,
             }
         elif task == "mnli":
             # From https://arxiv.org/abs/1910.01108 and
@@ -534,13 +538,13 @@ class DistilBert(PointProvider):
                 #                    "mismatched": 0.8216, # to be checked : from https://huggingface.co/ishan/distilbert-base-uncased-mnli
             }
         elif task == "qqp":
-            ret = {"accuracy":88.5}
+            ret = {"accuracy": 88.5}
         elif task == "sst2":
-            ret = {"accuracy":91.3}
+            ret = {"accuracy": 91.3}
         else:
             raise Exception(f"Unkwnon task {task}")
 
-        ret.update({"fill_rate": fill_rate, "annotate": "DistilBERT", "speedup": speedup}) # 1.63
+        ret.update({"fill_rate": fill_rate, "annotate": "DistilBERT", "speedup": speedup})  # 1.63
 
         return dict(distilbert=[ret])
 
@@ -588,9 +592,9 @@ class TinyBert(PointProvider):
         elif task == "mnli":
             ret = {"matched": 84.6, "mismatched": 83.2}
         elif task == "qqp":
-            ret = {"f1":88.0, "accuracy": 91.1}
+            ret = {"f1": 88.0, "accuracy": 91.1}
             # This is test set
-            #ret = {"accuracy": 71.6}
+            # ret = {"accuracy": 71.6}
         elif task == "sst2":
             ret = {"accuracy": 93.0}
         else:
@@ -640,7 +644,7 @@ MobileBERT w/o OPT 25.3M 5.7B 192 ms 51.1 92.6 88.8 84.8 70.5 84.3/83.4 91.6 70.
     def points_(self, task):
         if task == "squadv1":
             mobile_bert = {"f1": 90.0, "exact": 82.9}
-            mobile_bert_measured =  copy.copy(mobile_bert)
+            mobile_bert_measured = copy.copy(mobile_bert)
             mobile_bert_no_opt = {"f1": 90.3, "exact": 83.4}
         elif task == "squadv2":
             mobile_bert = {"f1": 79.2, "exact": 76.2}
@@ -653,9 +657,9 @@ MobileBERT w/o OPT 25.3M 5.7B 192 ms 51.1 92.6 88.8 84.8 70.5 84.3/83.4 91.6 70.
         elif task == "qqp":
             return {}
         elif task == "sst2":
-            mobile_bert = {"accuracy":92.1}
+            mobile_bert = {"accuracy": 92.1}
             mobile_bert_measured = copy.copy(mobile_bert)
-            mobile_bert_no_opt = {"accuracy":92.1}
+            mobile_bert_no_opt = {"accuracy": 92.1}
         else:
             raise Exception(f"Unkwnon task {task}")
 
@@ -663,9 +667,8 @@ MobileBERT w/o OPT 25.3M 5.7B 192 ms 51.1 92.6 88.8 84.8 70.5 84.3/83.4 91.6 70.
         fill_rate = 5.7 / 22.5
         mobile_bert.update({"fill_rate": fill_rate, "speedup": 342 / 62, "annotate": "MobileBERT"})
 
-
         smb = HFModelStats(
-            model_name= "csarron/mobilebert-uncased-squad-v1",
+            model_name="csarron/mobilebert-uncased-squad-v1",
             task=task,
             white_list=["weight"],
             black_list=["embeddings", "layer_norm", "qa"],
@@ -674,11 +677,16 @@ MobileBERT w/o OPT 25.3M 5.7B 192 ms 51.1 92.6 88.8 84.8 70.5 84.3/83.4 91.6 70.
         speed_info = smb.get_speed()
 
         paper_speedup = 342 / 192
-        mobile_bert_no_opt.update({"fill_rate": fill_rate, "speedup":paper_speedup, "annotate": "MobileBERT w/o opt"})
+        mobile_bert_no_opt.update({"fill_rate": fill_rate, "speedup": paper_speedup, "annotate": "MobileBERT w/o opt"})
 
-        mobile_bert_measured.update({"fill_rate": fill_rate, "speedup": speed_info["speedup"], "annotate": "MobileBERT"})
+        mobile_bert_measured.update(
+            {"fill_rate": fill_rate, "speedup": speed_info["speedup"], "annotate": "MobileBERT"}
+        )
 
-        return dict(mobile_bert_measured=[mobile_bert_measured], mobile_bert_no_opt=[mobile_bert_no_opt]) # mobile_bert=[mobile_bert],
+        return dict(
+            mobile_bert_measured=[mobile_bert_measured], mobile_bert_no_opt=[mobile_bert_no_opt]
+        )  # mobile_bert=[mobile_bert],
+
 
 class MovementPruning(PointProvider):
     SUBSETS = ["local_movement_pruning", "soft_movement_with_distillation"]
@@ -733,7 +741,6 @@ class MovementPruning(PointProvider):
         return ret
 
 
-
 class StructuredPruningOfBert(PointProvider):
     def __init__(self, cache_dir):
         super().__init__(cache_dir)
@@ -746,18 +753,29 @@ class StructuredPruningOfBert(PointProvider):
                 f : ff(Sq) + attn(Sq) 3 3 1213 82.4 76.8 57.6 73.7 492
                 g : ff(Sq) + attn(Sq) 4 4 1128 81.5 67.8 60.1 78.4 441"""
 
-        replacements = [("ff(Sq) + attn(Sq)", "ff + attn)"),
-                        ("ff(Sq)", "ff)"),
-                        ("attn(Sq)", "attn"),
-                        ("attn ", "attn)"),
-                        ("no pruning", "no pruning)"),
-                        ]
+        replacements = [
+            ("ff(Sq) + attn(Sq)", "ff + attn)"),
+            ("ff(Sq)", "ff)"),
+            ("attn(Sq)", "attn"),
+            ("attn ", "attn)"),
+            ("no pruning", "no pruning)"),
+        ]
         s2 = s
         for r in replacements:
             s2 = s2.replace(*r)
 
-        headers = ["index", "type", "lambda_att", "lambda_ff", 'time', 'F1 +retrain', 'F1 no retrain',
-                   '% attn removed', '% ff removed', 'size']
+        headers = [
+            "index",
+            "type",
+            "lambda_att",
+            "lambda_ff",
+            "time",
+            "F1 +retrain",
+            "F1 no retrain",
+            "% attn removed",
+            "% ff removed",
+            "size",
+        ]
 
         final_info = {}
         for i, l in enumerate(s2.split("\n")):
@@ -786,10 +804,10 @@ class StructuredPruningOfBert(PointProvider):
                 speedup = info["no pruning (a)"]["time"] / v["time"]
                 # The speedup number is for BERT-large, we convert to BERT-base speedup (1024 instead of 768 dim, twice the layers)
                 speedup = speedup * 3 / 8
-                removed = (v['% ff removed'] * 4 + v['% attn removed']) / 5
+                removed = (v["% ff removed"] * 4 + v["% attn removed"]) / 5
 
                 f1 = v["F1 +retrain"] or v["F1 no retrain"]
-                points.append({"f1":f1, "fill_rate": 1.0 - (removed / 100), "speedup":speedup})
+                points.append({"f1": f1, "fill_rate": 1.0 - (removed / 100), "speedup": speedup})
         else:
             return {}
 
@@ -823,7 +841,7 @@ class GlueExperiments(PointProvider):
         else:
             info_range = [13, 17]
 
-        row_part = rows[info_range[0]:info_range[1]]
+        row_part = rows[info_range[0] : info_range[1]]
         for i, r in enumerate(row_part[1:]):
             keys.append(r[0])
 
@@ -842,7 +860,7 @@ class GlueExperiments(PointProvider):
             v["architecture"] = "bart" if "bart" in v["name"] else "bert"
             fill_rate = v["nnz_perc"]
             if not isinstance(fill_rate, (float, int)):
-                assert ("%" in fill_rate)
+                assert "%" in fill_rate
                 fill_rate = fill_rate.replace("%", "")
                 fill_rate = float(fill_rate) / 100.0
 

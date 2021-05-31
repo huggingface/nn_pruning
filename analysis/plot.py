@@ -1,35 +1,46 @@
-from matplotlib import pyplot as pyplot
-from bokeh.plotting import figure, output_file, show
-from bokeh.io import export_png
+import copy
+import itertools
 import json
-from pathlib import Path
+import math
 import re
 import shutil
-import plot_data
-import math
 from collections import defaultdict
-import copy
-import seaborn
+from pathlib import Path
 
 import bokeh
-from analysis.graph_util import BokehHelper
 import bokeh.plotting as plotting
+import plot_data
+import seaborn
+from bokeh.io import export_png
 from bokeh.models import Label, Range1d
+from bokeh.plotting import figure, output_file, show
+from matplotlib import pyplot as pyplot
 
-import itertools
+from analysis.graph_util import BokehHelper
+
 
 def bert_reference_label(accuracy_key, reference_accuracy, index):
     return f"BERT-base ({accuracy_key.capitalize()} = {reference_accuracy}){'' if index == 0 else str(-index)}"
 
+
 class Plotter:
-    def __init__(self, dest_dir, dest_file_name, only_dots, draw_labels, limits, title, x_label, y_label,
-                 accuracy_key,
-                 reference_accuracy,
-                 draw_bert_reference_lines,
-                 fontsize,
-                 figsize,
-                 seaborn_name = None
-                 ):
+    def __init__(
+        self,
+        dest_dir,
+        dest_file_name,
+        only_dots,
+        draw_labels,
+        limits,
+        title,
+        x_label,
+        y_label,
+        accuracy_key,
+        reference_accuracy,
+        draw_bert_reference_lines,
+        fontsize,
+        figsize,
+        seaborn_name=None,
+    ):
         self.dest_dir = dest_dir
         self.dest_file_name = dest_file_name
         self.only_dots = only_dots
@@ -40,7 +51,7 @@ class Plotter:
         self.y_label = y_label
         self.accuracy_key = accuracy_key
         self.reference_accuracy = reference_accuracy
-        self.draw_bert_reference_lines=draw_bert_reference_lines
+        self.draw_bert_reference_lines = draw_bert_reference_lines
         self.fontsize = fontsize
         self.figsize = figsize
         self.seaborn_name = seaborn_name
@@ -50,6 +61,7 @@ class Plotter:
         for s in " _,/=":
             label = label.replace(s, "_")
         return label
+
 
 class MatplotlibPlotter(Plotter):
     def save_fig(self, extension, **kwargs):
@@ -62,7 +74,7 @@ class MatplotlibPlotter(Plotter):
             format=None,
             transparent=False,
             metadata=None,
-            **kwargs
+            **kwargs,
         )
 
     def run(self, plots, key):
@@ -95,7 +107,7 @@ class MatplotlibPlotter(Plotter):
 
             if len(x) == 1 or self.only_dots:
                 l = label_text if len(x) != 1 else None
-                pyplot.scatter(x, y, s=3,c="black", alpha=1.0, label=l)  # , marker=markers[i]) # cool
+                pyplot.scatter(x, y, s=3, c="black", alpha=1.0, label=l)  # , marker=markers[i]) # cool
             else:
                 pyplot.plot(x, y, label=label_text)  # , marker=markers[i]) # cool
 
@@ -114,7 +126,9 @@ class MatplotlibPlotter(Plotter):
             for i in range(line_count):
                 f1 = self.reference_accuracy - i
                 pyplot.plot(
-                    [0, 10], [self.reference_accuracy - i] * 2, label=bert_reference_label(self.accuracy_key, self.reference_accuracy, i)
+                    [0, 10],
+                    [self.reference_accuracy - i] * 2,
+                    label=bert_reference_label(self.accuracy_key, self.reference_accuracy, i),
                 )
 
         if self.limits is not None:
@@ -145,10 +159,8 @@ class MatplotlibPlotter(Plotter):
         pyplot.tight_layout(pad=0.03)
 
         self.save_fig("png", bbox_inches=None, pad_inches=0.1)
-        self.save_fig("pdf") #, bbox_inches='tight' )
-        self.save_fig("eps", bbox_inches='tight')
-
-
+        self.save_fig("pdf")  # , bbox_inches='tight' )
+        self.save_fig("eps", bbox_inches="tight")
 
 
 class BokehPlot(BokehHelper):
@@ -156,19 +168,31 @@ class BokehPlot(BokehHelper):
         if limits is not None:
             replacements = [(" ", "_"), ("upper", "top"), ("lower", "bottom")]
             pos = limits["legend_pos"]
-            for s,d in replacements:
-                pos = pos.replace(s,d)
+            for s, d in replacements:
+                pos = pos.replace(s, d)
         else:
             pos = "top_left"
         return pos
 
-    def create_fig(self, plots, key, title, width, x_label, y_label, limits, only_dots, accuracy_key, reference_accuracy,draw_bert_reference_lines):
+    def create_fig(
+        self,
+        plots,
+        key,
+        title,
+        width,
+        x_label,
+        y_label,
+        limits,
+        only_dots,
+        accuracy_key,
+        reference_accuracy,
+        draw_bert_reference_lines,
+    ):
         # select a palette
         from bokeh.palettes import Dark2_5 as palette
 
-
         # create a new plot with a title and axis labels
-        fig = bokeh.plotting.figure(title=title, width = width, x_axis_label='x', y_axis_label='y')
+        fig = bokeh.plotting.figure(title=title, width=width, x_axis_label="x", y_axis_label="y")
         fig.xaxis.axis_label = x_label
         fig.yaxis.axis_label = y_label
 
@@ -202,7 +226,7 @@ class BokehPlot(BokehHelper):
             annotate = plot["annotate"]
 
             if len(x) == 1 or only_dots:
-                point = Label(x=x[0], y=y[0], text = label_text)
+                point = Label(x=x[0], y=y[0], text=label_text)
                 fig.add_layout(point)
                 fig.scatter(x, y)  # , marker=markers[i]) # cool
             else:
@@ -219,11 +243,7 @@ class BokehPlot(BokehHelper):
                     line_args = dict(legend_label=bert_reference_label(accuracy_key, reference_accuracy, i))
 
                     fig.line(
-                        x = [0, x_max],
-                        y = [reference_accuracy - i] * 2,
-                        color="red",
-                        alpha=0.5**(i + 2),
-                        **line_args
+                        x=[0, x_max], y=[reference_accuracy - i] * 2, color="red", alpha=0.5 ** (i + 2), **line_args
                     )
 
             if False:
@@ -241,32 +261,34 @@ class BokehPlot(BokehHelper):
 
 
 class BokehPlotter(Plotter):
-
     def save_file(self, extension, data):
         with (self.dest_dir / (self.dest_file_name + "." + extension)).open("w") as f:
             f.write(data)
 
     def run(self, plots, key):
-        WIDTH=800
-        div_id =  str(self.dest_file_name)
+        WIDTH = 800
+        div_id = str(self.dest_file_name)
         js_path = "$$JS_PATH$$"
         bp = BokehPlot(div_id, js_path)
-        fig, js, tag = bp.run(plots,
-                              key,
-                              width=WIDTH,
-                              title = self.title,
-                              x_label=self.x_label,
-                              y_label=self.y_label,
-                              limits = self.limits,
-                              only_dots = self.only_dots,
-                              accuracy_key = self.accuracy_key,
-                              reference_accuracy = self.reference_accuracy,
-                              draw_bert_reference_lines=self.draw_bert_reference_lines)
+        fig, js, tag = bp.run(
+            plots,
+            key,
+            width=WIDTH,
+            title=self.title,
+            x_label=self.x_label,
+            y_label=self.y_label,
+            limits=self.limits,
+            only_dots=self.only_dots,
+            accuracy_key=self.accuracy_key,
+            reference_accuracy=self.reference_accuracy,
+            draw_bert_reference_lines=self.draw_bert_reference_lines,
+        )
 
         export_png(fig, filename=self.dest_dir / (self.dest_file_name + "_static.png"), width=WIDTH)
 
         self.save_file("js", js)
         self.save_file("html", tag)
+
 
 class TextFilePlotter(Plotter):
     def log_plot(self, dest_file_name, x, y, data, x_key, y_key):
@@ -286,12 +308,14 @@ class TextFilePlotter(Plotter):
             label_for_file = self.label_cleanup(label_text)
             log_dir = self.dest_dir / "logs"
             log_dir.mkdir(exist_ok=True)
-            self.log_plot(log_dir / f"{self.dest_file_name}_{label_for_file}.jsonl", x, y, point, key, self.accuracy_key)
+            self.log_plot(
+                log_dir / f"{self.dest_file_name}_{label_for_file}.jsonl", x, y, point, key, self.accuracy_key
+            )
 
 
 class PlotManager:
-    TASK_KEYS={"squadv1":"f1", "squadv2":"f1", "mnli":"matched", "qqp":"f1", "sst2":"accuracy"}
-    REFERENCES = {"squadv1": 88.5, "squadv2": 76.70, "mnli": 84.6, "qqp":88.12, "sst2":92.66}
+    TASK_KEYS = {"squadv1": "f1", "squadv2": "f1", "mnli": "matched", "qqp": "f1", "sst2": "accuracy"}
+    REFERENCES = {"squadv1": 88.5, "squadv2": 76.70, "mnli": 84.6, "qqp": 88.12, "sst2": 92.66}
 
     def __init__(
         self,
@@ -302,12 +326,12 @@ class PlotManager:
         convex_envelop=True,
         only_dots=False,
         fontsize=15,
-        figsize = (20, 12),
+        figsize=(20, 12),
         limits=None,
         label_mapping=None,
         draw_bert_reference_lines=False,
-        add_title = True,
-        seaborn_name=None
+        add_title=True,
+        seaborn_name=None,
     ):
         self.cache_dir = Path(__file__).parent / "cache"
         self.cache_dir.mkdir(exist_ok=True)
@@ -376,9 +400,9 @@ class PlotManager:
 
         final_plots = {}
 
-        label_mapping = {k:(i,v) for i, (k,v) in enumerate(self.label_mapping.items())}
+        label_mapping = {k: (i, v) for i, (k, v) in enumerate(self.label_mapping.items())}
 
-        indexed_labels= defaultdict(list)
+        indexed_labels = defaultdict(list)
 
         for inputs in references, checkpoints:
             for k, v in inputs.items():
@@ -396,8 +420,8 @@ class PlotManager:
         plots = {}
         accuracy_key = self.TASK_KEYS[self.task]
 
-        indexed_labels = [(k,v) for k,v in indexed_labels.items()]
-        indexed_labels.sort(key=lambda x:x[0])
+        indexed_labels = [(k, v) for k, v in indexed_labels.items()]
+        indexed_labels.sort(key=lambda x: x[0])
 
         for _, labels in indexed_labels:
             data = []
@@ -414,16 +438,16 @@ class PlotManager:
             max_x = max(max_x, max(x))
             print(accuracy_key, json.dumps(data, indent=4, sort_keys=True))
             y = [e[accuracy_key] for e in data]
-            annotate = [e.get("annotate","") for e in data]
+            annotate = [e.get("annotate", "") for e in data]
 
-            _, label_text  = self.match_regexp_dict(label, label_mapping)
+            _, label_text = self.match_regexp_dict(label, label_mapping)
             if label_text is None:
                 print(label)
-            assert(label_text is not None)
-#            label_text = self.label_mapping.get(label, label.capitalize())
-            plots[label_text] = {"x":x, "y":y, "annotate": annotate, "points":data}
+            assert label_text is not None
+            #            label_text = self.label_mapping.get(label, label.capitalize())
+            plots[label_text] = {"x": x, "y": y, "annotate": annotate, "points": data}
 
-        x_label_mapping = {"fill_rate":"density"}
+        x_label_mapping = {"fill_rate": "density"}
         x_label = x_label_mapping.get(key, key).capitalize()
         y_label = accuracy_key.capitalize()
 
@@ -434,21 +458,22 @@ class PlotManager:
 
         reference_accuracy = self.REFERENCES[task]
 
-        params = dict(dest_dir=dest_dir,
-                      dest_file_name=dest_file_name,
-                      only_dots=self.only_dots,
-                      draw_labels=self.draw_labels,
-                      limits=self.limits,
-                      title=title,
-                      x_label=x_label,
-                      y_label=y_label,
-                      accuracy_key=accuracy_key,
-                      reference_accuracy=reference_accuracy,
-                      draw_bert_reference_lines=self.draw_bert_reference_lines,
-                      fontsize = self.fontsize,
-                      figsize = self.figsize,
-                      seaborn_name = self.seaborn_name
-                      )
+        params = dict(
+            dest_dir=dest_dir,
+            dest_file_name=dest_file_name,
+            only_dots=self.only_dots,
+            draw_labels=self.draw_labels,
+            limits=self.limits,
+            title=title,
+            x_label=x_label,
+            y_label=y_label,
+            accuracy_key=accuracy_key,
+            reference_accuracy=reference_accuracy,
+            draw_bert_reference_lines=self.draw_bert_reference_lines,
+            fontsize=self.fontsize,
+            figsize=self.figsize,
+            seaborn_name=self.seaborn_name,
+        )
 
         constructors = [MatplotlibPlotter, TextFilePlotter, BokehPlotter]
 
@@ -457,21 +482,19 @@ class PlotManager:
             m.run(plots, key)
 
 
-
-
 def draw_all_plots(input_file_name, task, x_axis, cleanup_cache=False):
     max_squad_speed = 2.9
     paper_fontsize = 7
-    paper_figsize = (3.6, 15/20 * 3.6)
+    paper_figsize = (3.6, 15 / 20 * 3.6)
     web_fontsize = 15
     web_figsize = (20, 12)
     plots = {
         "paper_summary": dict(
-            add_title = False,
+            add_title=False,
             draw_labels=False,
             fontsize=paper_fontsize,
-            figsize = paper_figsize,
-            seaborn_name = "paper",
+            figsize=paper_figsize,
+            seaborn_name="paper",
             label_mapping={
                 "bert": "BERT-base",
                 "distilbert": "DistilBERT",
@@ -482,25 +505,35 @@ def draw_all_plots(input_file_name, task, x_axis, cleanup_cache=False):
                 "Full block method, bs= 32x32+.*": "Block",
                 "Block/struct method, bs= 32x32, v=1, s=b": "Hybrid",
                 "Block/struct method, final fine tuned, s=b": "Hybrid Filled",
-                #"Block/struct method, bs= 32x32, v=1, s=b, t=l": "Hybrid LT",
+                # "Block/struct method, bs= 32x32, v=1, s=b, t=l": "Hybrid LT",
                 "Block/struct method, final fine tuned, s=b, t=l": "Hybrid Filled LT",
-                "glue_experiment_bert":"Hybrid w/o teacher",
+                "glue_experiment_bert": "Hybrid w/o teacher",
                 "glue_experiment_bert_teacher": "Hybrid",
             },
             limits=dict(
                 squadv1=dict(
-                    speedup=dict(legend_pos="lower center", ncol=2, x_min=0.95, x_max=max_squad_speed, y_min=83.5, y_max=90.5),
-                    fill_rate=dict(legend_pos="lower center", ncol=2, x_min=0.0, x_max=0.7, y_min=83.5, y_max=90.75)),
+                    speedup=dict(
+                        legend_pos="lower center", ncol=2, x_min=0.95, x_max=max_squad_speed, y_min=83.5, y_max=90.5
+                    ),
+                    fill_rate=dict(legend_pos="lower center", ncol=2, x_min=0.0, x_max=0.7, y_min=83.5, y_max=90.75),
+                ),
                 squadv2=dict(
                     speedup=dict(legend_pos="upper right", x_min=0.35, x_max=max_squad_speed, y_min=None, y_max=None),
-                    fill_rate=dict(legend_pos="lower right", x_min=0.0, x_max=0.8, y_min=None, y_max=None)),
-                mnli=dict(speedup=dict(legend_pos="upper right", x_min=0.75, x_max=6.0, y_min=79, y_max=86),
-                          fill_rate=dict(legend_pos="lower right", x_min=0.0, x_max=0.75, y_min=79, y_max=86)),
-                qqp = dict(speedup=dict(legend_pos="upper right", x_min=0.75, x_max=6.0, y_min=85, y_max=89),
-                           fill_rate=dict(legend_pos="lower right", x_min=0.0, x_max=0.75, y_min=85, y_max=89)),
-                sst2 = dict(speedup=dict(legend_pos="upper right", x_min=0.75, x_max=6.0, y_min=86, y_max=94),
-                           fill_rate=dict(legend_pos="lower right", x_min=0.0, x_max=1.0, y_min=86, y_max=94))
-    )
+                    fill_rate=dict(legend_pos="lower right", x_min=0.0, x_max=0.8, y_min=None, y_max=None),
+                ),
+                mnli=dict(
+                    speedup=dict(legend_pos="upper right", x_min=0.75, x_max=6.0, y_min=79, y_max=86),
+                    fill_rate=dict(legend_pos="lower right", x_min=0.0, x_max=0.75, y_min=79, y_max=86),
+                ),
+                qqp=dict(
+                    speedup=dict(legend_pos="upper right", x_min=0.75, x_max=6.0, y_min=85, y_max=89),
+                    fill_rate=dict(legend_pos="lower right", x_min=0.0, x_max=0.75, y_min=85, y_max=89),
+                ),
+                sst2=dict(
+                    speedup=dict(legend_pos="upper right", x_min=0.75, x_max=6.0, y_min=86, y_max=94),
+                    fill_rate=dict(legend_pos="lower right", x_min=0.0, x_max=1.0, y_min=86, y_max=94),
+                ),
+            ),
         ),
     }
     plots_paper = {
@@ -508,8 +541,8 @@ def draw_all_plots(input_file_name, task, x_axis, cleanup_cache=False):
             draw_labels=False,
             add_title=False,
             fontsize=paper_fontsize,
-            figsize = paper_figsize,
-            seaborn_name = "paper",
+            figsize=paper_figsize,
+            seaborn_name="paper",
             #            convex_envelop=False,
             label_mapping={
                 "bert": "BERT-base",
@@ -525,19 +558,23 @@ def draw_all_plots(input_file_name, task, x_axis, cleanup_cache=False):
             limits=dict(
                 squadv1=dict(
                     speedup=dict(legend_pos="upper right", x_min=0.95, x_max=2.5, y_min=85, y_max=90.5),
-                    fill_rate=dict(legend_pos="lower right", x_min=0.0, x_max=0.8, y_min=85, y_max=90.75)),
+                    fill_rate=dict(legend_pos="lower right", x_min=0.0, x_max=0.8, y_min=85, y_max=90.75),
+                ),
                 squadv2=dict(
                     speedup=dict(legend_pos="upper right", x_min=0.85, x_max=max_squad_speed, y_min=None, y_max=None),
-                    fill_rate=dict(legend_pos="lower right", x_min=0.0, x_max=0.8, y_min=None, y_max=None)),
-                mnli=dict(speedup=dict(legend_pos="upper right", x_min=0.75, x_max=6.0, y_min=79, y_max=86),
-                          fill_rate=dict(legend_pos="lower right", x_min=0.0, x_max=0.75, y_min=79, y_max=86))
-            )
+                    fill_rate=dict(legend_pos="lower right", x_min=0.0, x_max=0.8, y_min=None, y_max=None),
+                ),
+                mnli=dict(
+                    speedup=dict(legend_pos="upper right", x_min=0.75, x_max=6.0, y_min=79, y_max=86),
+                    fill_rate=dict(legend_pos="lower right", x_min=0.0, x_max=0.75, y_min=79, y_max=86),
+                ),
+            ),
         ),
         "paper_hybrid": dict(
             draw_labels=False,
             fontsize=paper_fontsize,
-            figsize = paper_figsize,
-            seaborn_name = "paper",
+            figsize=paper_figsize,
+            seaborn_name="paper",
             label_mapping={
                 "bert": "BERT-base",
                 "distilbert": "DistilBERT",
@@ -549,20 +586,25 @@ def draw_all_plots(input_file_name, task, x_axis, cleanup_cache=False):
                 "Block/struct method, bs= 32x32, v=1, s=b, t=l": "Hybrid, large teacher",
             },
             limits=dict(
-                squadv1=dict(speedup=dict(legend_pos="upper right", x_min=0.85, x_max=max_squad_speed, y_min=None, y_max=None),
-                             fill_rate=dict(legend_pos="lower right", x_min=0.0, x_max=0.8, y_min=None, y_max=None)),
+                squadv1=dict(
+                    speedup=dict(legend_pos="upper right", x_min=0.85, x_max=max_squad_speed, y_min=None, y_max=None),
+                    fill_rate=dict(legend_pos="lower right", x_min=0.0, x_max=0.8, y_min=None, y_max=None),
+                ),
                 squadv2=dict(
                     speedup=dict(legend_pos="upper right", x_min=0.85, x_max=max_squad_speed, y_min=None, y_max=None),
-                    fill_rate=dict(legend_pos="lower right", x_min=0.0, x_max=0.8, y_min=None, y_max=None)),
-                mnli=dict(speedup=dict(legend_pos="upper right", x_min=0.75, x_max=6.0, y_min=79, y_max=86),
-                          fill_rate=dict(legend_pos="lower right", x_min=0.0, x_max=0.75, y_min=79, y_max=86))
-            )
+                    fill_rate=dict(legend_pos="lower right", x_min=0.0, x_max=0.8, y_min=None, y_max=None),
+                ),
+                mnli=dict(
+                    speedup=dict(legend_pos="upper right", x_min=0.75, x_max=6.0, y_min=79, y_max=86),
+                    fill_rate=dict(legend_pos="lower right", x_min=0.0, x_max=0.75, y_min=79, y_max=86),
+                ),
+            ),
         ),
         "paper_hybrid_filled": dict(
             draw_labels=False,
             fontsize=paper_fontsize,
-            figsize = paper_figsize,
-            seaborn_name = "paper",
+            figsize=paper_figsize,
+            seaborn_name="paper",
             label_mapping={
                 "bert": "BERT-base",
                 "distilbert": "DistilBERT",
@@ -575,19 +617,24 @@ def draw_all_plots(input_file_name, task, x_axis, cleanup_cache=False):
                 "Block/struct method, bs= 32x32, v=1, s=b": "Hybrid",
             },
             limits=dict(
-                squadv1=dict(speedup=dict(legend_pos="upper right", x_min=0.85, x_max=max_squad_speed, y_min=84.5, y_max=90.75),
-                             fill_rate=dict(legend_pos="lower right", x_min=0.0, x_max=0.8, y_min=84.5, y_max=90.75)),
+                squadv1=dict(
+                    speedup=dict(legend_pos="upper right", x_min=0.85, x_max=max_squad_speed, y_min=84.5, y_max=90.75),
+                    fill_rate=dict(legend_pos="lower right", x_min=0.0, x_max=0.8, y_min=84.5, y_max=90.75),
+                ),
                 squadv2=dict(
                     speedup=dict(legend_pos="upper right", x_min=0.85, x_max=max_squad_speed, y_min=None, y_max=None),
-                    fill_rate=dict(legend_pos="lower right", x_min=0.0, x_max=0.8, y_min=None, y_max=None)),
-                mnli=dict(speedup=dict(legend_pos="upper right", x_min=0.75, x_max=6.0, y_min=79, y_max=86),
-                          fill_rate=dict(legend_pos="lower right", x_min=0.0, x_max=0.75, y_min=79, y_max=86))
-            )
+                    fill_rate=dict(legend_pos="lower right", x_min=0.0, x_max=0.8, y_min=None, y_max=None),
+                ),
+                mnli=dict(
+                    speedup=dict(legend_pos="upper right", x_min=0.75, x_max=6.0, y_min=79, y_max=86),
+                    fill_rate=dict(legend_pos="lower right", x_min=0.0, x_max=0.75, y_min=79, y_max=86),
+                ),
+            ),
         ),
     }
     plots.update(plots_paper)
     if task == "qqp":
-        for k,v in plots.items():
+        for k, v in plots.items():
             v["label_mapping"]["soft_movement_with_distillation"] = "Soft Movement"
             del v["label_mapping"]["distilbert"]
 
@@ -597,22 +644,26 @@ def draw_all_plots(input_file_name, task, x_axis, cleanup_cache=False):
             fontsize=web_fontsize,
             figsize=web_figsize,
             label_mapping={
-                "distilbert" : "DistilBERT",
-                "tinybert" : "TinyBERT",
+                "distilbert": "DistilBERT",
+                "tinybert": "TinyBERT",
                 "mobile_bert_no_opt": "Mobile Bert (w/o opt)",
                 "Block/struct method, final fine tuned, s=b, t=l": "Hybrid filled, BERT-base, large teacher",
                 "Block/struct method, final fine tuned, s=l": "Hybrid pruning, BERT-large",
                 "Block/struct method, final fine tuned, s=b": "Hybrid pruning, BERT-base",
                 "Structured pruning": "Structured pruning, BERT-base",
                 "improved soft movement with distillation": "Improved soft movement, BERT-base",
-                "soft_movement_with_distillation" : "Original Soft Movement",
+                "soft_movement_with_distillation": "Original Soft Movement",
             },
             limits=dict(
-                squadv1=dict(speedup=dict(legend_pos="upper right", x_min=0.75, x_max=4, y_min=None, y_max=None),
-                             fill_rate=dict(legend_pos="lower right", x_min=0.0, x_max=0.65, y_min=None, y_max=None)),
-                mnli=dict(speedup=dict(legend_pos="upper right", x_min=0.75, x_max=6.0, y_min=79, y_max=86),
-                          fill_rate=dict(legend_pos="lower right", x_min=0.0, x_max=0.75, y_min=79, y_max=86))
-            )
+                squadv1=dict(
+                    speedup=dict(legend_pos="upper right", x_min=0.75, x_max=4, y_min=None, y_max=None),
+                    fill_rate=dict(legend_pos="lower right", x_min=0.0, x_max=0.65, y_min=None, y_max=None),
+                ),
+                mnli=dict(
+                    speedup=dict(legend_pos="upper right", x_min=0.75, x_max=6.0, y_min=79, y_max=86),
+                    fill_rate=dict(legend_pos="lower right", x_min=0.0, x_max=0.75, y_min=79, y_max=86),
+                ),
+            ),
         ),
         "summary_with_blocks": dict(
             draw_labels=False,
@@ -636,11 +687,15 @@ def draw_all_plots(input_file_name, task, x_axis, cleanup_cache=False):
                 "soft_movement_with_distillation": "Original Soft Movement",
             },
             limits=dict(
-                squadv1=dict(speedup=dict(legend_pos="upper right", x_min=0.75, x_max=4, y_min=None, y_max=None),
-                             fill_rate=dict(legend_pos="lower right", x_min=0.0, x_max=0.65, y_min=None, y_max=None)),
-                mnli=dict(speedup=dict(legend_pos="upper right", x_min=0.75, x_max=6.0, y_min=79, y_max=86),
-                          fill_rate=dict(legend_pos="lower right", x_min=0.0, x_max=0.75, y_min=79, y_max=86))
-            )
+                squadv1=dict(
+                    speedup=dict(legend_pos="upper right", x_min=0.75, x_max=4, y_min=None, y_max=None),
+                    fill_rate=dict(legend_pos="lower right", x_min=0.0, x_max=0.65, y_min=None, y_max=None),
+                ),
+                mnli=dict(
+                    speedup=dict(legend_pos="upper right", x_min=0.75, x_max=6.0, y_min=79, y_max=86),
+                    fill_rate=dict(legend_pos="lower right", x_min=0.0, x_max=0.75, y_min=79, y_max=86),
+                ),
+            ),
         ),
         "comparison_large_teacher": dict(
             draw_labels=False,
@@ -654,11 +709,15 @@ def draw_all_plots(input_file_name, task, x_axis, cleanup_cache=False):
                 "Block/struct method, final fine tuned, s=b, t=l": "BERT-large teacher",
             },
             limits=dict(
-                squadv1=dict(speedup=dict(legend_pos="upper right", x_min=0.75, x_max=4, y_min=None, y_max=None),
-                             fill_rate=dict(legend_pos="lower right", x_min=0.0, x_max=0.65, y_min=None, y_max=None)),
-                mnli=dict(speedup=dict(legend_pos="upper right", x_min=0.75, x_max=6.0, y_min=79, y_max=86),
-                          fill_rate=dict(legend_pos="lower right", x_min=0.0, x_max=0.75, y_min=79, y_max=86))
-            )
+                squadv1=dict(
+                    speedup=dict(legend_pos="upper right", x_min=0.75, x_max=4, y_min=None, y_max=None),
+                    fill_rate=dict(legend_pos="lower right", x_min=0.0, x_max=0.65, y_min=None, y_max=None),
+                ),
+                mnli=dict(
+                    speedup=dict(legend_pos="upper right", x_min=0.75, x_max=6.0, y_min=79, y_max=86),
+                    fill_rate=dict(legend_pos="lower right", x_min=0.0, x_max=0.75, y_min=79, y_max=86),
+                ),
+            ),
         ),
         "full_block_size_influence_raw": dict(
             draw_labels=False,
@@ -670,18 +729,22 @@ def draw_all_plots(input_file_name, task, x_axis, cleanup_cache=False):
                 "mobile_bert_no_opt": "Mobile Bert (w/o opt)",
                 "improved soft movement with distillation": "Improved soft movement, BERT-base",
                 "soft_movement_with_distillation": "Original Soft Movement",
-                #"Full block method, bs= 32x32+.*": True,
-                #"Full block method, bs= 16x16+.*": True,
+                # "Full block method, bs= 32x32+.*": True,
+                # "Full block method, bs= 16x16+.*": True,
                 "Full block method, bs= 8x8+.*": True,
-                #"Full block method, bs= 4x4+.*": True,
+                # "Full block method, bs= 4x4+.*": True,
                 "Block/struct method, bs= 32x32, v=1, s=b": "Hybrid, BERT-base",
             },
             limits=dict(
-                squadv1=dict(speedup=dict(legend_pos="upper right", x_min=0.75, x_max=3.25, y_min=None, y_max=None),
-                             fill_rate=dict(legend_pos="lower right", x_min=0.0, x_max=0.65, y_min=None, y_max=None)),
-                mnli=dict(speedup=dict(legend_pos="upper right", x_min=0.75, x_max=6.0, y_min=79, y_max=86),
-                          fill_rate=dict(legend_pos="lower right", x_min=0.0, x_max=0.75, y_min=79, y_max=86))
-            )
+                squadv1=dict(
+                    speedup=dict(legend_pos="upper right", x_min=0.75, x_max=3.25, y_min=None, y_max=None),
+                    fill_rate=dict(legend_pos="lower right", x_min=0.0, x_max=0.65, y_min=None, y_max=None),
+                ),
+                mnli=dict(
+                    speedup=dict(legend_pos="upper right", x_min=0.75, x_max=6.0, y_min=79, y_max=86),
+                    fill_rate=dict(legend_pos="lower right", x_min=0.0, x_max=0.75, y_min=79, y_max=86),
+                ),
+            ),
         ),
         "full_block_size_influence": dict(
             draw_labels=False,
@@ -700,11 +763,15 @@ def draw_all_plots(input_file_name, task, x_axis, cleanup_cache=False):
                 "Block/struct method, bs= 32x32, v=1, s=b": "Hybrid, BERT-base",
             },
             limits=dict(
-                squadv1=dict(speedup=dict(legend_pos="upper right", x_min=0.75, x_max=3.25, y_min=None, y_max=None),
-                             fill_rate=dict(legend_pos="lower right", x_min=0.0, x_max=0.65, y_min=None, y_max=None)),
-                mnli=dict(speedup=dict(legend_pos="upper right", x_min=0.75, x_max=6.0, y_min=79, y_max=86),
-                          fill_rate=dict(legend_pos="lower right", x_min=0.0, x_max=0.75, y_min=79, y_max=86))
-            )
+                squadv1=dict(
+                    speedup=dict(legend_pos="upper right", x_min=0.75, x_max=3.25, y_min=None, y_max=None),
+                    fill_rate=dict(legend_pos="lower right", x_min=0.0, x_max=0.65, y_min=None, y_max=None),
+                ),
+                mnli=dict(
+                    speedup=dict(legend_pos="upper right", x_min=0.75, x_max=6.0, y_min=79, y_max=86),
+                    fill_rate=dict(legend_pos="lower right", x_min=0.0, x_max=0.75, y_min=79, y_max=86),
+                ),
+            ),
         ),
         "block_size_influence_basic": dict(
             draw_labels=True,
@@ -720,17 +787,20 @@ def draw_all_plots(input_file_name, task, x_axis, cleanup_cache=False):
                 "Block/struct method, final fine tuned, s=b": "Hybrid filled, abs=32x32",
             },
             limits=dict(
-                squadv1=dict(speedup=dict(legend_pos="upper right", x_min=0.75, x_max=3.25, y_min=None, y_max=None),
-                             fill_rate=dict(legend_pos="lower right", x_min=0.0, x_max=0.65, y_min=None, y_max=None)),
-                mnli=dict(speedup=dict(legend_pos="upper right", x_min=0.75, x_max=6.0, y_min=79, y_max=86),
-                          fill_rate=dict(legend_pos="lower right", x_min=0.0, x_max=0.75, y_min=79, y_max=86))
-            )
+                squadv1=dict(
+                    speedup=dict(legend_pos="upper right", x_min=0.75, x_max=3.25, y_min=None, y_max=None),
+                    fill_rate=dict(legend_pos="lower right", x_min=0.0, x_max=0.65, y_min=None, y_max=None),
+                ),
+                mnli=dict(
+                    speedup=dict(legend_pos="upper right", x_min=0.75, x_max=6.0, y_min=79, y_max=86),
+                    fill_rate=dict(legend_pos="lower right", x_min=0.0, x_max=0.75, y_min=79, y_max=86),
+                ),
+            ),
         ),
-
     }
     for name, configuration in plots.items():
-#        if name not in ["block_size_influence_basic"]:
-#            continue
+        #        if name not in ["block_size_influence_basic"]:
+        #            continue
         configuration = copy.deepcopy(configuration)
         if x_axis == "fill_rate":
             configuration["draw_bert_reference_lines"] = True
@@ -747,6 +817,7 @@ def draw_all_plots(input_file_name, task, x_axis, cleanup_cache=False):
         dest.mkdir(exist_ok=True, parents=True)
 
         p.plot(x_axis, dest, f"{plot_name}_{x_axis}")
+
 
 def copy_plots_single(task, dest_dir, parts, suffixes):
     graph_path = (Path(__file__).parent / "graphs" / task).resolve()
@@ -787,8 +858,9 @@ def copy_plots(task):
 
 if __name__ == "__main__":
     import sys
+
     input_file_name = sys.argv[1]
-    for task in ["squadv1"]: #, "qqp", "squadv2"]: #, #"squadv1", "mnli"]
+    for task in ["squadv1"]:  # , "qqp", "squadv2"]: #, #"squadv1", "mnli"]
         input_file_name_ = input_file_name + "_" + task + ".json"
         for x_axis in ["speedup", "fill_rate"]:
             draw_all_plots(input_file_name_, task, x_axis, cleanup_cache=False)
