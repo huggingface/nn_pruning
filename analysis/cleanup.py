@@ -30,12 +30,20 @@ def main(ctxt, basedir, result_files, execute):
        click.Abort("Empty result files")
 
     whitelist = {}
+    task_names = {}
     for filename in result_files:
+        task_name = Path(filename).name[len("results_"):-5]
+        task_names[task_name] = True
         with open(filename) as f:
             single_whitelist = json.load(f)["checkpoints"]
             for k in single_whitelist:
                 whitelist[k] = True
 
+    # Legacy : Add alias for squad
+    if "squadv1" in task_names:
+        task_names["squad"] = True
+
+    click.echo(f"Known task names: {task_names}")
     click.echo("Whitelisted checkpoints:")
     whitelisted = len(whitelist)
     click.echo(f"  {whitelisted}")
@@ -45,7 +53,16 @@ def main(ctxt, basedir, result_files, execute):
     removed = {}
     removed_size = 0
 
+    def find_task_name(dir, task_names):
+        for task_name in task_names:
+            if (task_name  + "_") in dir.name:
+                return True
+        return False
+
     for dir in Path(basedir).iterdir():
+        if not find_task_name(dir, task_names):
+            click.echo(f"excluded {dir} (task name)")
+            continue
         set_dir = dir.resolve()
         for hp_name in set_dir.iterdir():
             for checkpoint in hp_name.iterdir():
