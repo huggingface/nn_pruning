@@ -211,9 +211,10 @@ class ModelAddBasicReport:
             source_checkpoint = None
 
         config = json.load(open(p / "config.json"))
-        training_args = torch.load(p / "training_args.bin").to_dict()
-        #print(dir(training_args))
-
+        try:
+            training_args = torch.load(p / "training_args.bin").to_dict()
+        except:
+            training_args = {}
 
         ret["sparse_args"] = sparse_args
         ret["config"] = config
@@ -343,7 +344,7 @@ class ModelAnalysis:
         for i in range(2):
             if i == 0:
                 for root_dir in self.path.iterdir():
-                    TASK_PREFIXES = {"squadv1":["squad_"], "squadv2":["squadv2", "squad_v2"]}
+                    TASK_PREFIXES = {"squadv1":["squad_"], "squadv2":["squadv2", "squad_v2"], "cnn_dailymail":["ccnews"]}
                     task_prefixes = TASK_PREFIXES.get(self.task, [self.task])
                     found = False
                     for task_prefix in task_prefixes:

@@ -25,7 +25,7 @@ from transformers import AutoConfig, AutoModelForQuestionAnswering
 from dataclasses import dataclass, field
 from collections import defaultdict
 
-from nn_pruning.model_structure import struct_from_name, struct_from_config, ModelStructureNotFound
+from nn_pruning.model_structure import struct_from_config, ModelStructureNotFound
 
 from .modules.masked_nn import (
     ChannelPruningModulePatcher,
@@ -291,7 +291,6 @@ class ModelPatchingCoordinator:
         config = AutoConfig.from_pretrained(model_name_or_path, cache_dir=cache_dir)
         self.model_structure = struct_from_config(config.__class__)
 
-
     def parse_pruning_method(self, method):
         parts = method.split(":")
         if len(parts) == 2:
@@ -353,6 +352,7 @@ class ModelPatchingCoordinator:
         total_step: int = -1,
         warmup_steps: int = -1,
         training: bool = False,
+        compile:bool = False,
     ):
         sparse_args = self.sparse_args
 
@@ -367,7 +367,10 @@ class ModelPatchingCoordinator:
         if not training:
             step -= 1
 
-        use_scheduler = training or (hasattr(sparse_args, "eval_with_current_patch_params") and sparse_args.eval_with_current_patch_params)
+        if compile:
+            use_scheduler = False
+        else:
+            use_scheduler = training or (hasattr(sparse_args, "eval_with_current_patch_params") and sparse_args.eval_with_current_patch_params)
 
         if use_scheduler:
             if step <= initial_warmup * warmup_steps:
@@ -746,7 +749,7 @@ class ModelPatchingCoordinator:
 
 
     def compile_model(self, model):
-        self.schedule_threshold()
+        self.schedule_threshold(compile=True)
         compiler = MaskedLinearModelCompiler()
         compiler.patch(model)
 

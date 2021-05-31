@@ -129,8 +129,13 @@ name2struct = {
 class ModelStructureNotFound(RuntimeError):
     pass
 
-def struct_from_config(config_class):
-    structure = config2struct.get(config_class, None)
+def struct_from_config(config):
+    structure = None
+    if hasattr(config, "config_class"):
+        structure = config2struct.get(config.config_class)
+    elif hasattr(config, "model_type"):
+        structure = name2struct.get(config.model_type)
+
     if structure is None:
         raise ModelStructureNotFound(f"Model config does not match any of the defined structures.")
     return structure
