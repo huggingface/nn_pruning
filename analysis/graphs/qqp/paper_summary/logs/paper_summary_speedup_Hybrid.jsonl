@@ -1,1 +1,1 @@
-{"speedup": 1.0, "f1": 87.42, "meta": {"accuracy": 90.62, "architecture": "bert", "combined": 89.02, "f1": 87.42, "fill_rate": 0.1822, "name": "qqp-l5-wr2-fw1-epoch12-teach09", "speedup": 1.0, "with_teacher": true}}
+{"speedup": 1.0, "f1": 88.31, "meta": {"name": "qqp-l1-wr2-fw1-epoch10-teach09", "accuracy": 91.31, "combined": 89.81, "with_teacher": true, "architecture": "bert", "fill_rate": 0.496, "f1": 88.31, "speedup": 1.0}}

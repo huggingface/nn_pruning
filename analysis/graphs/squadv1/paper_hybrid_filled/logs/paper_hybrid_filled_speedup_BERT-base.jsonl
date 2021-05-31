@@ -1,1 +1,1 @@
-{"speedup": 1, "f1": 88.5, "meta": {"annotate": "BERT", "exact": 80.8, "f1": 88.5, "fill_rate": 1.0, "speedup": 1}}
+{"speedup": 1, "f1": 88.5, "meta": {"f1": 88.5, "exact": 80.8, "fill_rate": 1.0, "annotate": "BERT", "speedup": 1}}
