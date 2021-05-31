@@ -1,7 +1,7 @@
 {
     "base_speed_report": {
-        "cuda_eval_elapsed_time": 7.908688941955567,
-        "eval_elapsed_time": 9.376834483991843
+        "cuda_eval_elapsed_time": 10.45376319885254,
+        "eval_elapsed_time": 12.162425603950396
     },
     "checkpoints": {
         "/data_2to/devel_data/nn_pruning/output/mnli_test2/hp_mnop-aloxatel__bert-base-mnli_od-output__mnli_test2___pdtbs32_pdebs128_nte12_ws12000_rn-output__mnli_test2___fw4_rfl30/checkpoint-145000": {
@@ -83,7 +83,7 @@
                 "cuda_eval_elapsed_time": 2.864719102859497,
                 "eval_elapsed_time": 4.323034589993767
             },
-            "speedup": 2.758650782928521,
+            "speedup": 3.6464048902058765,
             "stats": {
                 "layers": {
                     "0": {
@@ -488,7 +488,7 @@
                 "cuda_eval_elapsed_time": 4.167509643554688,
                 "eval_elapsed_time": 5.680759868002497
             },
-            "speedup": 1.7377562467398453,
+            "speedup": 2.2969789852745444,
             "stats": {
                 "layers": {
                     "0": {
@@ -860,7 +860,7 @@
                 "cuda_eval_elapsed_time": 4.11156921005249,
                 "eval_elapsed_time": 5.57619989401428
             },
-            "speedup": 1.927173111789067,
+            "speedup": 2.5473515903455377,
             "stats": {
                 "layers": {
                     "0": {
@@ -1234,7 +1234,7 @@
                 "cuda_eval_elapsed_time": 4.081156753540039,
                 "eval_elapsed_time": 5.55136655800743
             },
-            "speedup": 1.9387133575906608,
+            "speedup": 2.5626055721055767,
             "stats": {
                 "layers": {
                     "0": {
@@ -1609,7 +1609,7 @@
                 "cuda_eval_elapsed_time": 3.3338991622924805,
                 "eval_elapsed_time": 4.816707149962895
             },
-            "speedup": 2.121598192871819,
+            "speedup": 2.804344092196828,
             "stats": {
                 "layers": {
                     "0": {
@@ -2001,7 +2001,7 @@
                 "cuda_eval_elapsed_time": 3.2631096725463866,
                 "eval_elapsed_time": 4.693277594982646
             },
-            "speedup": 2.4133000530018203,
+            "speedup": 3.189917755903195,
             "stats": {
                 "layers": {
                     "0": {
@@ -2394,7 +2394,7 @@
                 "cuda_eval_elapsed_time": 3.255559986114502,
                 "eval_elapsed_time": 4.696093907987233
             },
-            "speedup": 2.4305344962050333,
+            "speedup": 3.2126983696601332,
             "stats": {
                 "layers": {
                     "0": {
@@ -2788,7 +2788,7 @@
                 "cuda_eval_elapsed_time": 3.2620955810546874,
                 "eval_elapsed_time": 4.768320298055187
             },
-            "speedup": 2.4237955192890683,
+            "speedup": 3.20379074041854,
             "stats": {
                 "layers": {
                     "0": {
@@ -3182,7 +3182,7 @@
                 "cuda_eval_elapsed_time": 2.9375949478149415,
                 "eval_elapsed_time": 4.412288173974957
             },
-            "speedup": 2.6912592204656125,
+            "speedup": 3.5573262273885065,
             "stats": {
                 "layers": {
                     "0": {
@@ -3585,7 +3585,7 @@
                 "cuda_eval_elapsed_time": 2.9343686294555664,
                 "eval_elapsed_time": 4.401557100005448
             },
-            "speedup": 2.691226734360115,
+            "speedup": 3.557283287015378,
             "stats": {
                 "layers": {
                     "0": {
@@ -3988,7 +3988,7 @@
                 "cuda_eval_elapsed_time": 2.934020566940308,
                 "eval_elapsed_time": 4.402762397017796
             },
-            "speedup": 2.689421061195635,
+            "speedup": 3.554896534948818,
             "stats": {
                 "layers": {
                     "0": {
@@ -4391,7 +4391,7 @@
                 "cuda_eval_elapsed_time": 2.7823165760040283,
                 "eval_elapsed_time": 4.24939920095494
             },
-            "speedup": 2.8396374970436784,
+            "speedup": 3.753453724447129,
             "stats": {
                 "layers": {
                     "0": {
@@ -4797,7 +4797,7 @@
                 "cuda_eval_elapsed_time": 2.779660322189331,
                 "eval_elapsed_time": 4.247222014004365
             },
-            "speedup": 2.837652228822001,
+            "speedup": 3.7508295823133393,
             "stats": {
                 "layers": {
                     "0": {
@@ -5203,7 +5203,7 @@
                 "cuda_eval_elapsed_time": 4.911236637115478,
                 "eval_elapsed_time": 6.384157330030575
             },
-            "speedup": 1.6100189119596693,
+            "speedup": 2.128134836864489,
             "stats": {
                 "layers": {
                     "0": {
@@ -5564,7 +5564,7 @@
                 "cuda_eval_elapsed_time": 4.891370742797852,
                 "eval_elapsed_time": 6.349922476045322
             },
-            "speedup": 1.6185689249184445,
+            "speedup": 2.139436306864655,
             "stats": {
                 "layers": {
                     "0": {
@@ -5925,7 +5925,7 @@
                 "cuda_eval_elapsed_time": 4.895356410980225,
                 "eval_elapsed_time": 6.350895608949941
             },
-            "speedup": 1.6152810668397115,
+            "speedup": 2.1350903918794075,
             "stats": {
                 "layers": {
                     "0": {
@@ -6286,7 +6286,7 @@
                 "cuda_eval_elapsed_time": 2.938521566390991,
                 "eval_elapsed_time": 4.407899483048823
             },
-            "speedup": 2.68684223748194,
+            "speedup": 3.5514878268010563,
             "stats": {
                 "layers": {
                     "0": {
@@ -6694,7 +6694,7 @@
                 "cuda_eval_elapsed_time": 2.9365532932281493,
                 "eval_elapsed_time": 4.400402541039512
             },
-            "speedup": 2.6955068482239692,
+            "speedup": 3.5629407729938056,
             "stats": {
                 "layers": {
                     "0": {
@@ -7102,7 +7102,7 @@
                 "cuda_eval_elapsed_time": 2.916045207977295,
                 "eval_elapsed_time": 4.3803141649696045
             },
-            "speedup": 2.7071524038351082,
+            "speedup": 3.578333954034482,
             "stats": {
                 "layers": {
                     "0": {
@@ -7510,7 +7510,7 @@
                 "cuda_eval_elapsed_time": 2.9029239292144777,
                 "eval_elapsed_time": 4.359898468013853
             },
-            "speedup": 2.7204542583292897,
+            "speedup": 3.5959164431181123,
             "stats": {
                 "layers": {
                     "0": {
@@ -8015,7 +8015,7 @@
                 "cuda_eval_elapsed_time": 4.099252922058105,
                 "eval_elapsed_time": 5.60740703297779
             },
-            "speedup": 1.9283585664636496,
+            "speedup": 2.5489185330514665,
             "stats": {
                 "layers": {
                     "0": {
@@ -8504,7 +8504,7 @@
                 "cuda_eval_elapsed_time": 3.355545082092285,
                 "eval_elapsed_time": 4.823694552993402
             },
-            "speedup": 2.353099811974791,
+            "speedup": 3.1103446346400894,
             "stats": {
                 "layers": {
                     "0": {
@@ -9010,7 +9010,7 @@
                 "cuda_eval_elapsed_time": 3.372425807952881,
                 "eval_elapsed_time": 4.844316225033253
             },
-            "speedup": 2.342680040695798,
+            "speedup": 3.0965717043432677,
             "stats": {
                 "layers": {
                     "0": {
@@ -9530,7 +9530,7 @@
                 "cuda_eval_elapsed_time": 2.7620845451354983,
                 "eval_elapsed_time": 4.23644794797292
             },
-            "speedup": 2.495903279653477,
+            "speedup": 3.299103308301978,
             "stats": {
                 "layers": {
                     "0": {
@@ -10019,7 +10019,7 @@
                 "cuda_eval_elapsed_time": 4.921992198944092,
                 "eval_elapsed_time": 6.402600315050222
             },
-            "speedup": 1.6071409755568822,
+            "speedup": 2.124330759364805,
             "stats": {
                 "layers": {
                     "0": {
@@ -10463,7 +10463,7 @@
                 "cuda_eval_elapsed_time": 4.9217018699646,
                 "eval_elapsed_time": 6.409950888948515
             },
-            "speedup": 1.6040655481444352,
+            "speedup": 2.1202656367963315,
             "stats": {
                 "layers": {
                     "0": {
@@ -10907,7 +10907,7 @@
                 "cuda_eval_elapsed_time": 4.911393100738525,
                 "eval_elapsed_time": 6.421059479995165
             },
-            "speedup": 1.6060474134918423,
+            "speedup": 2.122885280985888,
             "stats": {
                 "layers": {
                     "0": {

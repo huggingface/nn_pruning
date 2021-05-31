@@ -7,5 +7,12 @@
             "fill_rate": 1.0,
             "speedup": 1
         }
+    ],
+    "bert_large": [
+        {
+            "annotate": "BERT-large",
+            "fill_rate": 2.0,
+            "speedup": 0.3221111545868855
+        }
     ]
 }
