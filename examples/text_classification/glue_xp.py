@@ -130,9 +130,8 @@ class GlueXP(XP):
             label2id = {v: k for k, v in id2label.items()}
             kwargs = dict(id2label=id2label, label2id=label2id)
         else:
-            with (Path(config_path) / "config.json").open() as f:
-                config = json.load(f)
-                kwargs = dict(id2label=config["id2label"], label2id=config["label2id"])
+            config = AutoConfig.from_pretrained(config_path)
+            kwargs = dict(id2label=config.id2label, label2id=config.label2id)
 
         self.config = AutoConfig.from_pretrained(
             config_path,
