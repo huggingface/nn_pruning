@@ -283,14 +283,13 @@ class ModelPatchingCoordinator:
         self.sparse_args = sparse_args
         self.patcher_context = PatcherContext()
         self.teacher_constructor = teacher_constructor
-        self.teacher = self.create_teacher(device, cache_dir)
+        self.device = device
+        self.cache_dir = cache_dir
+        self.teacher = None
         self.layer_head_mask = self.create_head_rewind_info(device, cache_dir)
         self.logit_names = logit_names
-        try:
-            self.model_structure = struct_from_name(model_name_or_path)
-        except ModelStructureNotFound:
-            config = AutoConfig.from_pretrained(model_name_or_path, cache_dir=cache_dir)
-            self.model_structure = struct_from_config(config.__class__)
+        config = AutoConfig.from_pretrained(model_name_or_path, cache_dir=cache_dir)
+        self.model_structure = struct_from_config(config.__class__)
 
 
     def parse_pruning_method(self, method):
@@ -309,7 +308,13 @@ class ModelPatchingCoordinator:
 
         return logs
 
-    def create_teacher(self, device, cache_dir):
+    def create_teacher(self):
+        if self.teacher is not None:
+            return self.teacher
+
+        device = self.device
+        cache_dir = self.cache_dir
+
         sparse_args = self.sparse_args
 
         if sparse_args.distil_teacher_name_or_path is not None:
@@ -325,10 +330,9 @@ class ModelPatchingCoordinator:
                 cache_dir=cache_dir,
             )
             teacher.to(device)
-        else:
-            teacher = None
+            self.teacher = teacher
 
-        return teacher
+        return self.teacher
 
 
     def create_head_rewind_info(self, device, cache_dir):
@@ -529,7 +533,7 @@ class ModelPatchingCoordinator:
 
     def distil_loss_combine(self, ce_loss, model_inputs, model_outputs):
         sparse_args = self.sparse_args
-        teacher = self.teacher
+        teacher = self.create_teacher()
 
         if teacher == None:
             return ce_loss, 0.0
