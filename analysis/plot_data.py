@@ -438,40 +438,56 @@ class HFModelStats:
 
 class Bert(PointProvider):
     def points_(self, task):
-
         # From https://www.aclweb.org/anthology/N19-1423.pdf
         if task == "squadv1":
             ret = {
                 "f1": 88.5,
                 "exact": 80.8,
             }
+            ret_large = {} #"f1": 93.15, "exact":86.91}
         elif task == "squadv2":
             # from https://web.stanford.edu/class/archive/cs/cs224n/cs224n.1194/reports/default/15848021.pdf
             ret = {
                 "f1": 76.70,
                 "exact": 73.85,
             }
+            ret_large = {}
         elif task == "mnli":
             ret = {
                 "matched":84.6,
                 "mismatched":83.4
             }
+            ret_large = {}
         elif task == "qqp":
             # Official baseline
             #ret = {"f1":84.31, "accuracy":88.4}
             # Our baseline
             ret = {"f1":88.12, "accuracy":91.15}
+            ret_large = {}
         elif task == "sst2":
             # Official baseline
             # ret = {"f1":84.31, "accuracy":88.4}
             # Our baseline
             ret = {"accuracy": 92.66}
+            ret_large = {}
         else:
             raise Exception(f"Unkwnon task {task}")
 
+        sd = HFModelStats(
+            model_name="bert-large-uncased-whole-word-masking-finetuned-squad",
+            task=task,
+            white_list=["weight"],
+            black_list=["embeddings", "layer_norm", "qa"],
+        )
+
+        speed_info = sd.get_speed()
+        speedup = speed_info["speedup"]
+
         ret.update({"fill_rate": 1.0, "annotate": "BERT", "speedup": 1})
 
-        return dict(bert=[ret])
+        ret_large.update({"fill_rate": 8/4, "annotate": "BERT-large", "speedup": speedup})
+
+        return dict(bert=[ret], bert_large=[ret_large])
 
 class DistilBert(PointProvider):
     def points_(self, task):
@@ -483,6 +499,8 @@ class DistilBert(PointProvider):
         )
 
         total_distilbert = sd.model_part_size()
+        speed_info = sd.get_speed()
+        speedup = speed_info["speedup"]
 
         sb = HFModelStats(
             model_name="csarron/bert-base-uncased-squad-v1",
@@ -522,7 +540,7 @@ class DistilBert(PointProvider):
         else:
             raise Exception(f"Unkwnon task {task}")
 
-        ret.update({"fill_rate": fill_rate, "annotate": "DistilBERT", "speedup": 1.63})
+        ret.update({"fill_rate": fill_rate, "annotate": "DistilBERT", "speedup": speedup}) # 1.63
 
         return dict(distilbert=[ret])
 
@@ -579,6 +597,17 @@ class TinyBert(PointProvider):
             raise Exception(f"Unkwnon task {task}")
 
         ret.update({"fill_rate": 0.5, "speedup": 2.0, "annotate": "TinyBERT6"})
+
+        smb = HFModelStats(
+            model_name="huawei-noah/TinyBERT_General_6L_768D",
+            task=task,
+            white_list=["weight"],
+            black_list=["embeddings", "layer_norm", "qa"],
+        )
+
+        speed_info = smb.get_speed()
+
+        ret["speedup"] = speed_info["speedup"]
 
         return dict(tinybert=[ret])
 
