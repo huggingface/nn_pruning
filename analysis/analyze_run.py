@@ -195,7 +195,7 @@ class ModelAddBasicReport:
             eval_diff = eval_metrics["f1"] - final_eval_metrics["f1"]
             if eval_diff > 0.1:
                 if self.exclude_non_matching_f1:
-                    print("Excluding", eval_diff, eval_metrics["f1"], final_eval_metrics["f1"], checkpoint_path)
+                    print("EXCLUDING (non matching f1 between run and final eval)", eval_diff, eval_metrics["f1"], final_eval_metrics["f1"], checkpoint_path)
                     return None
                 else:
                     # The metrics are really the bad ones (absence bias pruning degrades performance)
@@ -233,6 +233,7 @@ class ModelAnalysis:
                         "squadv2": "twmkn9/bert-base-uncased-squad2",
                         "mnli":"textattack/bert-base-uncased-MNLI"
                         }
+    TASK_PREFIXES = {"squadv1": ["squad"], "squadv2": ["squadv2", "squad_v2"], "cnn_dailymail": ["ccnews"]}
 
     def __init__(self,
                  path,
@@ -344,15 +345,14 @@ class ModelAnalysis:
         for i in range(2):
             if i == 0:
                 for root_dir in self.path.iterdir():
-                    TASK_PREFIXES = {"squadv1":["squad_"], "squadv2":["squadv2", "squad_v2"], "cnn_dailymail":["ccnews"]}
-                    task_prefixes = TASK_PREFIXES.get(self.task, [self.task])
+                    task_prefixes = self.TASK_PREFIXES.get(self.task, [self.task])
                     found = False
                     for task_prefix in task_prefixes:
                         if root_dir.name.startswith(task_prefix + "_"):
                             found = True
                             break
                     if not found:
-                        print(f"EXCLUDING {root_dir}")
+                        print(f"EXCLUDING {root_dir} : not task {self.task}")
                         continue
                     else:
                         print(f"PROCESSING {root_dir}")

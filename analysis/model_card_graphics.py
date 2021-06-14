@@ -208,8 +208,8 @@ class DensityBokehPlotter(BokehHelper):
         self.url_base = url_base
         self.attention_size = model.config.hidden_size
 
-        self.process_matrices()
         self.ratio = ratio
+        self.process_matrices()
 
 
         traces = {}

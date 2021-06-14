@@ -57,10 +57,10 @@ class Packager:
         self.task = task
 
     @classmethod
-    def build_model_name_(cls, model_size, task, speedup, precision, linear_sparsity, kind, is_ampere, version):
+    def build_model_name_(cls, base_name, task, speedup, precision, linear_sparsity, kind, is_ampere, version):
         density = int(100 - linear_sparsity)
 
-        name = f"bert-{model_size}-uncased-{task}-x{speedup:.2f}-f{precision:.1f}-d{density}-{kind}"
+        name = f"{base_name}-{task}-x{speedup:.2f}-f{precision:.1f}-d{density}-{kind}"
         if is_ampere:
             name += "-ampere"
 
@@ -73,19 +73,31 @@ class Packager:
         if source_path is not None:
             print(source_path)
             source_info = self.info["checkpoints"][source_path]
+            self.base_name = source_info["config"]["_name_or_path"]
+        else:
+            self.base_name = checkpoint_info["config"]["_name_or_path"]
+
+        replacements = {"whole-word-masking":"wwm"}
+        def replace(s, replacements):
+            for k,v in replacements.items():
+                s = s.replace(k,v)
+            return s
+        self.base_name = replace(self.base_name, replacements)
 
         self.is_ampere = checkpoint_info["sparse_args"]["ampere_pruning_method"] != "disabled"
         stats = checkpoint_info["stats"]
-        self.model_size = "base" if stats["linear_total"] == 84934656 else "large"
         self.sparsity = int(stats["linear_sparsity"])
         self.total_sparsity = int(stats["total_sparsity"])
         self.density = int(100 - stats["linear_sparsity"])
         self.total_density = int(100 - stats["total_sparsity"])
         speedup = checkpoint_info["speedup"]
+        if "bert-large" in self.base_name:
+            # TEMPORARY: speed ratio between bert-large and bert-base
+            speedup /= 0.3221111545868855
 
         f1 = checkpoint_info["eval_metrics"]["f1"]
 
-        return self.build_model_name_(self.model_size, task, speedup, f1, stats["linear_sparsity"], self.kind, self.is_ampere, self.version)
+        return self.build_model_name_(self.base_name, self.task, speedup, f1, stats["linear_sparsity"], self.kind, self.is_ampere, self.version)
 
     def load_info(self):
         with self.info_filepath.open() as f:
@@ -118,7 +130,7 @@ class Packager:
         d = None
         try:
             if not (self.git_path / "tf_model.h5").exists() or not (self.git_path / "pytorch_model.bin").exists():
-                if task.startswith("squad"):
+                if self.task.startswith("squad"):
                     d = TemporaryDirectory()
                     model = QASparseXP.compile_model(src_path, dest_path=d.name)
                     model = optimize_model(model, "heads")
@@ -129,7 +141,7 @@ class Packager:
 
             if not (self.git_path / "tf_model.h5").exists():
                 with TemporaryDirectory() as d2:
-                    if task.startswith("squad"):
+                    if self.task.startswith("squad"):
                         QASparseXP.final_fine_tune_bertarize(src_path, d2, remove_head_pruning=True)
                     else:
                         raise Exception(f"Unknown task {task}")
@@ -216,7 +228,7 @@ class Packager:
 
         reference = dict(main_metric_value=88.5, main_metric_name="F1")
         eval_metrics = checkpoint_info["eval_metrics"]
-        if task == "squadv1":
+        if self.task == "squadv1":
             eval_metrics["main_metric"] = eval_metrics["f1"]
 
         nn_pruning_needed = config.get("layer_norm_type") == "no_norm"
