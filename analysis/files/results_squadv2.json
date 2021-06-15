@@ -44,6 +44,13 @@
                 "f1": 75.53027719924886,
                 "total": 11873
             },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null,
+                "use_fast_tokenizer": true
+            },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
                 "attention_block_cols": 32,
@@ -380,6 +387,13 @@
                 "exact": 72.15531036806199,
                 "f1": 75.48730979224833,
                 "total": 11873
+            },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null,
+                "use_fast_tokenizer": true
             },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
@@ -720,6 +734,13 @@
                 "f1": 75.30785179817528,
                 "total": 11873
             },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null,
+                "use_fast_tokenizer": true
+            },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
                 "attention_block_cols": 32,
@@ -1059,6 +1080,13 @@
                 "f1": 74.8724804011583,
                 "total": 11873
             },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null,
+                "use_fast_tokenizer": true
+            },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
                 "attention_block_cols": 32,
@@ -1397,6 +1425,13 @@
                 "exact": 71.7426092815632,
                 "f1": 75.08828483164976,
                 "total": 11873
+            },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null,
+                "use_fast_tokenizer": true
             },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
@@ -1754,6 +1789,13 @@
                 "f1": 74.64560216432078,
                 "total": 11873
             },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null,
+                "use_fast_tokenizer": true
+            },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
                 "attention_block_cols": 32,
@@ -2110,6 +2152,13 @@
                 "f1": 76.36922308183819,
                 "total": 11873
             },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null,
+                "use_fast_tokenizer": true
+            },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
                 "attention_block_cols": 32,
@@ -2449,6 +2498,13 @@
                 "exact": 72.21426766613324,
                 "f1": 75.58377333824575,
                 "total": 11873
+            },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null,
+                "use_fast_tokenizer": true
             },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
@@ -2791,6 +2847,13 @@
                 "exact": 70.2097195317106,
                 "f1": 73.81195722278603,
                 "total": 11873
+            },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null,
+                "use_fast_tokenizer": true
             },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
@@ -3151,6 +3214,13 @@
                 "exact": 70.47081613745473,
                 "f1": 73.78269510284804,
                 "total": 11873
+            },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null,
+                "use_fast_tokenizer": true
             },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
@@ -3513,6 +3583,13 @@
                 "f1": 72.68415489386355,
                 "total": 11873
             },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null,
+                "use_fast_tokenizer": true
+            },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
                 "attention_block_cols": 32,
@@ -3873,6 +3950,13 @@
                 "exact": 70.41185883938347,
                 "f1": 73.90823296051956,
                 "total": 11873
+            },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null,
+                "use_fast_tokenizer": true
             },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
@@ -4240,6 +4324,13 @@
                 "f1": 72.93998454800146,
                 "total": 11873
             },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null,
+                "use_fast_tokenizer": true
+            },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
                 "attention_block_cols": 32,
@@ -4606,6 +4697,13 @@
                 "f1": 73.53431997839029,
                 "total": 11873
             },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null,
+                "use_fast_tokenizer": true
+            },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
                 "attention_block_cols": 32,
@@ -4906,6 +5004,13 @@
                 "f1": 72.28342929252172,
                 "total": 11873
             },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null,
+                "use_fast_tokenizer": true
+            },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
                 "attention_block_cols": 32,
@@ -5205,6 +5310,13 @@
                 "exact": 72.33218226227575,
                 "f1": 75.7435955094686,
                 "total": 11873
+            },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null,
+                "use_fast_tokenizer": true
             },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
@@ -5564,6 +5676,13 @@
                 "f1": 75.42311762499034,
                 "total": 11873
             },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null,
+                "use_fast_tokenizer": true
+            },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
                 "attention_block_cols": 32,
@@ -5921,6 +6040,13 @@
                 "exact": 70.81613745472922,
                 "f1": 74.35790789620452,
                 "total": 11873
+            },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null,
+                "use_fast_tokenizer": true
             },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
@@ -6289,6 +6415,13 @@
                 "f1": 74.07805149116633,
                 "total": 11873
             },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null,
+                "use_fast_tokenizer": true
+            },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
                 "attention_block_cols": 32,
@@ -6656,6 +6789,13 @@
                 "f1": 72.2737102604908,
                 "total": 11873
             },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null,
+                "use_fast_tokenizer": true
+            },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
                 "attention_block_cols": 32,
@@ -6956,6 +7096,13 @@
                 "f1": 71.17937828998426,
                 "total": 11873
             },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null,
+                "use_fast_tokenizer": true
+            },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
                 "attention_block_cols": 32,
@@ -7255,6 +7402,13 @@
                 "exact": 79.70184452118251,
                 "f1": 82.56816761071981,
                 "total": 11873
+            },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-large-uncased-whole-word-masking",
+                "tokenizer_name": null,
+                "use_fast_tokenizer": true
             },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
@@ -7901,6 +8055,13 @@
                 "exact": 80.19034784805862,
                 "f1": 83.22133208932645,
                 "total": 11873
+            },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-large-uncased-whole-word-masking",
+                "tokenizer_name": null,
+                "use_fast_tokenizer": true
             },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
@@ -8587,6 +8748,13 @@
                 "f1": 75.63264927831169,
                 "total": 11873
             },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "/home/lagunas/devel/hf/nn_pruning/analysis/tmp_finetune",
+                "tokenizer_name": null,
+                "use_fast_tokenizer": true
+            },
             "source_checkpoint": "/data_2to/devel_data/nn_pruning/output/squadv2_test_0/hp_dn-squad_v2_v2wn1_od-__data_2to__devel_data__nn_pruning__output__squadv2_test_0_es-steps_pdebs128_nte20_ls250_stl50_est5000_rn-__data_2to__devel_data__nn_pruning__output__squadv2_--333fe38360923d6c/checkpoint-150000",
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
@@ -9019,6 +9187,13 @@
                 "exact": 72.24795755074538,
                 "f1": 75.45359715227984,
                 "total": 11873
+            },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "/home/lagunas/devel/hf/nn_pruning/analysis/tmp_finetune",
+                "tokenizer_name": null,
+                "use_fast_tokenizer": true
             },
             "source_checkpoint": "/data_2to/devel_data/nn_pruning/output/squadv2_test_0/hp_dn-squad_v2_v2wn1_od-__data_2to__devel_data__nn_pruning__output__squadv2_test_0_es-steps_pdebs128_nte20_ls250_stl50_est5000_rn-__data_2to__devel_data__nn_pruning__output__squadv2_--333fe38360923d6c/checkpoint-150000",
             "sparse_args": {
@@ -9453,6 +9628,13 @@
                 "f1": 75.41825183851692,
                 "total": 11873
             },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "/home/lagunas/devel/hf/nn_pruning/analysis/tmp_finetune",
+                "tokenizer_name": null,
+                "use_fast_tokenizer": true
+            },
             "source_checkpoint": "/data_2to/devel_data/nn_pruning/output/squadv2_test_0/hp_dn-squad_v2_v2wn1_od-__data_2to__devel_data__nn_pruning__output__squadv2_test_0_es-steps_pdebs128_nte20_ls250_stl50_est5000_rn-__data_2to__devel_data__nn_pruning__output__squadv2_--333fe38360923d6c/checkpoint-150000",
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
@@ -9870,6 +10052,13 @@
                 "f1": 76.9922204715519,
                 "total": 11873
             },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "/home/lagunas/devel/hf/nn_pruning/analysis/tmp_finetune",
+                "tokenizer_name": null,
+                "use_fast_tokenizer": true
+            },
             "source_checkpoint": "/data_2to/devel_data/nn_pruning/output/squadv2_test_0/hp_dn-squad_v2_v2wn1_od-__data_2to__devel_data__nn_pruning__output__squadv2_test_0_es-steps_pdebs128_nte20_ls250_stl50_est5000_rn-__data_2to__devel_data__nn_pruning__output__squadv2_--3c220d21d68ec2de/checkpoint-135000",
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
@@ -10270,6 +10459,13 @@
                 "exact": 73.46921586793565,
                 "f1": 76.6368271592751,
                 "total": 11873
+            },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "/home/lagunas/devel/hf/nn_pruning/analysis/tmp_finetune",
+                "tokenizer_name": null,
+                "use_fast_tokenizer": true
             },
             "source_checkpoint": "/data_2to/devel_data/nn_pruning/output/squadv2_test_0/hp_dn-squad_v2_v2wn1_od-__data_2to__devel_data__nn_pruning__output__squadv2_test_0_es-steps_pdebs128_nte20_ls250_stl50_est5000_rn-__data_2to__devel_data__nn_pruning__output__squadv2_--3c220d21d68ec2de/checkpoint-135000",
             "sparse_args": {
@@ -10672,6 +10868,13 @@
                 "f1": 76.41499619481642,
                 "total": 11873
             },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "/home/lagunas/devel/hf/nn_pruning/analysis/tmp_finetune",
+                "tokenizer_name": null,
+                "use_fast_tokenizer": true
+            },
             "source_checkpoint": "/data_2to/devel_data/nn_pruning/output/squadv2_test_0/hp_dn-squad_v2_v2wn1_od-__data_2to__devel_data__nn_pruning__output__squadv2_test_0_es-steps_pdebs128_nte20_ls250_stl50_est5000_rn-__data_2to__devel_data__nn_pruning__output__squadv2_--3c220d21d68ec2de/checkpoint-135000",
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
@@ -11073,6 +11276,13 @@
                 "f1": 76.41332910789964,
                 "total": 11873
             },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "/home/lagunas/devel/hf/nn_pruning/analysis/tmp_finetune",
+                "tokenizer_name": null,
+                "use_fast_tokenizer": true
+            },
             "source_checkpoint": "/data_2to/devel_data/nn_pruning/output/squadv2_test_0/hp_dn-squad_v2_v2wn1_od-__data_2to__devel_data__nn_pruning__output__squadv2_test_0_es-steps_pdebs128_nte20_ls250_stl50_est5000_rn-__data_2to__devel_data__nn_pruning__output__squadv2_--3c220d21d68ec2de/checkpoint-135000",
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
@@ -11473,6 +11683,13 @@
                 "exact": 73.17442937757939,
                 "f1": 76.40477392813135,
                 "total": 11873
+            },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "/home/lagunas/devel/hf/nn_pruning/analysis/tmp_finetune",
+                "tokenizer_name": null,
+                "use_fast_tokenizer": true
             },
             "source_checkpoint": "/data_2to/devel_data/nn_pruning/output/squadv2_test_0/hp_dn-squad_v2_v2wn1_od-__data_2to__devel_data__nn_pruning__output__squadv2_test_0_es-steps_pdebs128_nte20_ls250_stl50_est5000_rn-__data_2to__devel_data__nn_pruning__output__squadv2_--3c220d21d68ec2de/checkpoint-135000",
             "sparse_args": {
@@ -11900,6 +12117,13 @@
                 "exact": 71.78472163732839,
                 "f1": 75.19978410639239,
                 "total": 11873
+            },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "/home/lagunas/devel/hf/nn_pruning/analysis/tmp_finetune",
+                "tokenizer_name": null,
+                "use_fast_tokenizer": true
             },
             "source_checkpoint": "/data_2to/devel_data/nn_pruning/output/squadv2_test_0/hp_dn-squad_v2_v2wn1_od-__data_2to__devel_data__nn_pruning__output__squadv2_test_0_es-steps_pdebs128_nte20_ls250_stl50_est5000_rn-__data_2to__devel_data__nn_pruning__output__squadv2_--5f4658054e1d8682/checkpoint-155000",
             "sparse_args": {
@@ -12354,6 +12578,13 @@
                 "f1": 74.99644635560065,
                 "total": 11873
             },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "/home/lagunas/devel/hf/nn_pruning/analysis/tmp_finetune",
+                "tokenizer_name": null,
+                "use_fast_tokenizer": true
+            },
             "source_checkpoint": "/data_2to/devel_data/nn_pruning/output/squadv2_test_0/hp_dn-squad_v2_v2wn1_od-__data_2to__devel_data__nn_pruning__output__squadv2_test_0_es-steps_pdebs128_nte20_ls250_stl50_est5000_rn-__data_2to__devel_data__nn_pruning__output__squadv2_--5f4658054e1d8682/checkpoint-155000",
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
@@ -12807,6 +13038,13 @@
                 "f1": 74.95957959181833,
                 "total": 11873
             },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "/home/lagunas/devel/hf/nn_pruning/analysis/tmp_finetune",
+                "tokenizer_name": null,
+                "use_fast_tokenizer": true
+            },
             "source_checkpoint": "/data_2to/devel_data/nn_pruning/output/squadv2_test_0/hp_dn-squad_v2_v2wn1_od-__data_2to__devel_data__nn_pruning__output__squadv2_test_0_es-steps_pdebs128_nte20_ls250_stl50_est5000_rn-__data_2to__devel_data__nn_pruning__output__squadv2_--5f4658054e1d8682/checkpoint-155000",
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
@@ -13259,6 +13497,13 @@
                 "exact": 71.42255537774783,
                 "f1": 74.80020063821331,
                 "total": 11873
+            },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "/home/lagunas/devel/hf/nn_pruning/analysis/tmp_finetune",
+                "tokenizer_name": null,
+                "use_fast_tokenizer": true
             },
             "source_checkpoint": "/data_2to/devel_data/nn_pruning/output/squadv2_test_0/hp_dn-squad_v2_v2wn1_od-__data_2to__devel_data__nn_pruning__output__squadv2_test_0_es-steps_pdebs128_nte20_ls250_stl50_est5000_rn-__data_2to__devel_data__nn_pruning__output__squadv2_--5f4658054e1d8682/checkpoint-155000",
             "sparse_args": {

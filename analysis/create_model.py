@@ -67,6 +67,19 @@ class Packager:
         name += f"-v{version}"
         return name
 
+    def get_speedup(self):
+        speedup = self.checkpoint_info["speedup"]
+        if "bert-large" in self.base_name:
+            # TEMPORARY: speed ratio between bert-large and bert-base
+            speedup /= 0.3221111545868855
+        return speedup
+
+    def get_original_model_size_mb(self):
+        orignal_model_size = 420 * 1024**2
+        if "bert-large" in self.base_name:
+            original_model_size = 1.2*1024**3
+        return original_model_size
+
     def build_model_name(self):
         checkpoint_info = self.checkpoint_info
         source_path = checkpoint_info.get("source_checkpoint")
@@ -90,10 +103,7 @@ class Packager:
         self.total_sparsity = int(stats["total_sparsity"])
         self.density = int(100 - stats["linear_sparsity"])
         self.total_density = int(100 - stats["total_sparsity"])
-        speedup = checkpoint_info["speedup"]
-        if "bert-large" in self.base_name:
-            # TEMPORARY: speed ratio between bert-large and bert-base
-            speedup /= 0.3221111545868855
+        speedup = self.get_speedup()
 
         f1 = checkpoint_info["eval_metrics"]["f1"]
 
@@ -122,14 +132,14 @@ class Packager:
                 sh.git("clone", f"https://huggingface.co/{self.model_owner_name}/{self.model_name}")
         return git_path
 
-    def copy_model_files(self):
+    def copy_model_files(self, force = False):
         modified = False
 
         src_path = self.checkpoint_path
 
         d = None
         try:
-            if not (self.git_path / "tf_model.h5").exists() or not (self.git_path / "pytorch_model.bin").exists():
+            if force or not (self.git_path / "tf_model.h5").exists() or not (self.git_path / "pytorch_model.bin").exists():
                 if self.task.startswith("squad"):
                     d = TemporaryDirectory()
                     model = QASparseXP.compile_model(src_path, dest_path=d.name)
@@ -139,7 +149,7 @@ class Packager:
                 else:
                     raise Exception(f"Unknown task {task}")
 
-            if not (self.git_path / "tf_model.h5").exists():
+            if force or not (self.git_path / "tf_model.h5").exists():
                 with TemporaryDirectory() as d2:
                     if self.task.startswith("squad"):
                         QASparseXP.final_fine_tune_bertarize(src_path, d2, remove_head_pruning=True)
@@ -150,14 +160,14 @@ class Packager:
                     tf_model.save_pretrained(self.git_path)
                     modified = True
 
-            if not (self.git_path / "pytorch_model.bin").exists():
+            if force or not (self.git_path / "pytorch_model.bin").exists():
                 model = BertForQuestionAnswering.from_pretrained(src_path)
                 model.save_pretrained(self.git_path)
                 modified = True
 
             FILES = "special_tokens_map.json", "tokenizer_config.json", "vocab.txt"
             for file in FILES:
-                if not (self.git_path / file).exists():
+                if force or not (self.git_path / file).exists():
                     shutil.copyfile(str(Path(src_path) / file), str(self.git_path / file))
                     modified = True
 
@@ -177,7 +187,11 @@ class Packager:
         ret = {}
         if pruned_heads is not None:
             pruning_info_plotter = PruningInfoBokehPlotter("pruning_info", self.JS_PATH)
-            fig, js, html = pruning_info_plotter.run(layer_count=12, pruned_heads=pruned_heads, heads_count=12)
+            config = self.checkpoint_info["config"]
+            layer_count = config["num_hidden_layers"]
+            heads_count = config["num_attention_heads"]
+
+            fig, js, html = pruning_info_plotter.run(layer_count=layer_count, pruned_heads=pruned_heads, heads_count=heads_count)
             ret["pruning_info"] = dict(js=js, html=html)
 
         density_plotter = DensityBokehPlotter("density", self.JS_PATH)
@@ -205,7 +219,6 @@ class Packager:
 
         graphics = self.create_graphics(url_base=model_path, model_card_path = self.git_path / model_card_path)
 
-
         for k, v in graphics.items():
             with (self.git_path / model_card_path / (k + ".js")).open("w") as f:
                 f.write(v["js"])
@@ -213,8 +226,9 @@ class Packager:
                 html = html.replace(self.JS_PATH, f"{model_path}/{k}.js")[1:]
                 v["html"] = html
 
-        template_file = Path(__file__).parent / "files" / "README_MODEL.jinja.md"
+        template_file = Path(__file__).parent / "files" / f"README_MODEL.{self.task}.jinja.md"
         template = jinja2.Template(template_file.open().read())
+        template.undefined = jinja2.StrictUndefined
 
         config = checkpoint_info["config"]
         pruned_heads = sum([len(x) for x in config["pruned_heads"].values()])
@@ -226,27 +240,49 @@ class Packager:
         pytorch_final_file_size = (self.git_path / "pytorch_model.bin").stat().st_size
         packaging_report = dict(pytorch_final_file_size=pytorch_final_file_size, model_name=self.model_name, model_owner_name = self.model_owner_name, version=self.version)
 
-        reference = dict(main_metric_value=88.5, main_metric_name="F1")
         eval_metrics = checkpoint_info["eval_metrics"]
+        eval_metrics_pretty = json.dumps(eval_metrics, indent=4)
+        model_base_name =  checkpoint_info["model_args"]["model_name_or_path"]
+        model_base_url = "https://huggingface.co/" + model_base_name
+        teacher = checkpoint_info["sparse_args"]["distil_teacher_name_or_path"]
+        teacher_url = "https://huggingface.co/" + teacher
+
         if self.task == "squadv1":
             eval_metrics["main_metric"] = eval_metrics["f1"]
+            reference = dict(main_metric_value=88.5, main_metric_name="F1")
+        elif self.task == "squadv2":
+            if self.base_name == "bert-large-uncased-wwm":
+                eval_metrics["main_metric"] = eval_metrics["f1"]
+                # From teacher https://huggingface.co/madlag/bert-large-uncased-whole-word-masking-finetuned-squadv2
+                reference = dict(main_metric_value=85.85, main_metric_name="F1")
+            else:
+                raise Exception(f"Unknown model type {self.base_name}")
+        else:
+            raise Exception(f"Unsupport task {self.task}")
 
         nn_pruning_needed = config.get("layer_norm_type") == "no_norm"
         use_relu = config.get("hidden_act") == "relu"
+        original_model_size_mb = self.get_original_model_size_mb()
+        original_model_size_params = int(checkpoint_info["stats"]["total"] / checkpoint_info["stats"]["total_sparsity"] * 100)
 
-        teacher = self.checkpoint_info["sparse_args"].get('distil_teacher_name_or_path')
-        ret = template.render(speedup = checkpoint_info["speedup"],
+        ret = template.render(speedup = self.get_speedup(),
                               sparsity = sparsity_report,
                               packaging = packaging_report,
                               eval_metrics = eval_metrics,
+                              eval_metrics_pretty = eval_metrics_pretty,
                               graphics=graphics,
                               burl=model_card_base_url,
                               kind=self.kind,
                               reference = reference,
+                              model_base_name=model_base_name,
+                              model_base_url = model_base_url,
+                              teacher = teacher,
+                              teacher_url = teacher_url,
                               task=self.task,
                               nn_pruning_needed=nn_pruning_needed,
                               use_relu=use_relu,
-                              teacher=teacher)
+                              original_model_size_mb=original_model_size_mb,
+                              original_model_size_params=original_model_size_params)
 
         with (self.git_path / "README.md").open("w") as readme_file:
             readme_file.write(ret)

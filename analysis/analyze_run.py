@@ -216,11 +216,14 @@ class ModelAddBasicReport:
         except:
             training_args = {}
 
+        model_args = json.load(open(p / "model_args.json"))
+
         ret["sparse_args"] = sparse_args
         ret["config"] = config
         if source_checkpoint is not None:
             ret["source_checkpoint"] = source_checkpoint
         ret["training_args"] = training_args
+        ret["model_args"] = model_args
         ret["speedup"] = speedup
         return ret
 

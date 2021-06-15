@@ -31,6 +31,12 @@
                 "exact_match": 79.15799432355723,
                 "f1": 86.94169166073364
             },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null
+            },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
                 "attention_block_cols": 768,
@@ -348,6 +354,12 @@
             "eval_metrics": {
                 "exact_match": 79.25260170293284,
                 "f1": 86.93528973939952
+            },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null
             },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
@@ -711,6 +723,12 @@
                 "exact_match": 79.2620624408704,
                 "f1": 86.97825692623259
             },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null
+            },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
                 "attention_block_cols": 32,
@@ -1069,6 +1087,12 @@
                 "exact_match": 80.6244087038789,
                 "f1": 88.07723643002453
             },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null
+            },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
                 "attention_block_cols": 32,
@@ -1409,6 +1433,12 @@
             "eval_metrics": {
                 "exact_match": 79.64049195837275,
                 "f1": 87.40026291426761
+            },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null
             },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
@@ -1765,6 +1795,12 @@
                 "exact_match": 79.99053926206244,
                 "f1": 87.56439208763325
             },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null
+            },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
                 "attention_block_cols": 32,
@@ -2116,6 +2152,12 @@
             "eval_metrics": {
                 "exact_match": 79.39451277199622,
                 "f1": 86.84346997900737
+            },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null
             },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
@@ -2481,6 +2523,12 @@
             "eval_metrics": {
                 "exact_match": 78.78902554399244,
                 "f1": 86.64151988736798
+            },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null
             },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
@@ -2851,6 +2899,12 @@
                 "exact_match": 78.93093661305582,
                 "f1": 86.85787750084084
             },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null
+            },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
                 "attention_block_cols": 32,
@@ -3219,6 +3273,12 @@
                 "exact_match": 78.72280037842951,
                 "f1": 86.62745564109652
             },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null
+            },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
                 "attention_block_cols": 16,
@@ -3573,6 +3633,12 @@
                 "exact_match": 79.38505203405866,
                 "f1": 87.07610213911921
             },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null
+            },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
                 "attention_block_cols": 16,
@@ -3925,6 +3991,12 @@
             "eval_metrics": {
                 "exact_match": 78.7038789025544,
                 "f1": 86.58426699451658
+            },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null
             },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
@@ -4289,6 +4361,12 @@
                 "exact_match": 78.88363292336803,
                 "f1": 86.63235572290178
             },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null
+            },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
                 "attention_block_cols": 32,
@@ -4651,6 +4729,12 @@
                 "exact_match": 78.96877956480606,
                 "f1": 86.71968503618079
             },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null
+            },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
                 "attention_block_cols": 32,
@@ -5009,6 +5093,12 @@
                 "exact_match": 78.74172185430463,
                 "f1": 86.69521763053608
             },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null
+            },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
                 "attention_block_cols": 16,
@@ -5359,6 +5449,12 @@
                 "exact_match": 78.84578997161779,
                 "f1": 86.78133258210022
             },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null
+            },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
                 "attention_block_cols": 16,
@@ -5708,6 +5804,12 @@
             "eval_metrics": {
                 "exact_match": 78.73226111636707,
                 "f1": 86.74884583609185
+            },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null
             },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
@@ -6061,6 +6163,12 @@
                 "exact_match": 78.97824030274361,
                 "f1": 86.77789246016766
             },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null
+            },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
                 "attention_block_cols": 16,
@@ -6412,6 +6520,12 @@
             "eval_metrics": {
                 "exact_match": 76.33869441816462,
                 "f1": 84.90005817955239
+            },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null
             },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
@@ -6783,6 +6897,12 @@
                 "exact_match": 80.90823084200568,
                 "f1": 88.13888839423888
             },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null
+            },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
                 "attention_block_cols": 32,
@@ -7054,6 +7174,12 @@
             "eval_metrics": {
                 "exact_match": 78.21192052980132,
                 "f1": 86.2154189083501
+            },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null
             },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
@@ -7327,6 +7453,12 @@
                 "exact_match": 78.7038789025544,
                 "f1": 86.6699349353281
             },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null
+            },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
                 "attention_block_cols": 32,
@@ -7598,6 +7730,12 @@
             "eval_metrics": {
                 "exact_match": 77.94701986754967,
                 "f1": 86.06827252573265
+            },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null
             },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
@@ -7965,6 +8103,12 @@
             "eval_metrics": {
                 "exact_match": 77.06717123935667,
                 "f1": 85.28341140334766
+            },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null
             },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
@@ -8336,6 +8480,12 @@
                 "exact_match": 79.80132450331126,
                 "f1": 87.48291010744668
             },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null
+            },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
                 "attention_block_cols": 32,
@@ -8690,6 +8840,12 @@
                 "exact_match": 80.27436140018922,
                 "f1": 87.70461789964966
             },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null
+            },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
                 "attention_block_cols": 32,
@@ -9043,6 +9199,12 @@
                 "exact_match": 79.20529801324503,
                 "f1": 87.11181141207972
             },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null
+            },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
                 "attention_block_cols": 32,
@@ -9384,6 +9546,12 @@
             "eval_metrics": {
                 "exact_match": 78.80794701986756,
                 "f1": 86.74156854566804
+            },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null
             },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
@@ -9750,6 +9918,12 @@
             "eval_metrics": {
                 "exact_match": 78.68495742667928,
                 "f1": 86.66781681977909
+            },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null
             },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
@@ -10119,6 +10293,12 @@
             "eval_metrics": {
                 "exact_match": 77.18070009460737,
                 "f1": 85.6109462422114
+            },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null
             },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
@@ -10495,6 +10675,12 @@
             "eval_metrics": {
                 "exact_match": 77.88079470198676,
                 "f1": 85.81326419854291
+            },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null
             },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
@@ -10893,6 +11079,12 @@
                 "exact_match": 78.31598864711448,
                 "f1": 86.14732314693939
             },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null
+            },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
                 "attention_block_cols": 768,
@@ -11288,6 +11480,12 @@
             "eval_metrics": {
                 "exact_match": 77.96594134342479,
                 "f1": 85.85795020085484
+            },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null
             },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
@@ -11685,6 +11883,12 @@
                 "exact_match": 78.06054872280038,
                 "f1": 85.94002543374285
             },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null
+            },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
                 "attention_block_cols": 768,
@@ -12080,6 +12284,12 @@
             "eval_metrics": {
                 "exact_match": 78.10785241248817,
                 "f1": 86.00835164251778
+            },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null
             },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
@@ -12477,6 +12687,12 @@
                 "exact_match": 77.8713339640492,
                 "f1": 85.86552240887988
             },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null
+            },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
                 "attention_block_cols": 768,
@@ -12871,6 +13087,12 @@
             "eval_metrics": {
                 "exact_match": 77.78618732261117,
                 "f1": 85.70556837897196
+            },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null
             },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
@@ -13270,6 +13492,12 @@
                 "exact_match": 77.70104068117313,
                 "f1": 85.6071153919288
             },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null
+            },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
                 "attention_block_cols": 768,
@@ -13666,6 +13894,12 @@
                 "exact_match": 77.94701986754967,
                 "f1": 85.90050035022541
             },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null
+            },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
                 "attention_block_cols": 768,
@@ -14054,6 +14288,12 @@
             "eval_metrics": {
                 "exact_match": 77.43614001892148,
                 "f1": 85.51882546766822
+            },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null
             },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
@@ -14445,6 +14685,12 @@
                 "exact_match": 77.9848628192999,
                 "f1": 85.88807770994393
             },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null
+            },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
                 "attention_block_cols": 768,
@@ -14833,6 +15079,12 @@
             "eval_metrics": {
                 "exact_match": 76.54683065279092,
                 "f1": 84.56290825102765
+            },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null
             },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
@@ -15226,6 +15478,12 @@
             "eval_metrics": {
                 "exact_match": 75.99810785241249,
                 "f1": 84.26442986520863
+            },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null
             },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
@@ -15621,6 +15879,12 @@
                 "exact_match": 76.3197729422895,
                 "f1": 84.62201750681498
             },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null
+            },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
                 "attention_block_cols": 768,
@@ -16013,6 +16277,12 @@
             "eval_metrics": {
                 "exact_match": 76.5279091769158,
                 "f1": 84.6776690586996
+            },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null
             },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
@@ -16407,6 +16677,12 @@
                 "exact_match": 76.31031220435194,
                 "f1": 84.63605545666391
             },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null
+            },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
                 "attention_block_cols": 768,
@@ -16800,6 +17076,12 @@
                 "exact_match": 76.75496688741723,
                 "f1": 84.83470649534952
             },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null
+            },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
                 "attention_block_cols": 768,
@@ -17192,6 +17474,12 @@
                 "exact_match": 78.05108798486282,
                 "f1": 85.81174728555466
             },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null
+            },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
                 "attention_block_cols": 768,
@@ -17579,6 +17867,12 @@
             "eval_metrics": {
                 "exact_match": 77.62535477767265,
                 "f1": 85.49958980627748
+            },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null
             },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
@@ -17969,6 +18263,12 @@
                 "exact_match": 78.00378429517502,
                 "f1": 85.86131877012127
             },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null
+            },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
                 "attention_block_cols": 768,
@@ -18341,6 +18641,12 @@
                 "exact_match": 78.04162724692526,
                 "f1": 85.89832211406967
             },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null
+            },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
                 "attention_block_cols": 768,
@@ -18712,6 +19018,12 @@
             "eval_metrics": {
                 "exact_match": 75.67644276253547,
                 "f1": 84.4740049617883
+            },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null
             },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
@@ -19098,6 +19410,12 @@
                 "exact_match": 76.0170293282876,
                 "f1": 84.48208063503463
             },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null
+            },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
                 "attention_block_cols": 768,
@@ -19482,6 +19800,12 @@
             "eval_metrics": {
                 "exact_match": 75.93188268684958,
                 "f1": 84.50981123274157
+            },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null
             },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
@@ -19869,6 +20193,12 @@
                 "exact_match": 76.13055818353831,
                 "f1": 84.59415607632204
             },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null
+            },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
                 "attention_block_cols": 768,
@@ -20250,6 +20580,12 @@
             "eval_metrics": {
                 "exact_match": 76.20624408703878,
                 "f1": 84.78885528858153
+            },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null
             },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
@@ -20636,6 +20972,12 @@
                 "exact_match": 78.4484389782403,
                 "f1": 86.3547925481507
             },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null
+            },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
                 "attention_block_cols": 1,
@@ -20962,6 +21304,12 @@
             "eval_metrics": {
                 "exact_match": 77.39829706717124,
                 "f1": 85.66626983371626
+            },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null
             },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
@@ -21296,6 +21644,12 @@
                 "exact_match": 81.40018921475875,
                 "f1": 88.66263407974378
             },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null
+            },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
                 "attention_block_cols": 1,
@@ -21576,6 +21930,12 @@
             "eval_metrics": {
                 "exact_match": 76.98202459791864,
                 "f1": 85.40699359564026
+            },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null
             },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
@@ -21916,6 +22276,12 @@
                 "exact_match": 80.53926206244087,
                 "f1": 88.07603620459668
             },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null
+            },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
                 "attention_block_cols": 1,
@@ -22216,6 +22582,12 @@
                 "exact_match": 80.22705771050141,
                 "f1": 88.08154392563726
             },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null
+            },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
                 "attention_block_cols": 1,
@@ -22515,6 +22887,12 @@
             "eval_metrics": {
                 "exact_match": 79.89593188268685,
                 "f1": 87.64967103979136
+            },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null
             },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
@@ -22829,6 +23207,12 @@
                 "exact_match": 79.8391674550615,
                 "f1": 87.59923644792065
             },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null
+            },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
                 "attention_block_cols": 1,
@@ -23141,6 +23525,12 @@
             "eval_metrics": {
                 "exact_match": 77.06717123935667,
                 "f1": 85.30981160352648
+            },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null
             },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
@@ -23530,6 +23920,12 @@
                 "exact_match": 80.81362346263009,
                 "f1": 88.10463591853348
             },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null
+            },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
                 "attention_block_cols": 32,
@@ -23884,6 +24280,12 @@
             "eval_metrics": {
                 "exact_match": 80.53926206244087,
                 "f1": 87.95145431777735
+            },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null
             },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
@@ -24240,6 +24642,12 @@
                 "exact_match": 80.72847682119205,
                 "f1": 88.08831525592305
             },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null
+            },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
                 "attention_block_cols": 32,
@@ -24595,6 +25003,12 @@
                 "exact_match": 80.48249763481552,
                 "f1": 87.91705961229685
             },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null
+            },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
                 "attention_block_cols": 32,
@@ -24943,6 +25357,12 @@
                 "exact_match": 79.82024597918638,
                 "f1": 87.30735739624531
             },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null
+            },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
                 "attention_block_cols": 32,
@@ -25282,6 +25702,12 @@
             "eval_metrics": {
                 "exact_match": 79.64995269631031,
                 "f1": 87.30139925832849
+            },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null
             },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
@@ -25625,6 +26051,12 @@
                 "exact_match": 79.90539262062441,
                 "f1": 87.36378709007766
             },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null
+            },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
                 "attention_block_cols": 32,
@@ -25963,6 +26395,12 @@
             "eval_metrics": {
                 "exact_match": 79.29990539262063,
                 "f1": 87.09851869948527
+            },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null
             },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
@@ -26329,6 +26767,12 @@
                 "exact_match": 79.22421948912014,
                 "f1": 87.0664817371684
             },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null
+            },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
                 "attention_block_cols": 32,
@@ -26694,6 +27138,12 @@
                 "exact_match": 79.67833491012298,
                 "f1": 87.14623278516426
             },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null
+            },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
                 "attention_block_cols": 32,
@@ -27057,6 +27507,12 @@
                 "exact_match": 78.94985808893094,
                 "f1": 86.768721062838
             },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null
+            },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
                 "attention_block_cols": 32,
@@ -27418,6 +27874,12 @@
                 "exact_match": 77.8713339640492,
                 "f1": 85.84893170709621
             },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null
+            },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
                 "attention_block_cols": 32,
@@ -27771,6 +28233,12 @@
                 "exact_match": 77.92809839167455,
                 "f1": 85.97854187426412
             },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null
+            },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
                 "attention_block_cols": 32,
@@ -28122,6 +28590,12 @@
             "eval_metrics": {
                 "exact_match": 76.79280983916746,
                 "f1": 85.3167029862563
+            },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null
             },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
@@ -28484,6 +28958,12 @@
                 "exact_match": 77.04824976348155,
                 "f1": 85.17930403802184
             },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null
+            },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
                 "attention_block_cols": 32,
@@ -28844,6 +29324,12 @@
             "eval_metrics": {
                 "exact_match": 77.70104068117313,
                 "f1": 85.88451743537976
+            },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null
             },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
@@ -29221,6 +29707,12 @@
                 "exact_match": 77.68211920529801,
                 "f1": 86.11161494070976
             },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null
+            },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
                 "attention_block_cols": 32,
@@ -29596,6 +30088,12 @@
             "eval_metrics": {
                 "exact_match": 77.96594134342479,
                 "f1": 86.01491496793933
+            },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null
             },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
@@ -29973,6 +30471,12 @@
                 "exact_match": 76.92526017029329,
                 "f1": 85.21713644985097
             },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null
+            },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
                 "attention_block_cols": 32,
@@ -30344,6 +30848,12 @@
             "eval_metrics": {
                 "exact_match": 77.08609271523179,
                 "f1": 85.20287591064626
+            },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null
             },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
@@ -30717,6 +31227,12 @@
                 "exact_match": 77.01986754966887,
                 "f1": 85.2617013700351
             },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null
+            },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
                 "attention_block_cols": 32,
@@ -31088,6 +31604,12 @@
             "eval_metrics": {
                 "exact_match": 76.98202459791864,
                 "f1": 85.22056943761015
+            },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null
             },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
@@ -31461,6 +31983,12 @@
                 "exact_match": 81.51371807000946,
                 "f1": 88.67903677006836
             },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null
+            },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
                 "attention_block_cols": 32,
@@ -31797,6 +32325,12 @@
                 "exact_match": 81.47587511825922,
                 "f1": 88.73698799207777
             },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null
+            },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
                 "attention_block_cols": 32,
@@ -32129,6 +32663,13 @@
             "eval_metrics": {
                 "exact_match": 78.77010406811732,
                 "f1": 86.63938864881486
+            },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null,
+                "use_fast_tokenizer": true
             },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
@@ -32479,6 +33020,13 @@
                 "exact_match": 80.51087984862819,
                 "f1": 87.86127253902632
             },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null,
+                "use_fast_tokenizer": true
+            },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
                 "attention_block_cols": 32,
@@ -32816,6 +33364,13 @@
             "eval_metrics": {
                 "exact_match": 80.5771050141911,
                 "f1": 87.9662592155432
+            },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null,
+                "use_fast_tokenizer": true
             },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
@@ -33155,6 +33710,13 @@
                 "exact_match": 82.28949858088932,
                 "f1": 89.08071733584384
             },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null,
+                "use_fast_tokenizer": true
+            },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
                 "attention_block_cols": 32,
@@ -33488,6 +34050,13 @@
                 "exact_match": 82.55439924314096,
                 "f1": 89.04891748061114
             },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null,
+                "use_fast_tokenizer": true
+            },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
                 "attention_block_cols": 32,
@@ -33820,6 +34389,13 @@
             "eval_metrics": {
                 "exact_match": 77.67265846736045,
                 "f1": 85.80872913704097
+            },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null,
+                "use_fast_tokenizer": true
             },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
@@ -34183,6 +34759,13 @@
                 "exact_match": 81.86376537369915,
                 "f1": 88.96065210705885
             },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null,
+                "use_fast_tokenizer": true
+            },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
                 "attention_block_cols": 32,
@@ -34509,6 +35092,13 @@
             "eval_metrics": {
                 "exact_match": 80.86092715231788,
                 "f1": 87.96107619256047
+            },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null,
+                "use_fast_tokenizer": true
             },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
@@ -34849,6 +35439,13 @@
             "eval_metrics": {
                 "exact_match": 79.4228949858089,
                 "f1": 86.81165607636312
+            },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null,
+                "use_fast_tokenizer": true
             },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
@@ -35207,6 +35804,13 @@
                 "exact_match": 79.2620624408704,
                 "f1": 86.95749412557545
             },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null,
+                "use_fast_tokenizer": true
+            },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
                 "attention_block_cols": 32,
@@ -35562,6 +36166,13 @@
                 "exact_match": 82.94228949858089,
                 "f1": 89.74014850499854
             },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null,
+                "use_fast_tokenizer": true
+            },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
                 "attention_block_cols": 32,
@@ -35870,6 +36481,13 @@
             "eval_metrics": {
                 "exact_match": 80.1608325449385,
                 "f1": 87.45888007303566
+            },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null,
+                "use_fast_tokenizer": true
             },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
@@ -36215,6 +36833,13 @@
             "eval_metrics": {
                 "exact_match": 81.10690633869442,
                 "f1": 88.04977607167375
+            },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null,
+                "use_fast_tokenizer": true
             },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
@@ -36565,6 +37190,13 @@
                 "exact_match": 81.02175969725639,
                 "f1": 87.97543121375101
             },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null,
+                "use_fast_tokenizer": true
+            },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
                 "attention_block_cols": 32,
@@ -36914,6 +37546,13 @@
                 "exact_match": 81.13528855250709,
                 "f1": 88.07511972962917
             },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null,
+                "use_fast_tokenizer": true
+            },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
                 "attention_block_cols": 32,
@@ -37259,6 +37898,13 @@
                 "exact_match": 79.2620624408704,
                 "f1": 86.84661301619292
             },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null,
+                "use_fast_tokenizer": true
+            },
             "sparse_args": {
                 "ampere_pruning_method": "sigmoied_threshold",
                 "attention_block_cols": 32,
@@ -37584,6 +38230,13 @@
                 "exact_match": 81.93945127719962,
                 "f1": 88.66959543954316
             },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null,
+                "use_fast_tokenizer": true
+            },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
                 "attention_block_cols": 1,
@@ -37877,6 +38530,13 @@
             "eval_metrics": {
                 "exact_match": 81.75023651844845,
                 "f1": 88.66465208237972
+            },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null,
+                "use_fast_tokenizer": true
             },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
@@ -38174,6 +38834,13 @@
                 "exact_match": 83.17880794701986,
                 "f1": 89.78322305629628
             },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null,
+                "use_fast_tokenizer": true
+            },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
                 "attention_block_cols": 1,
@@ -38457,6 +39124,13 @@
                 "exact_match": 83.87890255439925,
                 "f1": 90.24019516114679
             },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null,
+                "use_fast_tokenizer": true
+            },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
                 "attention_block_cols": 1,
@@ -38733,6 +39407,13 @@
                 "exact_match": 83.83159886471145,
                 "f1": 90.15245565366504
             },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null,
+                "use_fast_tokenizer": true
+            },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
                 "attention_block_cols": 1,
@@ -39008,6 +39689,13 @@
             "eval_metrics": {
                 "exact_match": 80.09460737937559,
                 "f1": 87.45347230995543
+            },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null,
+                "use_fast_tokenizer": true
             },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
@@ -39327,6 +40015,13 @@
                 "exact_match": 80.93661305581836,
                 "f1": 88.11360890595924
             },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null,
+                "use_fast_tokenizer": true
+            },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
                 "attention_block_cols": 1,
@@ -39634,6 +40329,13 @@
             "eval_metrics": {
                 "exact_match": 78.42005676442763,
                 "f1": 86.50729252303553
+            },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null,
+                "use_fast_tokenizer": true
             },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
@@ -39959,6 +40661,13 @@
             "eval_metrics": {
                 "exact_match": 77.6158940397351,
                 "f1": 85.58086718082839
+            },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null,
+                "use_fast_tokenizer": true
             },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
@@ -40327,6 +41036,13 @@
                 "exact_match": 78.09839167455061,
                 "f1": 85.89097404430157
             },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null,
+                "use_fast_tokenizer": true
+            },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
                 "attention_block_cols": 32,
@@ -40685,6 +41401,13 @@
             "eval_metrics": {
                 "exact_match": 77.42667928098392,
                 "f1": 85.63059701238892
+            },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null,
+                "use_fast_tokenizer": true
             },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
@@ -41052,6 +41775,13 @@
                 "exact_match": 81.30558183538317,
                 "f1": 88.32616013981377
             },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null,
+                "use_fast_tokenizer": true
+            },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
                 "attention_block_cols": 32,
@@ -41398,6 +42128,13 @@
             "eval_metrics": {
                 "exact_match": 79.60264900662251,
                 "f1": 86.94398255916529
+            },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null,
+                "use_fast_tokenizer": true
             },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
@@ -41759,6 +42496,13 @@
                 "exact_match": 82.21381267738883,
                 "f1": 89.18874369381042
             },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null,
+                "use_fast_tokenizer": true
+            },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
                 "attention_block_cols": 32,
@@ -42107,6 +42851,13 @@
                 "exact_match": 82.06244087038789,
                 "f1": 89.0933430047216
             },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null,
+                "use_fast_tokenizer": true
+            },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
                 "attention_block_cols": 32,
@@ -42454,6 +43205,13 @@
             "eval_metrics": {
                 "exact_match": 77.4550614947966,
                 "f1": 85.61113138424535
+            },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null,
+                "use_fast_tokenizer": true
             },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
@@ -42813,6 +43571,13 @@
                 "exact_match": 77.89025543992432,
                 "f1": 85.87492067079658
             },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null,
+                "use_fast_tokenizer": true
+            },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
                 "attention_block_cols": 32,
@@ -43171,6 +43936,13 @@
                 "exact_match": 81.3434247871334,
                 "f1": 88.42277380990502
             },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null,
+                "use_fast_tokenizer": true
+            },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
                 "attention_block_cols": 32,
@@ -43481,6 +44253,13 @@
             "eval_metrics": {
                 "exact_match": 77.81456953642385,
                 "f1": 85.84663307531542
+            },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null,
+                "use_fast_tokenizer": true
             },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
@@ -43841,6 +44620,13 @@
                 "exact_match": 77.31315042573321,
                 "f1": 85.64344127195709
             },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null,
+                "use_fast_tokenizer": true
+            },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
                 "attention_block_cols": 32,
@@ -44197,6 +44983,13 @@
             "eval_metrics": {
                 "exact_match": 77.67265846736045,
                 "f1": 85.53356219601635
+            },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null,
+                "use_fast_tokenizer": true
             },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
@@ -44555,6 +45348,12 @@
                 "exact_match": 79.66887417218543,
                 "f1": 87.3881230572442
             },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null
+            },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
                 "attention_block_cols": 32,
@@ -44905,6 +45704,12 @@
                 "exact_match": 79.39451277199622,
                 "f1": 87.14755939306319
             },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null
+            },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
                 "attention_block_cols": 32,
@@ -45249,6 +46054,12 @@
                 "exact_match": 78.67549668874172,
                 "f1": 86.51098653495667
             },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null
+            },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
                 "attention_block_cols": 32,
@@ -45586,6 +46397,12 @@
             "eval_metrics": {
                 "exact_match": 78.3349101229896,
                 "f1": 86.4116267700138
+            },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null
             },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
@@ -45951,6 +46768,12 @@
                 "exact_match": 78.37275307473983,
                 "f1": 86.39441106336629
             },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null
+            },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
                 "attention_block_cols": 32,
@@ -46315,6 +47138,12 @@
                 "exact_match": 77.8240302743614,
                 "f1": 86.11992485005756
             },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null
+            },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
                 "attention_block_cols": 32,
@@ -46677,6 +47506,12 @@
                 "exact_match": 76.9914853358562,
                 "f1": 85.26341062121247
             },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null
+            },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
                 "attention_block_cols": 32,
@@ -47030,6 +47865,12 @@
             "eval_metrics": {
                 "exact_match": 78.06054872280038,
                 "f1": 86.20063710644014
+            },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null
             },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
@@ -47402,6 +48243,12 @@
                 "exact_match": 77.11447492904446,
                 "f1": 85.59611837921153
             },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null
+            },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
                 "attention_block_cols": 32,
@@ -47771,6 +48618,12 @@
             "eval_metrics": {
                 "exact_match": 77.37937559129612,
                 "f1": 85.69020560735045
+            },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null
             },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
@@ -48142,6 +48995,12 @@
                 "exact_match": 80.48249763481552,
                 "f1": 88.07285498416482
             },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null
+            },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
                 "attention_block_cols": 32,
@@ -48474,6 +49333,12 @@
             "eval_metrics": {
                 "exact_match": 80.70009460737937,
                 "f1": 88.04831949879843
+            },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null
             },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
@@ -48808,6 +49673,12 @@
                 "exact_match": 80.79470198675497,
                 "f1": 88.10958975740277
             },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null
+            },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
                 "attention_block_cols": 32,
@@ -49141,6 +50012,12 @@
                 "exact_match": 80.58656575212866,
                 "f1": 88.06903108265608
             },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null
+            },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
                 "attention_block_cols": 32,
@@ -49472,6 +50349,12 @@
                 "exact_match": 80.10406811731315,
                 "f1": 87.56487698206614
             },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null
+            },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
                 "attention_block_cols": 32,
@@ -49795,6 +50678,12 @@
             "eval_metrics": {
                 "exact_match": 80.00946073793756,
                 "f1": 87.65780769915727
+            },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null
             },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
@@ -50127,6 +51016,12 @@
             "eval_metrics": {
                 "exact_match": 78.62819299905392,
                 "f1": 86.57822332702295
+            },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null
             },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
@@ -50478,6 +51373,12 @@
                 "exact_match": 80.9271523178808,
                 "f1": 88.21768668110452
             },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null
+            },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
                 "attention_block_cols": 4,
@@ -50787,6 +51688,12 @@
             "eval_metrics": {
                 "exact_match": 79.72563859981078,
                 "f1": 87.37325813950282
+            },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null
             },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
@@ -51116,6 +52023,12 @@
                 "exact_match": 79.77294228949859,
                 "f1": 87.35885990249378
             },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null
+            },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
                 "attention_block_cols": 4,
@@ -51443,6 +52356,12 @@
             "eval_metrics": {
                 "exact_match": 77.84295175023652,
                 "f1": 85.93146728512978
+            },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null
             },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
@@ -51785,6 +52704,12 @@
                 "exact_match": 77.47398297067171,
                 "f1": 85.88482767255138
             },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null
+            },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
                 "attention_block_cols": 4,
@@ -52125,6 +53050,12 @@
             "eval_metrics": {
                 "exact_match": 77.4077578051088,
                 "f1": 85.78500582028688
+            },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null
             },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
@@ -52467,6 +53398,12 @@
                 "exact_match": 80.6244087038789,
                 "f1": 88.02730364897265
             },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null
+            },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
                 "attention_block_cols": 8,
@@ -52796,6 +53733,12 @@
                 "exact_match": 80.54872280037843,
                 "f1": 87.861684752796
             },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null
+            },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
                 "attention_block_cols": 8,
@@ -53124,6 +54067,12 @@
             "eval_metrics": {
                 "exact_match": 79.05392620624409,
                 "f1": 86.84949475139184
+            },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null
             },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
@@ -53463,6 +54412,12 @@
             "eval_metrics": {
                 "exact_match": 76.87795648060549,
                 "f1": 85.16652519097626
+            },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null
             },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
@@ -53818,6 +54773,12 @@
                 "exact_match": 80.93661305581836,
                 "f1": 88.35425478567389
             },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null
+            },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
                 "attention_block_cols": 16,
@@ -54143,6 +55104,12 @@
                 "exact_match": 81.11636707663197,
                 "f1": 88.26635621180897
             },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null
+            },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
                 "attention_block_cols": 16,
@@ -54467,6 +55434,12 @@
             "eval_metrics": {
                 "exact_match": 80.93661305581836,
                 "f1": 88.29241912882233
+            },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null
             },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
@@ -54824,6 +55797,12 @@
                 "exact_match": 80.77578051087986,
                 "f1": 88.22778160568927
             },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null
+            },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
                 "attention_block_cols": 16,
@@ -55179,6 +56158,12 @@
             "eval_metrics": {
                 "exact_match": 79.92431409649953,
                 "f1": 87.57193515884181
+            },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null
             },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
@@ -55544,6 +56529,12 @@
                 "exact_match": 80.02838221381268,
                 "f1": 87.5280353923367
             },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null
+            },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
                 "attention_block_cols": 16,
@@ -55907,6 +56898,12 @@
             "eval_metrics": {
                 "exact_match": 78.86471144749291,
                 "f1": 86.87223379259328
+            },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null
             },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
@@ -56280,6 +57277,12 @@
                 "exact_match": 81.3434247871334,
                 "f1": 88.502960365548
             },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null
+            },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
                 "attention_block_cols": 4,
@@ -56599,6 +57602,12 @@
             "eval_metrics": {
                 "exact_match": 80.54872280037843,
                 "f1": 88.09731480353894
+            },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null
             },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
@@ -56938,6 +57947,12 @@
             "eval_metrics": {
                 "exact_match": 79.39451277199622,
                 "f1": 87.22039562207584
+            },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null
             },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
@@ -57294,6 +58309,12 @@
                 "exact_match": 79.12961210974456,
                 "f1": 87.04337592394437
             },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null
+            },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
                 "attention_block_cols": 4,
@@ -57648,6 +58669,12 @@
             "eval_metrics": {
                 "exact_match": 79.09176915799432,
                 "f1": 86.93076968810146
+            },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null
             },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
@@ -58004,6 +59031,12 @@
                 "exact_match": 81.00283822138127,
                 "f1": 88.2671108560581
             },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null
+            },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
                 "attention_block_cols": 8,
@@ -58342,6 +59375,12 @@
                 "exact_match": 81.01229895931883,
                 "f1": 88.16022239737082
             },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null
+            },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
                 "attention_block_cols": 8,
@@ -58679,6 +59718,12 @@
             "eval_metrics": {
                 "exact_match": 80.15137180700094,
                 "f1": 87.62280270760408
+            },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null
             },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
@@ -59040,6 +60085,12 @@
             "eval_metrics": {
                 "exact_match": 78.59981078524125,
                 "f1": 86.70965342219107
+            },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null
             },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
@@ -59408,6 +60459,12 @@
                 "exact_match": 78.78902554399244,
                 "f1": 86.80367154149816
             },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null
+            },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
                 "attention_block_cols": 8,
@@ -59774,6 +60831,12 @@
             "eval_metrics": {
                 "exact_match": 78.6092715231788,
                 "f1": 86.70267601348202
+            },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null
             },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
@@ -60142,6 +61205,12 @@
                 "exact_match": 80.93661305581836,
                 "f1": 88.34112193061533
             },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null
+            },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
                 "attention_block_cols": 16,
@@ -60484,6 +61553,12 @@
             "eval_metrics": {
                 "exact_match": 80.02838221381268,
                 "f1": 87.51569063636161
+            },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null
             },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
@@ -60845,6 +61920,12 @@
                 "exact_match": 79.55534531693472,
                 "f1": 87.439750439335
             },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null
+            },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
                 "attention_block_cols": 16,
@@ -61204,6 +62285,12 @@
             "eval_metrics": {
                 "exact_match": 79.67833491012298,
                 "f1": 87.29496050765553
+            },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null
             },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
@@ -61568,6 +62655,12 @@
             "eval_metrics": {
                 "exact_match": 78.11731315042573,
                 "f1": 86.14927876930865
+            },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null
             },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
@@ -61937,6 +63030,12 @@
                 "exact_match": 81.47587511825922,
                 "f1": 88.58172107792693
             },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null
+            },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
                 "attention_block_cols": 4,
@@ -62255,6 +63354,12 @@
             "eval_metrics": {
                 "exact_match": 80.52980132450331,
                 "f1": 88.02284574429551
+            },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null
             },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
@@ -62590,6 +63695,12 @@
                 "exact_match": 80.09460737937559,
                 "f1": 87.80889686617203
             },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null
+            },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
                 "attention_block_cols": 4,
@@ -62923,6 +64034,12 @@
             "eval_metrics": {
                 "exact_match": 79.64049195837275,
                 "f1": 87.31499809166372
+            },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null
             },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
@@ -63278,6 +64395,12 @@
             "eval_metrics": {
                 "exact_match": 79.06338694418164,
                 "f1": 86.86293366416082
+            },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null
             },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
@@ -63638,6 +64761,12 @@
                 "exact_match": 81.10690633869442,
                 "f1": 88.3744311515211
             },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null
+            },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
                 "attention_block_cols": 8,
@@ -63971,6 +65100,12 @@
                 "exact_match": 80.82308420056765,
                 "f1": 88.21300800880684
             },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null
+            },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
                 "attention_block_cols": 8,
@@ -64303,6 +65438,12 @@
             "eval_metrics": {
                 "exact_match": 80.05676442762535,
                 "f1": 87.66615713942541
+            },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null
             },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
@@ -64655,6 +65796,12 @@
             "eval_metrics": {
                 "exact_match": 78.76064333017976,
                 "f1": 86.75922108224064
+            },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-base-uncased",
+                "tokenizer_name": null
             },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
@@ -65111,6 +66258,12 @@
                 "exact_match": 80.69063386944181,
                 "f1": 88.06386432532665
             },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "/home/lagunas/devel/hf/nn_pruning/nn_pruning/analysis/tmp_finetune",
+                "tokenizer_name": null
+            },
             "source_checkpoint": "/data_2to/devel_data/nn_pruning/output/squad_test_aws/aws_nn-pruning-v10-a32-l10-dl0-5--2021-01-21--00-54-13/checkpoint-110660",
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
@@ -65547,6 +66700,12 @@
             "eval_metrics": {
                 "exact_match": 80.23651844843897,
                 "f1": 87.68464122182475
+            },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "/home/lagunas/devel/hf/nn_pruning/nn_pruning/analysis/tmp_finetune",
+                "tokenizer_name": null
             },
             "source_checkpoint": "/data_2to/devel_data/nn_pruning/output/squad_test_aws/aws_nn-pruning-v10-a32-l10-dl1--2021-01-21--00-53-40/checkpoint-110660",
             "sparse_args": {
@@ -65998,6 +67157,12 @@
             "eval_metrics": {
                 "exact_match": 79.4228949858089,
                 "f1": 87.22907143184382
+            },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "/home/lagunas/devel/hf/nn_pruning/nn_pruning/analysis/tmp_finetune",
+                "tokenizer_name": null
             },
             "source_checkpoint": "/data_2to/devel_data/nn_pruning/output/squad_test_aws/aws_nn-pruning-v10-a32-l20-dl0-5--2021-01-21--00-55-44/checkpoint-110000",
             "sparse_args": {
@@ -66468,6 +67633,12 @@
                 "exact_match": 78.82686849574267,
                 "f1": 86.75497848244157
             },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "/home/lagunas/devel/hf/nn_pruning/nn_pruning/analysis/tmp_finetune",
+                "tokenizer_name": null
+            },
             "source_checkpoint": "/data_2to/devel_data/nn_pruning/output/squad_test_aws/aws_nn-pruning-v10-a32-l20-dl1--2021-01-21--00-55-15/checkpoint-110660",
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
@@ -66906,6 +68077,12 @@
                 "exact_match": 81.69347209082308,
                 "f1": 88.72194531479171
             },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "/home/lagunas/devel/hf/nn_pruning/nn_pruning/analysis/tmp_finetune",
+                "tokenizer_name": null
+            },
             "source_checkpoint": "/data_2to/devel_data/nn_pruning/output/squad_test_aws/aws_nn-pruning-v10-a32-l5-dl0-5--2021-01-21--00-52-45/checkpoint-95000",
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
@@ -67313,6 +68490,12 @@
                 "exact_match": 80.86092715231788,
                 "f1": 88.26868699204444
             },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "/home/lagunas/devel/hf/nn_pruning/nn_pruning/analysis/tmp_finetune",
+                "tokenizer_name": null
+            },
             "source_checkpoint": "/data_2to/devel_data/nn_pruning/output/squad_test_aws/aws_nn-pruning-v10-a32-l5-dl1--2021-01-21--00-52-16/checkpoint-110660",
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
@@ -67717,6 +68900,12 @@
             "eval_metrics": {
                 "exact_match": 80.87038789025544,
                 "f1": 88.24613086360249
+            },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "/home/lagunas/devel/hf/nn_pruning/nn_pruning/analysis/tmp_finetune",
+                "tokenizer_name": null
             },
             "source_checkpoint": "/data_2to/devel_data/nn_pruning/output/squad_test_aws/aws_nn-pruning-v10-a32-l5-dl1--2021-01-21--00-52-16/checkpoint-110660",
             "sparse_args": {
@@ -68139,6 +69328,13 @@
             "eval_metrics": {
                 "exact_match": 81.16367076631977,
                 "f1": 88.30880074775172
+            },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "/home/lagunas/devel/hf/nn_pruning/nn_pruning/analysis/tmp_finetune",
+                "tokenizer_name": null,
+                "use_fast_tokenizer": true
             },
             "source_checkpoint": "/data_2to/devel_data/nn_pruning/output/squad_test4/hp_od-__data_2to__devel_data__nn_pruning__output__squad4___es-steps_nte20_ls250_stl50_est5000_rn-__data_2to__devel_data__nn_pruning__output__squad4___dpm-sigmoied_threshold:1d_alt_ap--17cd29ad8a563746/checkpoint-110000",
             "sparse_args": {
@@ -68579,6 +69775,13 @@
                 "exact_match": 81.01229895931883,
                 "f1": 88.25975710073095
             },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "/home/lagunas/devel/hf/nn_pruning/nn_pruning/analysis/tmp_finetune",
+                "tokenizer_name": null,
+                "use_fast_tokenizer": true
+            },
             "source_checkpoint": "/data_2to/devel_data/nn_pruning/output/squad_test4/hp_od-__data_2to__devel_data__nn_pruning__output__squad4___es-steps_nte20_ls250_stl50_est5000_rn-__data_2to__devel_data__nn_pruning__output__squad4___dpm-sigmoied_threshold:1d_alt_ap--17cd29ad8a563746/checkpoint-110000",
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
@@ -69017,6 +70220,13 @@
             "eval_metrics": {
                 "exact_match": 80.94607379375591,
                 "f1": 88.20838283474134
+            },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "/home/lagunas/devel/hf/nn_pruning/nn_pruning/analysis/tmp_finetune",
+                "tokenizer_name": null,
+                "use_fast_tokenizer": true
             },
             "source_checkpoint": "/data_2to/devel_data/nn_pruning/output/squad_test4/hp_od-__data_2to__devel_data__nn_pruning__output__squad4___es-steps_nte20_ls250_stl50_est5000_rn-__data_2to__devel_data__nn_pruning__output__squad4___dpm-sigmoied_threshold:1d_alt_ap--17cd29ad8a563746/checkpoint-110000",
             "sparse_args": {
@@ -69457,6 +70667,13 @@
                 "exact_match": 80.91769157994324,
                 "f1": 88.19995861416005
             },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "/home/lagunas/devel/hf/nn_pruning/nn_pruning/analysis/tmp_finetune",
+                "tokenizer_name": null,
+                "use_fast_tokenizer": true
+            },
             "source_checkpoint": "/data_2to/devel_data/nn_pruning/output/squad_test4/hp_od-__data_2to__devel_data__nn_pruning__output__squad4___es-steps_nte20_ls250_stl50_est5000_rn-__data_2to__devel_data__nn_pruning__output__squad4___dpm-sigmoied_threshold:1d_alt_ap--17cd29ad8a563746/checkpoint-110000",
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
@@ -69885,6 +71102,13 @@
                 "exact_match": 81.97729422894986,
                 "f1": 89.00029318511001
             },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "/home/lagunas/devel/hf/nn_pruning/nn_pruning/analysis/tmp_finetune",
+                "tokenizer_name": null,
+                "use_fast_tokenizer": true
+            },
             "source_checkpoint": "/data_2to/devel_data/nn_pruning/output/squad_test4/hp_od-__data_2to__devel_data__nn_pruning__output__squad4___es-steps_nte20_ls250_stl50_est5000_rn-__data_2to__devel_data__nn_pruning__output__squad4___dpm-sigmoied_threshold:1d_alt_ap--754f92d6579864ca/checkpoint-95000",
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
@@ -70301,6 +71525,13 @@
             "eval_metrics": {
                 "exact_match": 81.9205298013245,
                 "f1": 88.96937906487014
+            },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "/home/lagunas/devel/hf/nn_pruning/nn_pruning/analysis/tmp_finetune",
+                "tokenizer_name": null,
+                "use_fast_tokenizer": true
             },
             "source_checkpoint": "/data_2to/devel_data/nn_pruning/output/squad_test4/hp_od-__data_2to__devel_data__nn_pruning__output__squad4___es-steps_nte20_ls250_stl50_est5000_rn-__data_2to__devel_data__nn_pruning__output__squad4___dpm-sigmoied_threshold:1d_alt_ap--754f92d6579864ca/checkpoint-95000",
             "sparse_args": {
@@ -70743,6 +71974,13 @@
                 "exact_match": 79.48912015137181,
                 "f1": 87.15966661496869
             },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "/home/lagunas/devel/hf/nn_pruning/nn_pruning/analysis/tmp_finetune",
+                "tokenizer_name": null,
+                "use_fast_tokenizer": true
+            },
             "source_checkpoint": "/data_2to/devel_data/nn_pruning/output/squad_test4/hp_od-__data_2to__devel_data__nn_pruning__output__squad_test4___es-steps_nte20_ls250_stl50_est5000_rn-__data_2to__devel_data__nn_pruning__output__squad_test4___dpm-sigmoied_threshold--696f4785b3ba52e7/checkpoint-110000",
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
@@ -71173,6 +72411,13 @@
                 "exact_match": 82.95175023651845,
                 "f1": 89.81145528969563
             },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "/home/lagunas/devel/hf/nn_pruning/nn_pruning/analysis/tmp_finetune",
+                "tokenizer_name": null,
+                "use_fast_tokenizer": true
+            },
             "source_checkpoint": "/data_2to/devel_data/nn_pruning/output/squad_test4/hp_od-__data_2to__devel_data__nn_pruning__output__squad_test4___es-steps_nte20_ls250_stl50_est5000_rn-__data_2to__devel_data__nn_pruning__output__squad_test4___dpm-sigmoied_threshold--6b3d26fc7262a898/checkpoint-110000",
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
@@ -71568,6 +72813,13 @@
                 "exact_match": 83.01797540208136,
                 "f1": 89.80879102775579
             },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "/home/lagunas/devel/hf/nn_pruning/nn_pruning/analysis/tmp_finetune",
+                "tokenizer_name": null,
+                "use_fast_tokenizer": true
+            },
             "source_checkpoint": "/data_2to/devel_data/nn_pruning/output/squad_test4/hp_od-__data_2to__devel_data__nn_pruning__output__squad_test4___es-steps_nte20_ls250_stl50_est5000_rn-__data_2to__devel_data__nn_pruning__output__squad_test4___dpm-sigmoied_threshold--6b3d26fc7262a898/checkpoint-110000",
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
@@ -71945,6 +73197,13 @@
                 "exact_match": 83.72753074739829,
                 "f1": 90.26969803251558
             },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "/home/lagunas/devel/hf/nn_pruning/nn_pruning/analysis/tmp_finetune",
+                "tokenizer_name": null,
+                "use_fast_tokenizer": true
+            },
             "source_checkpoint": "/data_2to/devel_data/nn_pruning/output/squad_test4/hp_od-__data_2to__devel_data__nn_pruning__output__squad_test4___es-steps_nte20_ls250_stl50_est5000_rn-__data_2to__devel_data__nn_pruning__output__squad_test4___dpm-sigmoied_threshold:--d169c0ebde721c7/checkpoint-110000",
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
@@ -72303,6 +73562,13 @@
             "eval_metrics": {
                 "exact_match": 83.71807000946073,
                 "f1": 90.26096311838805
+            },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "/home/lagunas/devel/hf/nn_pruning/nn_pruning/analysis/tmp_finetune",
+                "tokenizer_name": null,
+                "use_fast_tokenizer": true
             },
             "source_checkpoint": "/data_2to/devel_data/nn_pruning/output/squad_test4/hp_od-__data_2to__devel_data__nn_pruning__output__squad_test4___es-steps_nte20_ls250_stl50_est5000_rn-__data_2to__devel_data__nn_pruning__output__squad_test4___dpm-sigmoied_threshold:--d169c0ebde721c7/checkpoint-110000",
             "sparse_args": {
@@ -72707,6 +73973,12 @@
             "eval_metrics": {
                 "exact_match": 80.80416272469253,
                 "f1": 88.20260662536118
+            },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "/home/lagunas/devel/hf/nn_pruning/nn_pruning/analysis/tmp_finetune",
+                "tokenizer_name": null
             },
             "source_checkpoint": "/data_2to/devel_data/nn_pruning/output/squad_test3/hp_od-output__squad_test3_es-steps_nte20_ls250_est5000_rn-output__squad_test3_dpm-sigmoied_threshold:1d_alt_apme-sigmoied_threshold_aowd0_bm1_abr32_abc32_it0_fw10_r-l1_rfl10_dl0.25_dtnop-csarron__bert-base-uncased-squad-v1/checkpoint-90000",
             "sparse_args": {
@@ -73157,6 +74429,12 @@
                 "exact_match": 80.6717123935667,
                 "f1": 88.128983727943
             },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "/home/lagunas/devel/hf/nn_pruning/nn_pruning/analysis/tmp_finetune",
+                "tokenizer_name": null
+            },
             "source_checkpoint": "/data_2to/devel_data/nn_pruning/output/squad_test3/hp_od-output__squad_test3_es-steps_nte20_ls250_est5000_rn-output__squad_test3_dpm-sigmoied_threshold:1d_alt_apme-sigmoied_threshold_aowd0_bm1_abr32_abc32_it0_fw10_r-l1_rfl10_dl0.25_dtnop-csarron__bert-base-uncased-squad-v1/checkpoint-90000",
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
@@ -73605,6 +74883,12 @@
             "eval_metrics": {
                 "exact_match": 80.68117313150425,
                 "f1": 88.11014400914335
+            },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "/home/lagunas/devel/hf/nn_pruning/nn_pruning/analysis/tmp_finetune",
+                "tokenizer_name": null
             },
             "source_checkpoint": "/data_2to/devel_data/nn_pruning/output/squad_test3/hp_od-output__squad_test3_es-steps_nte20_ls250_est5000_rn-output__squad_test3_dpm-sigmoied_threshold:1d_alt_apme-sigmoied_threshold_aowd0_bm1_abr32_abc32_it0_fw10_r-l1_rfl10_dl0.25_dtnop-csarron__bert-base-uncased-squad-v1/checkpoint-90000",
             "sparse_args": {
@@ -74066,6 +75350,12 @@
             "eval_metrics": {
                 "exact_match": 80.01892147587512,
                 "f1": 87.70568682399205
+            },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "/home/lagunas/devel/hf/nn_pruning/nn_pruning/analysis/tmp_finetune",
+                "tokenizer_name": null
             },
             "source_checkpoint": "/data_2to/devel_data/nn_pruning/output/squad_test3/hp_od-output__squad_test3_es-steps_nte20_ls250_est5000_rn-output__squad_test3_dpm-sigmoied_threshold:1d_alt_apme-sigmoied_threshold_aowd0_bm1_abr32_abc32_it0_fw10_r-l1_rfl20_dl0.25_dtnop-csarron__bert-base-uncased-squad-v1/checkpoint-90000",
             "sparse_args": {
@@ -74539,6 +75829,12 @@
             "eval_metrics": {
                 "exact_match": 80.02838221381268,
                 "f1": 87.70940223967354
+            },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "/home/lagunas/devel/hf/nn_pruning/nn_pruning/analysis/tmp_finetune",
+                "tokenizer_name": null
             },
             "source_checkpoint": "/data_2to/devel_data/nn_pruning/output/squad_test3/hp_od-output__squad_test3_es-steps_nte20_ls250_est5000_rn-output__squad_test3_dpm-sigmoied_threshold:1d_alt_apme-sigmoied_threshold_aowd0_bm1_abr32_abc32_it0_fw10_r-l1_rfl20_dl0.25_dtnop-csarron__bert-base-uncased-squad-v1/checkpoint-90000",
             "sparse_args": {
@@ -75023,6 +76319,12 @@
             "eval_metrics": {
                 "exact_match": 78.63765373699148,
                 "f1": 86.69392512957342
+            },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "/home/lagunas/devel/hf/nn_pruning/nn_pruning/analysis/tmp_finetune",
+                "tokenizer_name": null
             },
             "source_checkpoint": "/data_2to/devel_data/nn_pruning/output/squad_test3/hp_od-output__squad_test3_es-steps_nte20_ls250_est5000_rn-output__squad_test3_dpm-sigmoied_threshold:1d_alt_apme-sigmoied_threshold_aowd0_bm1_abr32_abc32_it0_fw10_r-l1_rfl40_dl0.25_dtnop-csarron__bert-base-uncased-squad-v1/checkpoint-110000",
             "sparse_args": {
@@ -75677,6 +76979,13 @@
             "eval_metrics": {
                 "exact_match": 83.74645222327341,
                 "f1": 90.16320537561052
+            },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "/home/lagunas/devel/hf/nn_pruning/nn_pruning/analysis/tmp_finetune",
+                "tokenizer_name": null,
+                "use_fast_tokenizer": true
             },
             "source_checkpoint": "/data_2to/devel_data/nn_pruning/output/squad_test_large/large_regu_10/checkpoint-215000",
             "sparse_args": {
@@ -76610,6 +77919,13 @@
             "eval_metrics": {
                 "exact_match": 83.62346263008514,
                 "f1": 90.10843526218638
+            },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "/home/lagunas/devel/hf/nn_pruning/nn_pruning/analysis/tmp_finetune",
+                "tokenizer_name": null,
+                "use_fast_tokenizer": true
             },
             "source_checkpoint": "/data_2to/devel_data/nn_pruning/output/squad_test_large/large_regu_10/checkpoint-215000",
             "sparse_args": {
@@ -77557,6 +78873,13 @@
             "eval_metrics": {
                 "exact_match": 84.399243140965,
                 "f1": 90.84270784891945
+            },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "/home/lagunas/devel/hf/nn_pruning/nn_pruning/analysis/tmp_finetune",
+                "tokenizer_name": null,
+                "use_fast_tokenizer": true
             },
             "source_checkpoint": "/data_2to/devel_data/nn_pruning/output/squad_test_large/large_regu_10_d0.25/checkpoint-210000",
             "sparse_args": {
@@ -78519,6 +79842,13 @@
                 "exact_match": 84.20056764427625,
                 "f1": 90.73941291394593
             },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "/home/lagunas/devel/hf/nn_pruning/nn_pruning/analysis/tmp_finetune",
+                "tokenizer_name": null,
+                "use_fast_tokenizer": true
+            },
             "source_checkpoint": "/data_2to/devel_data/nn_pruning/output/squad_test_large/large_regu_10_d0.25/checkpoint-210000",
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
@@ -79479,6 +80809,13 @@
             "eval_metrics": {
                 "exact_match": 84.2100283822138,
                 "f1": 90.70141124860059
+            },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "/home/lagunas/devel/hf/nn_pruning/nn_pruning/analysis/tmp_finetune",
+                "tokenizer_name": null,
+                "use_fast_tokenizer": true
             },
             "source_checkpoint": "/data_2to/devel_data/nn_pruning/output/squad_test_large/large_regu_10_d0.25/checkpoint-210000",
             "sparse_args": {
@@ -80441,6 +81778,13 @@
                 "exact_match": 84.63576158940397,
                 "f1": 91.0266636723574
             },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "/home/lagunas/devel/hf/nn_pruning/nn_pruning/analysis/tmp_finetune",
+                "tokenizer_name": null,
+                "use_fast_tokenizer": true
+            },
             "source_checkpoint": "/data_2to/devel_data/nn_pruning/output/squad_test_large/large_regu_10_d0.25/checkpoint-210000",
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
@@ -81401,6 +82745,13 @@
             "eval_metrics": {
                 "exact_match": 84.65468306527909,
                 "f1": 91.01004624462917
+            },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "/home/lagunas/devel/hf/nn_pruning/nn_pruning/analysis/tmp_finetune",
+                "tokenizer_name": null,
+                "use_fast_tokenizer": true
             },
             "source_checkpoint": "/data_2to/devel_data/nn_pruning/output/squad_test_large/large_regu_10_d0.25/checkpoint-210000",
             "sparse_args": {
@@ -82393,6 +83744,13 @@
             "eval_metrics": {
                 "exact_match": 81.15421002838221,
                 "f1": 88.34901265417608
+            },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "/home/lagunas/devel/hf/nn_pruning/nn_pruning/analysis/tmp_finetune",
+                "tokenizer_name": null,
+                "use_fast_tokenizer": true
             },
             "source_checkpoint": "/data_2to/devel_data/nn_pruning/output/squad_test_large/large_regu_40/checkpoint-221320",
             "sparse_args": {
@@ -83426,6 +84784,13 @@
             "eval_metrics": {
                 "exact_match": 82.32734153263955,
                 "f1": 89.39825688878855
+            },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "/home/lagunas/devel/hf/nn_pruning/nn_pruning/analysis/tmp_finetune",
+                "tokenizer_name": null,
+                "use_fast_tokenizer": true
             },
             "source_checkpoint": "/data_2to/devel_data/nn_pruning/output/squad_test_large/large_regu_40_d0.25/checkpoint-220000",
             "sparse_args": {
@@ -84470,6 +85835,13 @@
                 "exact_match": 82.28003784295176,
                 "f1": 89.37602873453882
             },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "/home/lagunas/devel/hf/nn_pruning/nn_pruning/analysis/tmp_finetune",
+                "tokenizer_name": null,
+                "use_fast_tokenizer": true
+            },
             "source_checkpoint": "/data_2to/devel_data/nn_pruning/output/squad_test_large/large_regu_40_d0.25/checkpoint-220000",
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
@@ -85512,6 +86884,13 @@
             "eval_metrics": {
                 "exact_match": 82.25165562913908,
                 "f1": 89.36914341970648
+            },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "/home/lagunas/devel/hf/nn_pruning/nn_pruning/analysis/tmp_finetune",
+                "tokenizer_name": null,
+                "use_fast_tokenizer": true
             },
             "source_checkpoint": "/data_2to/devel_data/nn_pruning/output/squad_test_large/large_regu_40_d0.25/checkpoint-220000",
             "sparse_args": {
@@ -86560,6 +87939,13 @@
             "eval_metrics": {
                 "exact_match": 79.81078524124882,
                 "f1": 87.48044078095904
+            },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "/home/lagunas/devel/hf/nn_pruning/nn_pruning/analysis/tmp_finetune",
+                "tokenizer_name": null,
+                "use_fast_tokenizer": true
             },
             "source_checkpoint": "/data_2to/devel_data/nn_pruning/output/squad_test_large/large_regu_60/checkpoint-221320",
             "sparse_args": {
@@ -87614,6 +89000,13 @@
                 "exact_match": 79.84862819299906,
                 "f1": 87.41551421723396
             },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "/home/lagunas/devel/hf/nn_pruning/nn_pruning/analysis/tmp_finetune",
+                "tokenizer_name": null,
+                "use_fast_tokenizer": true
+            },
             "source_checkpoint": "/data_2to/devel_data/nn_pruning/output/squad_test_large/large_regu_60/checkpoint-221320",
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
@@ -88666,6 +90059,13 @@
             "eval_metrics": {
                 "exact_match": 79.7918637653737,
                 "f1": 87.39314667097808
+            },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "/home/lagunas/devel/hf/nn_pruning/nn_pruning/analysis/tmp_finetune",
+                "tokenizer_name": null,
+                "use_fast_tokenizer": true
             },
             "source_checkpoint": "/data_2to/devel_data/nn_pruning/output/squad_test_large/large_regu_60/checkpoint-221320",
             "sparse_args": {
@@ -89726,6 +91126,13 @@
             "eval_metrics": {
                 "exact_match": 81.31504257332072,
                 "f1": 88.43872986679673
+            },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "/home/lagunas/devel/hf/nn_pruning/nn_pruning/analysis/tmp_finetune",
+                "tokenizer_name": null,
+                "use_fast_tokenizer": true
             },
             "source_checkpoint": "/data_2to/devel_data/nn_pruning/output/squad_test_large/large_regu_60_d0.25/checkpoint-221320",
             "sparse_args": {
@@ -90794,6 +92201,13 @@
                 "exact_match": 81.49479659413434,
                 "f1": 88.43605833215561
             },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "/home/lagunas/devel/hf/nn_pruning/nn_pruning/analysis/tmp_finetune",
+                "tokenizer_name": null,
+                "use_fast_tokenizer": true
+            },
             "source_checkpoint": "/data_2to/devel_data/nn_pruning/output/squad_test_large/large_regu_60_d0.25/checkpoint-221320",
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
@@ -91860,6 +93274,13 @@
             "eval_metrics": {
                 "exact_match": 81.41911069063387,
                 "f1": 88.38806203813442
+            },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "/home/lagunas/devel/hf/nn_pruning/nn_pruning/analysis/tmp_finetune",
+                "tokenizer_name": null,
+                "use_fast_tokenizer": true
             },
             "source_checkpoint": "/data_2to/devel_data/nn_pruning/output/squad_test_large/large_regu_60_d0.25/checkpoint-221320",
             "sparse_args": {
@@ -92928,6 +94349,13 @@
                 "exact_match": 81.41911069063387,
                 "f1": 88.38489115657516
             },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "/home/lagunas/devel/hf/nn_pruning/nn_pruning/analysis/tmp_finetune",
+                "tokenizer_name": null,
+                "use_fast_tokenizer": true
+            },
             "source_checkpoint": "/data_2to/devel_data/nn_pruning/output/squad_test_large/large_regu_60_d0.25/checkpoint-221320",
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
@@ -93652,6 +95080,12 @@
                 "exact_match": 82.33680227057711,
                 "f1": 89.04761607630476
             },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-large-uncased",
+                "tokenizer_name": null
+            },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
                 "attention_block_cols": 32,
@@ -94307,6 +95741,12 @@
             "eval_metrics": {
                 "exact_match": 82.13812677388836,
                 "f1": 89.03656646065757
+            },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-large-uncased",
+                "tokenizer_name": null
             },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
@@ -94964,6 +96404,12 @@
                 "exact_match": 82.30842005676443,
                 "f1": 89.04987146464723
             },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-large-uncased",
+                "tokenizer_name": null
+            },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
                 "attention_block_cols": 32,
@@ -95619,6 +97065,13 @@
             "eval_metrics": {
                 "exact_match": 83.78429517502366,
                 "f1": 90.32458147221426
+            },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-large-uncased",
+                "tokenizer_name": null,
+                "use_fast_tokenizer": true
             },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
@@ -96290,6 +97743,13 @@
                 "exact_match": 83.66130558183538,
                 "f1": 90.22195941338013
             },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-large-uncased",
+                "tokenizer_name": null,
+                "use_fast_tokenizer": true
+            },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
                 "attention_block_cols": 32,
@@ -96959,6 +98419,13 @@
             "eval_metrics": {
                 "exact_match": 78.92147587511826,
                 "f1": 86.66302391758462
+            },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-large-uncased",
+                "tokenizer_name": null,
+                "use_fast_tokenizer": true
             },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
@@ -97660,6 +99127,13 @@
             "eval_metrics": {
                 "exact_match": 80.59602649006622,
                 "f1": 87.8561484925226
+            },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-large-uncased",
+                "tokenizer_name": null,
+                "use_fast_tokenizer": true
             },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
@@ -98372,6 +99846,13 @@
                 "exact_match": 80.4635761589404,
                 "f1": 87.71992570037945
             },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-large-uncased",
+                "tokenizer_name": null,
+                "use_fast_tokenizer": true
+            },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
                 "attention_block_cols": 32,
@@ -99082,6 +100563,13 @@
             "eval_metrics": {
                 "exact_match": 78.27814569536424,
                 "f1": 86.23578242662717
+            },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-large-uncased",
+                "tokenizer_name": null,
+                "use_fast_tokenizer": true
             },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
@@ -99798,6 +101286,13 @@
             "eval_metrics": {
                 "exact_match": 79.50804162724693,
                 "f1": 86.9851273164745
+            },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-large-uncased",
+                "tokenizer_name": null,
+                "use_fast_tokenizer": true
             },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
@@ -100521,6 +102016,13 @@
             "eval_metrics": {
                 "exact_match": 79.120151371807,
                 "f1": 86.51897974152047
+            },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-large-uncased",
+                "tokenizer_name": null,
+                "use_fast_tokenizer": true
             },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
@@ -101247,6 +102749,13 @@
                 "exact_match": 78.72280037842951,
                 "f1": 86.42554404823127
             },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-large-uncased",
+                "tokenizer_name": null,
+                "use_fast_tokenizer": true
+            },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
                 "attention_block_cols": 32,
@@ -101972,6 +103481,13 @@
             "eval_metrics": {
                 "exact_match": 78.62819299905392,
                 "f1": 86.34346487920875
+            },
+            "model_args": {
+                "cache_dir": null,
+                "config_name": null,
+                "model_name_or_path": "bert-large-uncased",
+                "tokenizer_name": null,
+                "use_fast_tokenizer": true
             },
             "sparse_args": {
                 "ampere_pruning_method": "disabled",
