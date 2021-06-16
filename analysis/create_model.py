@@ -40,6 +40,32 @@ def cd(path):
        os.chdir(old_path)
 
 class Packager:
+    ORIGINAL_FILES = ["special_tokens_map.json",
+                      "tokenizer_config.json",
+                      "vocab.txt"]
+
+    TRAINING_DIR = "training"
+    TRAINING_FILES =["data_args.json",
+                     "model_args.json",
+                     "sparse_args.json",
+                     "training_args.bin"]
+
+    EVAL_DIR = "eval"
+    EVAL_FILES = {"squadv2": ["eval_metrics.json",
+                              "evaluate_timing.json",
+                              "nbest_predictions.json",
+                              "null_odds.json",
+                              "predictions.json",
+                              "sparsity_report.json",
+                              "speed_report.json"],
+                  "squadv1": ["eval_metrics.json",
+                              "evaluate_timing.json",
+                              "nbest_predictions.json",
+                              "predictions.json",
+                              "sparsity_report.json",
+                              "speed_report.json"]
+                  }
+
     def __init__(self,
                  owner_name,
                  info_filepath,
@@ -75,9 +101,12 @@ class Packager:
         return speedup
 
     def get_original_model_size_mb(self):
-        orignal_model_size = 420 * 1024**2
-        if "bert-large" in self.base_name:
+        if "bert-base" in self.base_name:
+            original_model_size = 420 * 1024**2
+        elif "bert-large" in self.base_name:
             original_model_size = 1.2*1024**3
+        else:
+            raise Exception(f"Unknown model type {self.base_name}")
         return original_model_size
 
     def build_model_name(self):
@@ -120,10 +149,11 @@ class Packager:
     def sanity_check(self):
         pass
 
-
-    def create_git(self):
+    def create_git(self, only_name = False):
         git_path = self.git_base_path / self.model_owner_name / self.model_name
         print(git_path)
+        if only_name:
+            return
         if not git_path.parent.exists():
             git_path.parent.mkdir(parents=True)
         if not git_path.exists():
@@ -131,6 +161,12 @@ class Packager:
             with cd(git_path.parent):
                 sh.git("clone", f"https://huggingface.co/{self.model_owner_name}/{self.model_name}")
         return git_path
+
+    def get_copy_list(self):
+        to_copy = [(self.ORIGINAL_FILES, self.git_path),
+                   (self.TRAINING_FILES, self.git_path / self.TRAINING_DIR),
+                   (self.EVAL_FILES[self.task], self.git_path / self.EVAL_DIR)]
+        return to_copy
 
     def copy_model_files(self, force = False):
         modified = False
@@ -165,12 +201,15 @@ class Packager:
                 model.save_pretrained(self.git_path)
                 modified = True
 
-            FILES = "special_tokens_map.json", "tokenizer_config.json", "vocab.txt"
-            for file in FILES:
-                if force or not (self.git_path / file).exists():
-                    shutil.copyfile(str(Path(src_path) / file), str(self.git_path / file))
-                    modified = True
+            src_path = Path(src_path)
+            to_copy = self.get_copy_list()
 
+            for files, dest in to_copy:
+                dest.mkdir(exist_ok=True)
+                for file in files:
+                    if force or not (dest / file).exists():
+                        shutil.copyfile(str(src_path / file), str(dest / file))
+                        modified = True
         finally:
             if d is not None:
                 d.cleanup()
@@ -329,43 +368,54 @@ class Packager:
         pass
 
     def add_files(self):
-        files = ["pytorch_model.bin",  "tf_model.h5"]
-        files += ["config.json", "special_tokens_map.json", "tokenizer_config.json", "vocab.txt"]
+        files = ["pytorch_model.bin",  "tf_model.h5", "config.json"]
+        files.append(self.ORIGINAL_FILES)
+
         files += ["README.md", "model_card"]
         with cd(self.git_path):
             sh.git("add", *files, _fg=True)
 
+        with cd(self.git_path / "eval"):
+            sh.tar("-cvzf", "nbest_predictions.json.tgz", "nbest_predictions.json")
+            sh.rm("nbest_predictions.json")
+
+        to_copy = self.get_copy_list()
+        for files, dest in to_copy:
+            with cd(dest):
+                for f in files:
+                    if f == "nbest_predictions.json":
+                        f += ".tgz"
+                    sh.git("add", f, _fg=True)
+
+        assert("checkpoint_dir" not in self.checkpoint_info)
+        self.checkpoint_info["checkpoint_path"] = self.checkpoint_path
+
+        with (self.git_path / "model_info.json").open("w") as f:
+            f.write(pretty_json(self.checkpoint_info))
+
+        with cd(self.git_path):
+            sh.git("add", "model_info.json")
+
+
     def commit(self):
         with cd(self.git_path):
             # sh.git("status", _fg=True)
-            sh.git("commit", "-m", "Adding modes, graphs and metadata.", _fg=True)
+            sh.git("commit", "-m", "Adding model, graphs and metadata.", _fg=True)
 
     def push(self):
         with cd(self.git_path):
             sh.git("status", _fg=True)
             sh.git("push", _fg=True)
 
-    def run(self):
+    def run(self, only_name = False):
         self.load_info()
         self.sanity_check()
-        self.git_path = self.create_git()
+        self.git_path = self.create_git(only_name=only_name)
+
+        if only_name:
+            return
         self.copy_model_files()
         self.create_readme()
         self.add_files()
         self.commit()
         self.push()
-
-if __name__ == "__main__":
-    checkpoint_path = "/data_2to/devel_data/nn_pruning/output/squad_test_final_fine_tune/fine_tuned_aws_nn-pruning-v10-a32-l5-dl0-5--2021-01-21--00-52-45/checkpoint-22132"
-    checkpoint_path = "/data_2to/devel_data/nn_pruning/output/squad_test_final_fine_tune/fine_tuned_hp_od-output__squad_test3_es-steps_nte20_ls250_est5000_rn-output__squad_test3_dpm-sigmoied_threshold:1d_alt_apme-sigmoied_threshold_aowd0_bm1_abr32_abc32_it0_fw10_r-l1_rfl20_dl0.25_dtnop-csarron__bert-base-uncased-squad-v1/checkpoint-22132"
-    checkpoint_path = "/data_2to/devel_data/nn_pruning/output/squad_test_9_fullpatch4/hp_od-__data_2to__devel_data__nn_pruning__output__squad_test_9_fullpatch4___es-steps_nte20_ls250_stl50_est5000_rn-__data_2to__devel_data__nn_pruning__output__squad_test_9_fullpatch4_--6cb2db64e9a885f1/checkpoint-110000"
-    checkpoint_path = "/data_2to/devel_data/nn_pruning/output/squad_test_9_fullpatch6/hp_od-__data_2to__devel_data__nn_pruning__output__squad_test_9_fullpatch6___es-steps_nte20_ls250_stl50_est5000_rn-__data_2to__devel_data__nn_pruning__output__squad_test_9_fullpatch6_--5f772c87c5edbc85/checkpoint-100000"
-    checkpoint_path = "/data_2to/devel_data/nn_pruning/output/squad_test_8_mvp_lt/hp_od-__data_2to__devel_data__nn_pruning__output__squad_test_8_mvp_lt___es-steps_nte20_ls250_stl50_est5000_rn-__data_2to__devel_data__nn_pruning__output__squad_test_8_mvp_lt___dpm-si--7fe43555f854fbb6/checkpoint-110000"
-    checkpoint_path = "/data_2to/devel_data/nn_pruning/output/squad_test4/hp_od-__data_2to__devel_data__nn_pruning__output__squad4___es-steps_nte20_ls250_stl50_est5000_rn-__data_2to__devel_data__nn_pruning__output__squad4___dpm-sigmoied_threshold:1d_alt_ap--17cd29ad8a563746/checkpoint-110000"
-    #kind = "unstruct"
-    kind = "hybrid"
-    task = "squadv1"
-
-    git_base_path = (Path(__file__).resolve().parent.parent.parent / "models").resolve()
-    p = Packager("madlag", "files/results_squadv1.json", checkpoint_path, git_base_path, kind = kind, task = task)
-    p.run()

@@ -42,9 +42,11 @@ MODEL_KINDS = ["hybrid", "hybrid-filled", "unstruct"]
 @click.argument("user", default=None, type = str)
 @click.argument("dest", default=None, type= click.Path(resolve_path=False, exists=True))
 @click.option("--results", default="files/results", type=str, help="Base name of the output json files.")
-def upload(checkpoint, kind, task, user, dest, results):
+@click.option("--only-name", is_flag=True, help="Only print what would be the name of the git.")
+def upload(checkpoint, kind, task, user, dest, results, only_name):
+    # Upload a model to the hub. This includes compiling the model, extracting statistics, preparing a model card etc.
     p = Packager(user, f"{results}_{task}.json", checkpoint, dest, kind = kind, task = task)
-    p.run()
+    p.run(only_name=only_name)
 
 
 @cli.command()

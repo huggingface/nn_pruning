@@ -4,8 +4,8 @@ thumbnail:
 license: mit
 tags:
 - question-answering
-- bert
-- bert-base
+- {{model_family}}
+- {{model_base}}
 datasets:
 - squad
 metrics:
@@ -19,7 +19,7 @@ widget:
 
 ## BERT-base uncased model fine-tuned on SQuAD v1
 
-This model was created using the [nn_pruning](https://github.com/huggingface/nn_pruning) python library: the **linear layers contains {{"%.1f"|format(sparsity.linear_density)}}%** of the original weights.
+This model was created using the [nn_pruning](https://github.com/huggingface/nn_pruning) python library: the **linear layers contains {{"%.1f"|format(sparsity.linear_density)}}%** of the original {{model_base}} weights.
 {% if nn_pruning_needed %}
 This model **CANNOT be used without using nn_pruning `optimize_model`** function, as it uses NoNorms instead of LayerNorms and this is not currently supported by the Transformers library.
 {% endif %}
@@ -32,15 +32,15 @@ It is Ampere sparse. That means that the non-zero blocks are themselves Ampere s
 {% endif %}
 The model contains **{{"%.1f"|format(sparsity.total_density)}}%** of the original weights **overall** (the embeddings account for a significant part of the model, and they are not pruned by this method).
 
-With a simple resizing of the linear matrices it ran **{{"%.2f"|format(speedup)}}x as fast as BERT-base** on the evaluation.
+With a simple resizing of the linear matrices it ran **{{"%.2f"|format(speedup)}}x as fast as {{model_base_name}}** on the evaluation.
 This is possible because the pruning method lead to structured matrices: to visualize them, hover below on the plot to see the non-zero/zero parts of each matrix.
 
 <div class="graph">{{graphics.density_info.html}}</div>
 
-In terms of accuracy, its **{{reference.main_metric_name}} is {{"%.2f"|format(eval_metrics.main_metric)}}**, compared with {{reference.main_metric_value}} for BERT-base, a **{{reference.main_metric_name}} {{"gain" if eval_metrics.main_metric > reference.main_metric_value else "drop"}} of {{"%.2f"|format((eval_metrics.main_metric - reference.main_metric_value) | abs)}}**.
+In terms of accuracy, its **{{reference.main_metric_name}} is {{"%.2f"|format(eval_metrics.main_metric)}}**, compared with {{reference.main_metric_value}} for {{model_base_name}}, a **{{reference.main_metric_name}} {{"gain" if eval_metrics.main_metric > reference.main_metric_value else "drop"}} of {{"%.2f"|format((eval_metrics.main_metric - reference.main_metric_value) | abs)}}**.
 
 ## Fine-Pruning details
-This model was fine-tuned from the HuggingFace [BERT](https://www.aclweb.org/anthology/N19-1423/) base uncased checkpoint on [SQuAD1.1](https://rajpurkar.github.io/SQuAD-explorer), and distilled from the model [{{teacher}}](https://huggingface.co/{{teacher}}).
+This model was fine-tuned from the HuggingFace [model]({{model_base_url}}) checkpoint on [SQuAD1.1](https://rajpurkar.github.io/SQuAD-explorer), and distilled from the model [{{teacher}}]({{teacher_url}})
 This model is case-insensitive: it does not make a difference between english and English.
 
 A side-effect of the block pruning is that some of the attention heads are completely removed: {{sparsity.pruned_heads}} heads were removed on a total of {{sparsity.total_heads}} ({{"%.1f"|format(sparsity.pruned_heads / sparsity.total_heads * 100)}}%).
@@ -67,7 +67,7 @@ GPU driver: 455.23.05, CUDA: 11.1
 
 ### Results
 
-**Pytorch model file size**: `{{packaging.pytorch_final_file_size // 1024//1024}}M` (original BERT: `438M`)
+**Pytorch model file size**: `{{packaging.pytorch_final_file_size // 1024 // 1024}}MB` (original BERT: `{{original_model_size_mb // 1024 // 1024}}MB`)
 
 | Metric | # Value   | # Original ([Table 2](https://www.aclweb.org/anthology/N19-1423.pdf))| Variation |
 | ------ | --------- | --------- | --------- |
@@ -91,11 +91,11 @@ qa_pipeline = pipeline(
     tokenizer="{{packaging.model_owner_name}}/{{packaging.model_name}}"
 )
 
-print("BERT-base parameters: 110M")
-print(f"Parameters count (includes head pruning)={int(qa_pipeline.model.num_parameters() / 1E6)}M")
+print("{{model_base_name}} parameters: {{original_model_size_params // 1E6}}M")
+print(f"Parameters count (includes only head pruning, not feed forward pruning)={int(qa_pipeline.model.num_parameters() / 1E6)}M")
 qa_pipeline.model = optimize_model(qa_pipeline.model, "dense")
 
-print(f"Parameters count after optimization={int(qa_pipeline.model.num_parameters() / 1E6)}M")
+print(f"Parameters count after complete optimization={int(qa_pipeline.model.num_parameters() / 1E6)}M")
 predictions = qa_pipeline({
     'context': "Frédéric François Chopin, born Fryderyk Franciszek Chopin (1 March 1810 – 17 October 1849), was a Polish composer and virtuoso pianist of the Romantic era who wrote primarily for solo piano.",
     'question': "Who is Frederic Chopin?",

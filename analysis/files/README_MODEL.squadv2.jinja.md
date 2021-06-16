@@ -37,10 +37,10 @@ This is possible because the pruning method lead to structured matrices: to visu
 
 <div class="graph">{{graphics.density_info.html}}</div>
 
-In terms of accuracy, its **{{reference.main_metric_name}} is {{"%.2f"|format(eval_metrics.main_metric)}}**, compared with {{reference.main_metric_value}} for {{model_base}}, a **{{reference.main_metric_name}} {{"gain" if eval_metrics.main_metric > reference.main_metric_value else "drop"}} of {{"%.2f"|format((eval_metrics.main_metric - reference.main_metric_value) | abs)}}**.
+In terms of accuracy, its **{{reference.main_metric_name}} is {{"%.2f"|format(eval_metrics.main_metric)}}**, compared with {{reference.main_metric_value}} for {{model_base_name}}, a **{{reference.main_metric_name}} {{"gain" if eval_metrics.main_metric > reference.main_metric_value else "drop"}} of {{"%.2f"|format((eval_metrics.main_metric - reference.main_metric_value) | abs)}}**.
 
 ## Fine-Pruning details
-This model was fine-tuned from the HuggingFace [model]({{model_base_url}})  uncased checkpoint on [SQuAD1.1](https://rajpurkar.github.io/SQuAD-explorer), and distilled from the model [{{teacher}}]({{teacher_url}}).
+This model was fine-tuned from the HuggingFace [model]({{model_base_url}}) checkpoint on [SQuAD2.0](https://rajpurkar.github.io/SQuAD-explorer), and distilled from the model [{{teacher}}]({{teacher_url}}).
 This model is case-insensitive: it does not make a difference between english and English.
 
 A side-effect of the block pruning is that some of the attention heads are completely removed: {{sparsity.pruned_heads}} heads were removed on a total of {{sparsity.total_heads}} ({{"%.1f"|format(sparsity.pruned_heads / sparsity.total_heads * 100)}}%).
