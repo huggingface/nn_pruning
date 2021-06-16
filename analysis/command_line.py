@@ -3,6 +3,10 @@ import click
 import json
 from analyze_run import ModelAnalysis
 from create_model import Packager
+import shutil
+from pathlib import Path
+from examples.question_answering.qa_sparse_xp import QASparseXP
+from examples.text_classification.glue_sparse_xp import GlueSparseXP
 
 @click.group()
 @click.pass_context
@@ -12,7 +16,7 @@ def cli(ctx):
 TASKS = ["squadv1", "squadv2", "cnn_dailymail", "mnli"]
 
 @cli.command()
-@click.argument("input", default=None, type=click.Path(resolve_path=True))
+@click.argument("input", default=None, type=click.Path(resolve_path=True, exists=True))
 @click.option("--output", default="files/results", type=str, help="Base name of the output json files.")
 @click.option("--task", default=TASKS, type=str, multiple=True)
 @click.option("--force-speed", is_flag=True, help="Force reevaluation of model speed.")
@@ -30,6 +34,47 @@ def analyze(input, output, task, force_speed, skip_check):
                            prefixes = ["fine_tuned_", "hp_", "aws_",  "large_"],
                            exclude_non_matching_f1=not skip_check)
         ma.run()
+
+@click.argument("input", default=None, type=click.Path(resolve_path=True, exists=True))
+@click.argument("task", default=None, type= click.Choice(TASKS))
+def final_finetune(input, task):
+    src_path = Path(input)
+    key = src_path.parent.name
+    dest_key = "fine_tuned_" + key
+    task_rewrite = "squadv2" if task == "squad_v2" else task
+    dest_path = src_path.parent.parent.parent / f"{task_rewrite}_test_final_fine_tune" / dest_key
+    dest_path = dest_path.resolve()
+    if dest_path.exists():
+        click.echo(f"Destination path {dest_path} already exists")
+        return
+    else:
+        print("PROCESSING", dest_path)
+
+    tmp_path = Path("tmp_finetune/").resolve()
+    if tmp_path.exists():
+        shutil.rmtree(tmp_path)
+    shutil.copytree(src_path, tmp_path)
+
+    files_to_remove = ["trainer_state.json", "training_args.bin", "scheduler.pt"]
+    for file_to_remove in files_to_remove:
+        file_to_remove_ = tmp_path / file_to_remove
+        if file_to_remove_.exists():
+            file_to_remove_.unlink()
+
+    dest_path.mkdir(exist_ok=True, parents=True)
+    with (dest_path / "source.txt").open("w") as f:
+        f.write(str(src_path))
+
+    with open(src_path / "sparse_args.json") as f:
+        sparse_args = json.load(f)
+        teacher = sparse_args["distil_teacher_name_or_path"]
+
+    if "squad" in task:
+        QASparseXP.final_finetune(str(tmp_path), str(dest_path), task, teacher=teacher)
+    elif task in ["mnli"]:
+        GlueSparseXP.final_finetune(str(tmp_path), str(dest_path), task, teacher=teacher)
+    else:
+        raise Exception(f"Unknown task {task}")
 
 
 
