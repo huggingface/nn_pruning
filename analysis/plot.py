@@ -855,6 +855,13 @@ def copy_plots(task):
 
 
 #
+# ["squadv1"]:  # , "qqp", "squadv2"]: #, #"squadv1", "mnli"]
+def main_plot(results_base_name, tasks):
+    for task in tasks:
+        input_file_name_ = results_base_name + "_" + task + ".json"
+        for x_axis in ["speedup", "fill_rate"]:
+            draw_all_plots(input_file_name_, task, x_axis, cleanup_cache=False)
+        copy_plots(task)
 
 if __name__ == "__main__":
     import sys

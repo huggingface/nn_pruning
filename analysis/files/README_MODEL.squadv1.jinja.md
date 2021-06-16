@@ -17,7 +17,7 @@ widget:
   context: "Frédéric François Chopin, born Fryderyk Franciszek Chopin (1 March 1810 – 17 October 1849), was a Polish composer and virtuoso pianist of the Romantic era who wrote primarily for solo piano."
 ---
 
-## BERT-base uncased model fine-tuned on SQuAD v1
+## {{model_base_name}} model fine-tuned on SQuAD v1.1
 
 This model was created using the [nn_pruning](https://github.com/huggingface/nn_pruning) python library: the **linear layers contains {{"%.1f"|format(sparsity.linear_density)}}%** of the original {{model_base}} weights.
 {% if nn_pruning_needed %}

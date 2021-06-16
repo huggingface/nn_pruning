@@ -1,11 +1,16 @@
 import click
 import json
-
+import shutil
+from pathlib import Path
+from examples.question_answering.qa_sparse_xp import QASparseXP
+from examples.text_classification.glue_sparse_xp import GlueSparseXP
 
 @click.group()
 @click.pass_context
 def cli(ctx):
     ctx.obj = {}
+
+TASKS = ["squadv1", "squadv2", "cnn_dailymail", "mnli", "qqp", "sst2"]
 
 
 QA_TYPICAL_PARAMETERS = {
@@ -95,7 +100,9 @@ task2teacher = {
     "squadv1_base": "csarron/bert-base-uncased-squad-v1",
     "squadv1_large": "bert-large-uncased-whole-word-masking-finetuned-squad",
     "squadv2_base": "twmkn9/bert-base-uncased-squad2",
+    "squadv2_large": "madlag/bert-large-uncased-whole-word-masking-finetuned-squadv2",
     "mnli_base": "textattack/bert-base-uncased-MNLI",
+    "mnli_large": "madlag/bert-large-uncased-mnli", # TODO : use whole word masking
     "cola_base": "textattack/bert-base-uncased-CoLA",
     "mrpc_base": "textattack/bert-base-uncased-MRPC",
     "qnli_base": "textattack/bert-base-uncased-QNLI",
@@ -204,6 +211,48 @@ def finetune(
 
     # This does not actually use hyper parameter search right now, but it's useful for naming the output directory for example
     experiment.hyperparameter_search()
+
+@click.argument("checkpoint", default=None, type=click.Path(resolve_path=True, exists=True))
+@click.argument("task", default=None, type= click.Choice(TASKS))
+def final_finetune(checkpoint, task):
+    src_path = Path(checkpoint)
+    key = src_path.parent.name
+    dest_key = "fine_tuned_" + key
+    task_rewrite = "squadv2" if task == "squad_v2" else task
+    dest_path = src_path.parent.parent.parent / f"{task_rewrite}_test_final_fine_tune" / dest_key
+    dest_path = dest_path.resolve()
+    if dest_path.exists():
+        click.echo(f"Destination path {dest_path} already exists")
+        return
+    else:
+        print("PROCESSING", dest_path)
+
+    tmp_path = Path("tmp_finetune/").resolve()
+    if tmp_path.exists():
+        shutil.rmtree(tmp_path)
+    shutil.copytree(src_path, tmp_path)
+
+    files_to_remove = ["trainer_state.json", "training_args.bin", "scheduler.pt"]
+    for file_to_remove in files_to_remove:
+        file_to_remove_ = tmp_path / file_to_remove
+        if file_to_remove_.exists():
+            file_to_remove_.unlink()
+
+    dest_path.mkdir(exist_ok=True, parents=True)
+    with (dest_path / "source.txt").open("w") as f:
+        f.write(str(src_path))
+
+    with open(src_path / "sparse_args.json") as f:
+        sparse_args = json.load(f)
+        teacher = sparse_args["distil_teacher_name_or_path"]
+
+    if "squad" in task:
+        QASparseXP.final_finetune(str(tmp_path), str(dest_path), task, teacher=teacher)
+    elif task in ["mnli"]:
+        GlueSparseXP.final_finetune(str(tmp_path), str(dest_path), task, teacher=teacher)
+    else:
+        raise Exception(f"Unknown task {task}")
+
 
 def post_process():
     pass
