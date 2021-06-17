@@ -39,7 +39,7 @@ class SparseXP:
                 continue
 
             with torch.no_grad():
-                print("unzero_parameters", k, "sparsity=", zero_mask.sum() / zero_mask.numel(), zero_mask.shape)
+                print("unzero_parameters", k, "sparsity=", float(zero_mask.sum() / zero_mask.numel()), zero_mask.shape)
                 new_values = torch.randn_like(v)
                 new_values *= v.std() * epsilon
                 new_values += v.mean()
@@ -49,7 +49,10 @@ class SparseXP:
 
     def model_init(self, trial=None):
         if self.sparse_args.final_finetune:
-            model = self.compile_model(self.model_args.model_name_or_path)
+            try:
+                model = self.compile_model(self.model_args.model_name_or_path)
+            except:
+                model = self.CONSTRUCTOR.from_pretrained(self.model_args.model_name_or_path)
             model = optimize_model(model, "dense")
             model = self.unzero_parameters(model)
         else:

@@ -10,7 +10,6 @@ from examples.text_classification.glue_sparse_xp import GlueSparseXP
 def cli(ctx):
     ctx.obj = {}
 
-TASKS = ["squadv1", "squadv2", "cnn_dailymail", "mnli", "qqp", "sst2"]
 
 
 QA_TYPICAL_PARAMETERS = {
@@ -212,44 +211,78 @@ def finetune(
     # This does not actually use hyper parameter search right now, but it's useful for naming the output directory for example
     experiment.hyperparameter_search()
 
-@click.argument("checkpoint", default=None, type=click.Path(resolve_path=True, exists=True))
+
+TASKS = ["squad", "squad_v2", "cnn_dailymail", "mnli", "qqp", "sst2"]
+
+@cli.command()
+@click.option("--checkpoint", default=None, type=click.Path(resolve_path=True, exists=True))
+@click.option("--model", default=None, type=str)
+@click.option("--teacher", default=None, type=str)
+@click.argument("dest", default=None, type=click.Path(resolve_path=True, exists=True))
 @click.argument("task", default=None, type= click.Choice(TASKS))
-def final_finetune(checkpoint, task):
-    src_path = Path(checkpoint)
-    key = src_path.parent.name
-    dest_key = "fine_tuned_" + key
+@click.option('--overwrite', is_flag=True)
+def final_finetune(checkpoint, model, teacher, dest, task, overwrite):
+    input_info = 0
+    if checkpoint is not None:
+        input_info += 1
+    if model is not None:
+        input_info += 1
+    if input_info == 2:
+        raise click.Abort("You should specify a checkpoint path with --checkpoint or a hub model name with --model, not both.")
+
+    if input_info == 0:
+        raise click.Abort("You should specify a checkpoint path with --checkpoint or a hub model name with --model.")
+
+    if checkpoint is not None:
+        src_path = Path(checkpoint)
+        dest_key = src_path.parent.name
+
+    if model is not None:
+        dest_key = model.replace("/", "_")
+        src_path = model
+
     task_rewrite = "squadv2" if task == "squad_v2" else task
-    dest_path = src_path.parent.parent.parent / f"{task_rewrite}_test_final_fine_tune" / dest_key
-    dest_path = dest_path.resolve()
+    dest_path = Path(dest).resolve() / f"{task_rewrite}_test_final_fine_tune" / ("fine_tuned_" + dest_key)
+
     if dest_path.exists():
-        click.echo(f"Destination path {dest_path} already exists")
-        return
+        if overwrite:
+            shutil.rmtree(dest_path)
+        else:
+            raise click.ClickException(f"Destination path {dest_path} already exists")
     else:
         print("PROCESSING", dest_path)
-
-    tmp_path = Path("tmp_finetune/").resolve()
-    if tmp_path.exists():
-        shutil.rmtree(tmp_path)
-    shutil.copytree(src_path, tmp_path)
-
-    files_to_remove = ["trainer_state.json", "training_args.bin", "scheduler.pt"]
-    for file_to_remove in files_to_remove:
-        file_to_remove_ = tmp_path / file_to_remove
-        if file_to_remove_.exists():
-            file_to_remove_.unlink()
 
     dest_path.mkdir(exist_ok=True, parents=True)
     with (dest_path / "source.txt").open("w") as f:
         f.write(str(src_path))
 
-    with open(src_path / "sparse_args.json") as f:
-        sparse_args = json.load(f)
-        teacher = sparse_args["distil_teacher_name_or_path"]
+    if checkpoint is not None:
+        tmp_path = Path("tmp_finetune/").resolve()
+        if tmp_path.exists():
+            shutil.rmtree(tmp_path)
+        shutil.copytree(src_path, tmp_path)
+        src_path = tmp_path
+
+        files_to_remove = ["trainer_state.json", "training_args.bin", "scheduler.pt"]
+        for file_to_remove in files_to_remove:
+            file_to_remove_ = tmp_path / file_to_remove
+            if file_to_remove_.exists():
+                file_to_remove_.unlink()
+
+        if teacher is None:
+            with open(src_path / "sparse_args.json") as f:
+                sparse_args = json.load(f)
+                teacher = sparse_args["distil_teacher_name_or_path"]
+
+    if model is not None:
+        if teacher is None:
+            raise click.ClickException("Please specify teacher")
+
 
     if "squad" in task:
-        QASparseXP.final_finetune(str(tmp_path), str(dest_path), task, teacher=teacher)
+        QASparseXP.final_finetune(str(src_path), str(dest_path), task, teacher=teacher)
     elif task in ["mnli"]:
-        GlueSparseXP.final_finetune(str(tmp_path), str(dest_path), task, teacher=teacher)
+        GlueSparseXP.final_finetune(str(src_path), str(dest_path), task, teacher=teacher)
     else:
         raise Exception(f"Unknown task {task}")
 
