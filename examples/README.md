@@ -41,7 +41,8 @@ You may want to try different lambdas to have slightly different networks, but 1
 `nn_pruning.patch_coordinator.SparseTrainingArguments`, and in `nn_pruning.examples.xp` with the `ModelArguments`,
 `DataTrainingArguments` and `XPTrainingArguments` dataclasses.
 
-A command and corresponding json with all parameters that leads to a very good network:
+**A command and corresponding json with all parameters that leads to a very good network**:
+
 `python command_line.py finetune --json-path parameters_block64_squadv1_bert_base.json squadv1 output_dir`
 
 **parameters_block64_squadv1_bert_base.json**:
