@@ -73,7 +73,7 @@ A json with all parameters that leads to a very good network:
         "do_predict": False,
         "do_train": 1,
         "evaluation_strategy": "epoch",
-        "eval_steps": 500,
+        "eval_steps": 5000,
         "final_ampere_temperature": 20.0,
         "final_finetune": 0,
         "final_threshold": 0.1,
