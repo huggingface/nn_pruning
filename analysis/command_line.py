@@ -8,6 +8,7 @@ from analyze_run import ModelAnalysis
 from create_model import Packager
 from plot import main_plot
 import os
+import sys
 from aws_download import  AWSExperienceDownloader
 
 @click.group()
@@ -32,7 +33,8 @@ def download(bucket, output, pattern):
 @click.argument("input", default=None, type=click.Path(resolve_path=True, exists=True))
 @click.argument("output", default="s3://lagunas-sparsity-experiments/backup/nn_pruning/output", type=str)
 @click.option("--clean-train-files", is_flag=True, help="remove optimizer.pt files")
-def upload(input, output, clean_train_files):
+@click.option("--dryrun", is_flag=True, help="")
+def upload(input, output, clean_train_files, dryrun):
     """Upload all model checkpoints to s3 for archival. You may want to remove large files like optimizer.pt before that."""
 
     if clean_train_files:
@@ -41,9 +43,17 @@ def upload(input, output, clean_train_files):
             for file in files:
                 if file in to_remove:
                     path = Path(root) / file
-                    path.unlink()
+                    print(f"Removing train file {path}")
+                    if not dry_run:
+                        path.unlink()
 
-    #sh.aws("s3", "sync", "--follow-symlinks", input, output)
+    if dryrun:
+        dry_run_command = ["--dryrun"]
+    else:
+        dry_run_command = []
+
+    command = ["s3", "sync"] + dry_run_command + ["--follow-symlinks", input, output]
+    sh.aws(*command, _out = sys.stdout)
 
 TASKS = ["squadv1", "squadv2", "cnn_dailymail", "mnli", "qqp", "sst2"]
 
