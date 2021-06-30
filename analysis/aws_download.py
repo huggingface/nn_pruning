@@ -111,19 +111,10 @@ class AWSExperienceDownloader:
             if not link.exists():
                 link.symlink_to(final_dest_file / link_name)
 
-    def load(self, version):
+    def load(self, pattern):
         dirs = self.s3client.list_objects_v2(Bucket=self.sagemaker_bucket, Delimiter='/')
 
         for d in dirs["CommonPrefixes"]:
-            if f"nn-pruning-{version}" in d["Prefix"]:
+            if pattern in d["Prefix"]:
                 self.load_single(d["Prefix"][:-1])
 
-
-sagemaker_bucket = "sagemaker-eu-west-1-854676674973"
-
-downloader = AWSExperienceDownloader(sagemaker_bucket,
-                                     Path("__file__").parent / "tmp",
-                                     "/data_2to/devel_data/nn_pruning/output/squad_test_aws/")
-
-for version in ["v8"]:
-    downloader.load(version=version)

@@ -118,7 +118,7 @@ task2teacher = {
                                                               "qqp", "rte", "sst2", "stsb", "wnli", "cnn_dailymail",
                                                               "xsum", "wmt14", "wmt16"]))
 @click.argument("output-dir", type=click.Path(resolve_path=True))
-@click.option("--json_path", type=click.Path(resolve_path=True), help="Path to a parameters json file")
+@click.option("--json-path", type=click.Path(resolve_path=True), help="Path to a parameters json file")
 @click.option("--model-name-or-path", default="bert-base-uncased", type=click.Choice(["bert-base-uncased",
                                                                                       "bert-large-uncased",
                                                                                       "facebook/bart-base",
@@ -129,8 +129,8 @@ task2teacher = {
 @click.option("--regularization-final-lambda", default=10, type=float)
 @click.option("--dense-lambda", default=1.0, type=float)
 @click.option("--ampere-pruning-method", default="disabled", type=click.Choice(["disabled", "topk"]))
-@click.option('--layer_norm_patch', is_flag=True)
-@click.option('--gelu_patch', is_flag=True)
+@click.option('--layer-norm-patch', is_flag=True)
+@click.option('--gelu-patch', is_flag=True)
 @click.option("--qat", is_flag=True)
 @click.option("--qconfig", default="default", type=str) # TODO: make it a click.Choice instead.
 
@@ -153,6 +153,7 @@ def finetune(
 
     if json_path is not None:
         param_dict = json.load(open(json_path))
+        param_dict["output_dir"] = output_dir
     else:
         if task in QA_TASKS:
             param_dict = {**COMMON_TYPICAL_PARAMETERS, **QA_TYPICAL_PARAMETERS}
@@ -209,7 +210,7 @@ def finetune(
         experiment = glue_sparse_xp.GlueSparseXP(param_dict)
 
     # This does not actually use hyper parameter search right now, but it's useful for naming the output directory for example
-    experiment.hyperparameter_search()
+    experiment.run_from_dict(param_dict)
 
 
 TASKS = ["squad", "squad_v2", "cnn_dailymail", "mnli", "qqp", "sst2"]

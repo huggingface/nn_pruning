@@ -73,7 +73,7 @@ You may want to try different lambdas to have slightly different networks, but 1
         "do_eval": 1,
         "do_predict": 0,
         "do_train": 1,
-        "evaluation_strategy": "epoch",
+        "evaluation_strategy": "steps",
         "eval_steps": 5000,
         "final_ampere_temperature": 20.0,
         "final_finetune": 0,
@@ -130,4 +130,10 @@ You may want to try different lambdas to have slightly different networks, but 1
     }
 ```
  
-
+# Compiling a model checkpoint
+The checkpoints that are created during the 'fine-pruning' are not directly usable as standard models,
+as they contains all the parameters used for creating/updating the pruning pattern.
+You will need to "compile" the checkpoint you are interested in to have a model with the same structure as the original one you used,
+but with some zeroes scattered in the linear layers.
+To do so, you can use the 'compile' command: it will produce a clean model that you can use directly, or use after processing with the `nn_pruning.inference_model_patcher.optimize_model` to speed up the inference.
+An example code for usage can be found in this [model card](https://huggingface.co/madlag/bert-large-uncased-wwm-squadv2-x2.63-f82.6-d16-hybrid-v1).
