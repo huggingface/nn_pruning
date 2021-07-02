@@ -46,6 +46,8 @@ from nn_pruning.training_patcher import (
     PatcherContext,
     PatcherContextModule,
 )
+from pathlib import Path
+import json
 
 
 @dataclass
@@ -288,6 +290,7 @@ class ModelPatchingCoordinator:
         self.teacher = None
         self.layer_head_mask = self.create_head_rewind_info(device, cache_dir)
         self.logit_names = logit_names
+        self.model_name_or_path = model_name_or_path
         config = AutoConfig.from_pretrained(model_name_or_path, cache_dir=cache_dir)
         self.model_structure = struct_from_config(config.__class__)
 
@@ -367,10 +370,20 @@ class ModelPatchingCoordinator:
         if not training:
             step -= 1
 
+        eval_with_current_patch_params = (hasattr(sparse_args, "eval_with_current_patch_params") and sparse_args.eval_with_current_patch_params)
+        use_scheduler = training or eval_with_current_patch_params
+
         if compile:
-            use_scheduler = False
-        else:
-            use_scheduler = training or (hasattr(sparse_args, "eval_with_current_patch_params") and sparse_args.eval_with_current_patch_params)
+            if use_scheduler:
+                base_path = Path(self.model_name_or_path)
+                training_args = torch.load(str(base_path / "training_args.bin"))
+                warmup_steps = training_args.warmup_steps
+
+                with (base_path / "trainer_state.json").open() as f:
+                    trainer_state = json.load(f)
+
+                step = trainer_state["global_step"]
+                total_step = trainer_state["max_steps"]
 
         if use_scheduler:
             if step <= initial_warmup * warmup_steps:
