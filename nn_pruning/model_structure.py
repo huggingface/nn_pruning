@@ -51,6 +51,9 @@ class ModelStructure:
         extracts = re.findall(r"[0-9]+", child_module_name)
         return int(extracts[0])
 
+    @staticmethod
+    def is_layernorm(module_name):
+        return "layernorm" in module_name.lower().replace("_", "")
 
 class BertStructure(ModelStructure):
     PATTERN_PREFIX = "bert.encoder.layer.[0-9]+."

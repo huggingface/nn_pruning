@@ -2,6 +2,8 @@ from examples.question_answering.qa_xp import QAXP
 from examples.question_answering.qa_sparse_xp import QASparseXP
 from examples.text_classification.glue_xp import GlueXP
 from examples.text_classification.glue_sparse_xp import GlueSparseXP
+from examples.seq2seq.summarization_xp import SummarizationXP
+from examples.seq2seq.summarization_sparse_xp import SummarizationSparseXP
 import examples.xp as xp
 from pathlib import Path
 import json
@@ -9,6 +11,11 @@ import torch
 from collections import defaultdict
 import tempfile
 from nn_pruning.inference_model_patcher import optimize_model
+from nn_pruning.model_structure import struct_from_config
+
+QA_TASKS = {"squadv1", "squadv2"}
+GLUE_TASKS = {"mnli", "qqp", "sst2"}
+SUMMARIZATION_TASKS = {"cnn_dailymail"}
 
 class ModelStatsExtractBase:
     def __init__(self, path, output_name, task, copy_to_tmp_path = False):
@@ -24,10 +31,12 @@ class ModelStatsExtractBase:
         else:
             self.dest_path = None
 
-        if self.task in ["squadv1", "squadv2"]:
+        if self.task in QA_TASKS:
             cls = QASparseXP
-        elif self.task in ["mnli", "sst2", "qqp"]:
+        elif self.task in GLUE_TASKS:
             cls = GlueSparseXP
+        elif self.task in SUMMARIZATION_TASKS:
+            cls = SummarizationSparseXP
         else:
             raise Exception(f"Unknown task {self.task}")
 
@@ -69,7 +78,7 @@ class ModelStatsExtract(ModelStatsExtractBase):
 
     def add_parameter(self, name, parameter, is_linear_layer_weight, is_attention):
         layer_number = self.get_layer_number(name)
-        if "attention" in name and "weight" in name and "layernorm" not in name.lower().replace("_", ""):
+        if is_attention and "weight" in name:
             if len(parameter.shape) == 2:
                 # Special case to avoid bad size when attention is pruned
                 numel = self.attention_size * self.attention_size
@@ -107,14 +116,13 @@ class ModelStatsExtract(ModelStatsExtractBase):
                 self.stats["layers"][layer_number]["linear_dense_nnz"] += nnz
 
     def run_(self, model):
-        self.attention_size = model.config.hidden_size
+        model_structure = struct_from_config(model.config_class)
+        self.attention_size = getattr(model.config, model_structure.NAME_CONFIG["hidden_size"])
         for name, parameter in model.named_parameters():
-            if ".encoder."  in name:
-                is_linear_layer_weight = name.endswith(".weight") and "LayerNorm" not in name
-                is_attention = "attention" in name
-            else:
-                is_linear_layer_weight = False
-                is_attention = False
+            is_attention = model_structure.is_attention(name)
+            is_ffn = model_structure.is_ffn(name)
+            is_layernorm = model_structure.is_layernorm(name)
+            is_linear_layer_weight = (is_attention or is_ffn) and name.endswith(".weight") and not is_layernorm
             self.add_parameter(name, parameter, is_linear_layer_weight, is_attention)
 
         total_sparsity = (1.0 - self.stats["nnz"] / self.stats["total"]) * 100
@@ -123,42 +131,74 @@ class ModelStatsExtract(ModelStatsExtractBase):
         self.stats["linear_sparsity"] = sparsity
 
         model = optimize_model(model, "heads")
-        self.stats["pruned_heads"] = model.config.pruned_heads
+        self.stats["pruned_heads"] = getattr(model.config, "pruned_heads")
 
         return self.stats
 
 class ModelReferenceSpeedEvaluate(ModelStatsExtractBase):
-    def __init__(self, model_name, task):
+    def __init__(self, model_name, task, dataset_config_name=None):
         self.model_name = model_name
         self.task = task
+        self.dataset_config_name = dataset_config_name
 
     def run(self):
-        if self.task in ["squadv1", "squadv2"]:
+        if self.task in QA_TASKS:
             task = "squad" if self.task == "squadv1" else "squad_v2"
-            ret = QAXP.evaluate_model(model_name_or_path=self.model_name, task=task, optimize_mode="disabled")
-        elif self.task in ["mnli", "sst2", "qqp"]:
-            ret = GlueXP.evaluate_model(model_name_or_path=self.model_name, task=self.task, optimize_mode="disabled")
+            ret = QAXP.evaluate_model(
+                model_name_or_path=self.model_name,
+                task=task,
+                optimize_mode="disabled"
+            )
+        elif self.task in GLUE_TASKS:
+            ret = GlueXP.evaluate_model(
+                model_name_or_path=self.model_name,
+                task=self.task,
+                optimize_mode="disabled"
+            )
+        elif self.task in SUMMARIZATION_TASKS:
+            ret = SummarizationXP.evaluate_model(
+                model_name_or_path=self.model_name,
+                task=self.task,
+                dataset_config_name=self.dataset_config_name,
+                optimize_mode="disabled"
+            )
         else:
             raise Exception(f"Unknown task {self.task}")
 
         return ret
 
 class ModelSpeedEvaluate(ModelStatsExtractBase):
-    def __init__(self, path, task, optimize_mode = "dense"):
+    def __init__(self, path, task, dataset_config_name = None, optimize_mode = "dense"):
         if optimize_mode == "disabled":
             filename = "speed_report_no_optimize.json"
         else:
             assert(optimize_mode=="dense")
             filename = "speed_report.json"
         self.optimize_mode = optimize_mode
+        self.dataset_config_name = dataset_config_name
         super().__init__(path, filename, task, copy_to_tmp_path=True)
 
     def run_(self, model):
-        if self.task in ["squadv1", "squadv2"]:
+        if self.task in QA_TASKS:
             task = "squad" if self.task == "squadv1" else "squad_v2"
-            ret = QAXP.evaluate_model(model_name_or_path=self.dest_path, task=task, optimize_mode=self.optimize_mode)
-        elif self.task in ["mnli", "sst2", "qqp"]:
-            ret = GlueXP.evaluate_model(model_name_or_path=self.dest_path, task=self.task, optimize_mode=self.optimize_mode)
+            ret = QAXP.evaluate_model(
+                model_name_or_path=self.dest_path,
+                task=task,
+                optimize_mode=self.optimize_mode
+            )
+        elif self.task in GLUE_TASKS:
+            ret = GlueXP.evaluate_model(
+                model_name_or_path=self.dest_path,
+                task=self.task,
+                optimize_mode=self.optimize_mode
+            )
+        elif self.task in SUMMARIZATION_TASKS:
+            ret = SummarizationXP.evaluate_model(
+                model_name_or_path=self.dest_path,
+                task=self.task,
+                dataset_config_name=self.dataset_config_name,
+                optimize_mode=self.optimize_mode
+            )
         else:
             raise Exception(f"Unknown task {self.task}")
 
@@ -235,27 +275,28 @@ class ModelAnalysis:
         "squadv2": {"key": "eval_metrics.f1", "files": ["eval_metrics"], "min": 70},
         "mnli":{"key":"eval_results_mnli.eval_accuracy", "files":["eval_results_mnli", "eval_results_mnli-mm"], "min":0.7},
         "sst2": {"key": "eval_results_sst2.eval_accuracy", "files": ["eval_results_sst2"], "min": 0.7},
-        "qqp": {"key": "eval_results_qqp.eval_f1", "files": ["eval_results_qqp"], "min": 0.7}
+        "qqp": {"key": "eval_results_qqp.eval_f1", "files": ["eval_results_qqp"], "min": 0.7},
+        "cnn_dailymail": {"key": "eval_results.eval_rouge2", "files": ["eval_results"], "min": 18}
     }
     REFERENCE_MODELS = {
         "squadv1":"csarron/bert-base-uncased-squad-v1",
         "squadv2": "twmkn9/bert-base-uncased-squad2",
         "mnli":"textattack/bert-base-uncased-MNLI",
         "qqp": "textattack/bert-base-uncased-QQP",
-        "sst2": "textattack/bert-base-uncased-SST-2"
+        "sst2": "textattack/bert-base-uncased-SST-2",
+        "cnn_dailymail": "facebook/bart-large-cnn"
     }
     TASK_PREFIXES = {
         "squadv1": ["squad"],
         "squadv2": ["squadv2", "squad_v2"],
-        "sst2": ["sst2"],
-        "mnli": ["mnli"],
-        "qqp": ["qqp"]
+        "cnn_dailymail": ["cnn"]
     }
 
     def __init__(self,
                  path,
                  output_file_name,
                  task,
+                 dataset_config_name = None,
                  force_speed = False,
                  prefixes = None,
                  exclude_non_matching_f1 = True):
@@ -266,6 +307,7 @@ class ModelAnalysis:
         self.prefixes = prefixes
         self.exclude_non_matching_f1 = exclude_non_matching_f1
         self.task = task
+        self.dataset_config_name = dataset_config_name
 
     def checkpoint_index(self, name):
         return int(name[0][len("checkpoint-"):])
@@ -280,7 +322,7 @@ class ModelAnalysis:
         checkpoint_info["stats"] = stats_report
 
         # Compute speed
-        mse_speed = ModelSpeedEvaluate(checkpoint_path, self.task, optimize_mode="dense")
+        mse_speed = ModelSpeedEvaluate(checkpoint_path, self.task, self.dataset_config_name, optimize_mode="dense")
         eval_report = mse_speed.run(force=force_speed)
 
         checkpoint_info["speed"] = eval_report["timings"]
@@ -299,7 +341,7 @@ class ModelAnalysis:
             base_speed_report = json.load(base_speed_report_file.open())
         else:
             # Fine tuned models are already pruned, so faster, so not appropriate to have a base speed evaluation
-            mse2 = ModelReferenceSpeedEvaluate(self.REFERENCE_MODELS[self.task], self.task)
+            mse2 = ModelReferenceSpeedEvaluate(self.REFERENCE_MODELS[self.task], self.task, self.dataset_config_name)
             base_speed_report = mse2.run()["timings"]
             with base_speed_report_file.open("w") as f:
                 json.dump(base_speed_report, f)
@@ -355,7 +397,6 @@ class ModelAnalysis:
         return False
 
     def run(self):
-
         base_speed_report = self.base_speed_report_get()
         checkpoints = {}
         missings = {}
@@ -389,7 +430,6 @@ class ModelAnalysis:
             for checkpoint_path, checkpoint_info in checkpoints.items():
                 if i == 1 and checkpoint_path not in missings:
                     continue
-
                 mabr = ModelAddBasicReport(checkpoint_path, checkpoint_info, base_speed_report, exclude_non_matching_f1=self.exclude_non_matching_f1 and i == 0, task=self.task)
                 br = mabr.basic_report()
                 if br is None:
