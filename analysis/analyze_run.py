@@ -26,7 +26,7 @@ class ModelStatsExtractBase:
 
         if self.task in ["squadv1", "squadv2"]:
             cls = QASparseXP
-        elif self.task == "mnli":
+        elif self.task in ["mnli", "sst2", "qqp"]:
             cls = GlueSparseXP
         else:
             raise Exception(f"Unknown task {self.task}")
@@ -45,6 +45,7 @@ class ModelStatsExtractBase:
 
         xp.XP.fix_last_checkpoint_bug_checkpoint(self.path)
         model = self.open_model()
+
         ret = self.run_(model, **kwargs)
 
         if write:
@@ -135,7 +136,7 @@ class ModelReferenceSpeedEvaluate(ModelStatsExtractBase):
         if self.task in ["squadv1", "squadv2"]:
             task = "squad" if self.task == "squadv1" else "squad_v2"
             ret = QAXP.evaluate_model(model_name_or_path=self.model_name, task=task, optimize_mode="disabled")
-        elif self.task == "mnli":
+        elif self.task in ["mnli", "sst2", "qqp"]:
             ret = GlueXP.evaluate_model(model_name_or_path=self.model_name, task=self.task, optimize_mode="disabled")
         else:
             raise Exception(f"Unknown task {self.task}")
@@ -156,7 +157,7 @@ class ModelSpeedEvaluate(ModelStatsExtractBase):
         if self.task in ["squadv1", "squadv2"]:
             task = "squad" if self.task == "squadv1" else "squad_v2"
             ret = QAXP.evaluate_model(model_name_or_path=self.dest_path, task=task, optimize_mode=self.optimize_mode)
-        elif self.task == "mnli":
+        elif self.task in ["mnli", "sst2", "qqp"]:
             ret = GlueXP.evaluate_model(model_name_or_path=self.dest_path, task=self.task, optimize_mode=self.optimize_mode)
         else:
             raise Exception(f"Unknown task {self.task}")
@@ -229,14 +230,27 @@ class ModelAddBasicReport:
 
 
 class ModelAnalysis:
-    TASK_EVAL_INFO = {"squadv1":{"key":"eval_metrics.f1", "files":["eval_metrics"], "min":85},
-                      "squadv2": {"key": "eval_metrics.f1", "files": ["eval_metrics"], "min": 70},
-                      "mnli":{"key":"eval_results_mnli.eval_accuracy", "files":["eval_results_mnli", "eval_results_mnli-mm"], "min":0.7}}
-    REFERENCE_MODELS = {"squadv1":"csarron/bert-base-uncased-squad-v1",
-                        "squadv2": "twmkn9/bert-base-uncased-squad2",
-                        "mnli":"textattack/bert-base-uncased-MNLI"
-                        }
-    TASK_PREFIXES = {"squadv1": ["squad"], "squadv2": ["squadv2", "squad_v2"], "cnn_dailymail": ["ccnews"]}
+    TASK_EVAL_INFO = {
+        "squadv1":{"key":"eval_metrics.f1", "files":["eval_metrics"], "min":85},
+        "squadv2": {"key": "eval_metrics.f1", "files": ["eval_metrics"], "min": 70},
+        "mnli":{"key":"eval_results_mnli.eval_accuracy", "files":["eval_results_mnli", "eval_results_mnli-mm"], "min":0.7},
+        "sst2": {"key": "eval_results_sst2.eval_accuracy", "files": ["eval_results_sst2"], "min": 0.7},
+        "qqp": {"key": "eval_results_qqp.eval_f1", "files": ["eval_results_qqp"], "min": 0.7}
+    }
+    REFERENCE_MODELS = {
+        "squadv1":"csarron/bert-base-uncased-squad-v1",
+        "squadv2": "twmkn9/bert-base-uncased-squad2",
+        "mnli":"textattack/bert-base-uncased-MNLI",
+        "qqp": "textattack/bert-base-uncased-QQP",
+        "sst2": "textattack/bert-base-uncased-SST-2"
+    }
+    TASK_PREFIXES = {
+        "squadv1": ["squad"],
+        "squadv2": ["squadv2", "squad_v2"],
+        "sst2": ["sst2"],
+        "mnli": ["mnli"],
+        "qqp": ["qqp"]
+    }
 
     def __init__(self,
                  path,
