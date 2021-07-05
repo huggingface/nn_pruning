@@ -13,6 +13,7 @@ from bokeh.embed import autoload_static
 from pathlib import Path
 import torch
 from .graph_util import BokehHelper
+from nn_pruning.model_structure import struct_from_config
 
 class PruningInfoBokehPlotter(BokehHelper):
 
@@ -51,7 +52,7 @@ class PruningInfoBokehPlotter(BokehHelper):
         p.xgrid.grid_line_color = None
         p.axis.minor_tick_line_color = None
         p.outline_line_color = None
-        p.legend.location = None
+        p.legend.location = "top"
         # p.legend.orientation = "horizontal"
 
         # rs.reverse()
@@ -132,12 +133,12 @@ class DensityBokehPlotter(BokehHelper):
 
     def process_matrix(self, name, matrix):
 
-        if not name.startswith("bert.encoder.layer"):
-            return
-        if matrix.dim() < 2:
-            return
+        is_attention = self.model_structure.is_attention(name)
+        is_ffn = self.model_structure.is_ffn(name)
 
-        if "attention" in name:
+        if not name.endswith(".weight") or (not is_ffn and not is_attention):
+            return
+        elif is_attention:
             attention_size = (self.attention_size, self.attention_size)
             if matrix.shape != attention_size:
                 zeros = torch.zeros(attention_size)
@@ -208,6 +209,8 @@ class DensityBokehPlotter(BokehHelper):
         self.url_base = url_base
         self.attention_size = model.config.hidden_size
 
+        self.model_structure = struct_from_config(model.config_class)
+        self.attention_size = getattr(model.config, self.model_structure.NAME_CONFIG["hidden_size"])
         self.ratio = ratio
         self.process_matrices()
 
@@ -215,34 +218,30 @@ class DensityBokehPlotter(BokehHelper):
         traces = {}
         part_index = 0
         positions = []
+        len_layer_pattern = len(self.model_structure.LAYER_PATTERNS)
         for layer in self.layers:
             name = layer["name"]
             density = layer["density"] * 100
             parameters = layer["parameters"]
             height = parameters
 
-            if "attention.self.query" in name:
-                increment = 1
-                kind = 'query'
-            elif "attention.self.key" in name:
-                increment = 1
-                kind = "key"
-            elif "attention.self.value" in name:
-                increment = 1
-                kind = "value"
-            elif "attention.output.dense.weight" in name:
-                kind = "fully connected"
-                increment = 1
-            elif "attention" not in name:
-                increment = 1
-                kind = "fully connected"
-            else:
+            kind = None
+            for k, v in self.model_structure.LAYER_PATTERNS.items():
+                if v in name:
+                    increment = 1
+                    if k in self.model_structure.ATTENTION_LAYERS:
+                        kind = k
+                    else:
+                        kind = "fully connected"
+
+            if kind is None:
                 print(name)
                 assert (False)
 
             shortname = self.layer_short_name(name)
 
-            x = part_index / 6 + 1 / 12
+            linear_per_layer = 6 if not self.model_structure.is_decoder(name) else len_layer_pattern
+            x = part_index / linear_per_layer + 1 / (linear_per_layer * 2)
             url = f"{self.url_base}/{layer['filename']}"
             img_height = str(int(layer["size"][0] / 8)) + "px"
             img_width = str(int(layer["size"][1] / 8)) + "px"

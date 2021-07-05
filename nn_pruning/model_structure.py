@@ -71,6 +71,8 @@ class BertStructure(ModelStructure):
     NAME_CONFIG = dict(
         hidden_size="hidden_size",
         intermediate_size="intermediate_size",
+        num_hidden_layers="num_hidden_layers",
+        num_attention_heads="num_attention_heads",
     )
 
 class BartStructure(ModelStructure):
@@ -93,6 +95,8 @@ class BartStructure(ModelStructure):
     NAME_CONFIG = dict(
         hidden_size="d_model",
         intermediate_size="encoder_ffn_dim",
+        num_hidden_layers="num_hidden_layers",
+        num_attention_heads="encoder_attention_heads",
     )
 
 class T5Structure(ModelStructure):
@@ -115,6 +119,8 @@ class T5Structure(ModelStructure):
     NAME_CONFIG = dict(
         hidden_size="d_model",
         intermediate_size="d_ff",
+        num_hidden_layers="num_layers",
+        num_attention_heads="num_heads",
     )
 
 config2struct = {

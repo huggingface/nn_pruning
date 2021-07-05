@@ -2,9 +2,15 @@ from pathlib import Path
 import json
 import sh
 import shutil
-from transformers import BertForQuestionAnswering, TFBertForQuestionAnswering
+from transformers import (
+    BertForQuestionAnswering,
+    BertForSequenceClassification,
+    TFBertForQuestionAnswering,
+    TFBertForSequenceClassification
+)
 from tempfile import TemporaryDirectory
 from nn_pruning.inference_model_patcher import optimize_model
+from nn_pruning.model_structure import name2struct
 from analysis.model_card_graphics import PruningInfoBokehPlotter, DensityBokehPlotter
 import jinja2
 
@@ -40,31 +46,76 @@ def cd(path):
        os.chdir(old_path)
 
 class Packager:
-    ORIGINAL_FILES = ["special_tokens_map.json",
-                      "tokenizer_config.json",
-                      "vocab.txt"]
-
+    ORIGINAL_FILES = [
+        "special_tokens_map.json",
+        "tokenizer_config.json",
+        "vocab.txt"
+    ]
     TRAINING_DIR = "training"
-    TRAINING_FILES =["data_args.json",
-                     "model_args.json",
-                     "sparse_args.json",
-                     "training_args.bin"]
-
+    TRAINING_FILES = [
+        "data_args.json",
+        "model_args.json",
+        "sparse_args.json",
+        "training_args.bin"
+    ]
     EVAL_DIR = "eval"
-    EVAL_FILES = {"squadv2": ["eval_metrics.json",
-                              "evaluate_timing.json",
-                              "nbest_predictions.json",
-                              "null_odds.json",
-                              "predictions.json",
-                              "sparsity_report.json",
-                              "speed_report.json"],
-                  "squadv1": ["eval_metrics.json",
-                              "evaluate_timing.json",
-                              "nbest_predictions.json",
-                              "predictions.json",
-                              "sparsity_report.json",
-                              "speed_report.json"]
-                  }
+    QA_TASKS = {"squadv1", "squadv2"}
+    GLUE_TASKS = {"mnli", "qqp", "sst2"}
+    TASK_INFO = {
+        "squadv1": {
+            "main_metric": "f1",
+            "base_value": 88.5,
+            "base_model": "csarron/bert-base-uncased-squad-v1",
+            "eval_files": [
+                "eval_metrics.json",
+                "evaluate_timing.json",
+                "nbest_predictions.json",
+                "predictions.json",
+                "sparsity_report.json",
+                "speed_report.json"
+            ],
+        },
+        "squadv2": {
+            "main_metric": "f1",
+            "base_value": 85.85,
+            "base_model": "twmkn9/bert-base-uncased-squad2",
+            "eval_files": [
+                "eval_metrics.json",
+                "evaluate_timing.json",
+                "nbest_predictions.json",
+                "null_odds.json",
+                "predictions.json",
+                "sparsity_report.json",
+                "speed_report.json"
+            ],
+        },
+        "sst2": {
+            "main_metric": "eval_accuracy",
+            "base_value": 92.43,
+            "base_model": "textattack/bert-base-uncased-SST-2",
+            "eval_files": [
+                "eval_results_sst2.json",
+                "evaluate_timing_sst2.json",
+                "sparsity_report.json",
+                "speed_report.json"
+            ],
+        },
+        "qqp": {
+            "main_metric": "f1",
+            "base_value": 87.82,
+            "base_model": "textattack/bert-base-uncased-QQP",
+            "eval_files": [
+                "eval_results_qqp.json",
+                "evaluate_timing_qqp.json",
+                "sparsity_report.json",
+                "speed_report.json"
+            ],
+        },
+    }
+    METRIC_INFO = {
+        "eval_accuracy": {"name": "accuracy", "title_name": "acc"},
+        "f1": {"name": "F1", "title_name": "f"},
+    }
 
     def __init__(self,
                  owner_name,
@@ -83,10 +134,11 @@ class Packager:
         self.task = task
 
     @classmethod
-    def build_model_name_(cls, base_name, task, speedup, precision, linear_sparsity, kind, is_ampere, version):
+    def build_model_name_(cls, base_name, task, speedup, metric_name, metric_value, linear_sparsity, kind, is_ampere, version):
+
         density = int(100 - linear_sparsity)
 
-        name = f"{base_name}-{task}-x{speedup:.2f}-f{precision:.1f}-d{density}-{kind}"
+        name = f"{base_name}-{task}-x{speedup:.2f}-{metric_name}{metric_value:.1f}-d{density}-{kind}"
         if is_ampere:
             name += "-ampere"
 
@@ -104,7 +156,11 @@ class Packager:
         if "bert-base" in self.base_name:
             original_model_size = 420 * 1024**2
         elif "bert-large" in self.base_name:
-            original_model_size = 1.2*1024**3
+            original_model_size = 1.2 * 1024**3
+        elif "bart-base" in self.base_name:
+            original_model_size = 533 * 1024**2
+        elif "bart-large" in self.base_name:
+            original_model_size = 1.6 * 1024**3
         else:
             raise Exception(f"Unknown model type {self.base_name}")
         return original_model_size
@@ -134,9 +190,11 @@ class Packager:
         self.total_density = int(100 - stats["total_sparsity"])
         speedup = self.get_speedup()
 
-        f1 = checkpoint_info["eval_metrics"]["f1"]
+        main_metric = self.TASK_INFO[self.task]["main_metric"]
+        metric_value = checkpoint_info["eval_metrics"][main_metric]
+        metric_name = self.METRIC_INFO[main_metric]["title_name"]
 
-        return self.build_model_name_(self.base_name, self.task, speedup, f1, stats["linear_sparsity"], self.kind, self.is_ampere, self.version)
+        return self.build_model_name_(self.base_name, self.task, speedup, metric_name, metric_value, stats["linear_sparsity"], self.kind, self.is_ampere, self.version)
 
     def load_info(self):
         with self.info_filepath.open() as f:
@@ -165,7 +223,7 @@ class Packager:
     def get_copy_list(self):
         to_copy = [(self.ORIGINAL_FILES, self.git_path),
                    (self.TRAINING_FILES, self.git_path / self.TRAINING_DIR),
-                   (self.EVAL_FILES[self.task], self.git_path / self.EVAL_DIR)]
+                   (self.TASK_INFO[self.task]["eval_files"], self.git_path / self.EVAL_DIR)]
         return to_copy
 
     def copy_model_files(self, force = False):
@@ -176,28 +234,38 @@ class Packager:
         d = None
         try:
             if force or not (self.git_path / "tf_model.h5").exists() or not (self.git_path / "pytorch_model.bin").exists():
-                if self.task.startswith("squad"):
-                    d = TemporaryDirectory()
+                d = TemporaryDirectory()
+                if self.task in self.QA_TASKS:
                     model = QASparseXP.compile_model(src_path, dest_path=d.name)
-                    model = optimize_model(model, "heads")
-                    model.save_pretrained(d.name)
-                    src_path = d.name
+                elif self.task in self.GLUE_TASKS:
+                    model = GlueSparseXP.compile_model(src_path, dest_path=d.name)
                 else:
-                    raise Exception(f"Unknown task {task}")
+                    raise Exception(f"Unknown task {self.task}")
 
+                model = optimize_model(model, "heads")
+                model.save_pretrained(d.name)
+                src_path = d.name
             if force or not (self.git_path / "tf_model.h5").exists():
                 with TemporaryDirectory() as d2:
-                    if self.task.startswith("squad"):
+                    if self.task in self.QA_TASKS:
                         QASparseXP.final_fine_tune_bertarize(src_path, d2, remove_head_pruning=True)
+                        tf_model = TFBertForQuestionAnswering.from_pretrained(d2, from_pt=True)
+                    elif self.task in self.GLUE_TASKS:
+                        GlueSparseXP.final_fine_tune_bertarize(src_path, d2, remove_head_pruning=True)
+                        tf_model = TFBertForSequenceClassification.from_pretrained(d2, from_pt=True)
                     else:
-                        raise Exception(f"Unknown task {task}")
+                        raise Exception(f"Unknown task {self.task}")
 
-                    tf_model = TFBertForQuestionAnswering.from_pretrained(d2, from_pt=True)
                     tf_model.save_pretrained(self.git_path)
                     modified = True
 
             if force or not (self.git_path / "pytorch_model.bin").exists():
-                model = BertForQuestionAnswering.from_pretrained(src_path)
+                if self.task in self.QA_TASKS:
+                    model = BertForQuestionAnswering.from_pretrained(src_path)
+                elif self.task in self.GLUE_TASKS:
+                    model = BertForSequenceClassification.from_pretrained(src_path)
+                else:
+                    raise Exception(f"Unknown task {self.task}")
                 model.save_pretrained(self.git_path)
                 modified = True
 
@@ -227,15 +295,19 @@ class Packager:
         if pruned_heads is not None:
             pruning_info_plotter = PruningInfoBokehPlotter("pruning_info", self.JS_PATH)
             config = self.checkpoint_info["config"]
-            layer_count = config["num_hidden_layers"]
-            heads_count = config["num_attention_heads"]
+            model_structure = name2struct.get(config["model_type"])
+            layer_count = config.get(model_structure.NAME_CONFIG["num_hidden_layers"])
+            heads_count = config.get(model_structure.NAME_CONFIG["num_attention_heads"])
 
             fig, js, html = pruning_info_plotter.run(layer_count=layer_count, pruned_heads=pruned_heads, heads_count=heads_count)
             ret["pruning_info"] = dict(js=js, html=html)
 
         density_plotter = DensityBokehPlotter("density", self.JS_PATH)
 
-        model = BertForQuestionAnswering.from_pretrained(self.git_path)
+        if self.task in self.QA_TASKS:
+            model = BertForQuestionAnswering.from_pretrained(self.git_path)
+        elif self.task in self.GLUE_TASKS:
+            model = BertForSequenceClassification.from_pretrained(self.git_path)
 
         fig, js, html = density_plotter.run(model=model,
                                             dest_path=model_card_path / "images",
@@ -280,25 +352,27 @@ class Packager:
         packaging_report = dict(pytorch_final_file_size=pytorch_final_file_size, model_name=self.model_name, model_owner_name = self.model_owner_name, version=self.version)
 
         eval_metrics = checkpoint_info["eval_metrics"]
+
+        if self.task in self.GLUE_TASKS:
+            for k in eval_metrics.keys():
+                if "loss" not in k:
+                    eval_metrics[k] *= 100
+
         eval_metrics_pretty = json.dumps(eval_metrics, indent=4)
-        model_base_name =  checkpoint_info["model_args"]["model_name_or_path"]
+        model_base_name = checkpoint_info["model_args"]["model_name_or_path"]
         model_base_url = "https://huggingface.co/" + model_base_name
         teacher = checkpoint_info["sparse_args"]["distil_teacher_name_or_path"]
         teacher_url = "https://huggingface.co/" + teacher
 
-        if self.task == "squadv1":
-            eval_metrics["main_metric"] = eval_metrics["f1"]
-            reference = dict(main_metric_value=88.5, main_metric_name="F1")
-        elif self.task == "squadv2":
-            if self.base_name == "bert-large-uncased-wwm":
-                eval_metrics["main_metric"] = eval_metrics["f1"]
-                # From teacher https://huggingface.co/madlag/bert-large-uncased-whole-word-masking-finetuned-squadv2
-                reference = dict(main_metric_value=85.85, main_metric_name="F1")
-            else:
-                raise Exception(f"Unknown model type {self.base_name}")
-        else:
+        ref = self.TASK_INFO.get(self.task)
+        if ref is None:
             raise Exception(f"Unsupport task {self.task}")
-
+        main_metric = ref["main_metric"]
+        eval_metrics["main_metric"] = eval_metrics[main_metric]
+        reference = {
+            "main_metric_value": ref["base_value"],
+            "main_metric_name": self.METRIC_INFO[main_metric]["name"],
+        }
         nn_pruning_needed = config.get("layer_norm_type") == "no_norm"
         use_relu = config.get("hidden_act") == "relu"
         original_model_size_mb = self.get_original_model_size_mb()
@@ -369,15 +443,16 @@ class Packager:
 
     def add_files(self):
         files = ["pytorch_model.bin",  "tf_model.h5", "config.json"]
-        files.append(self.ORIGINAL_FILES)
+        files.extend(self.ORIGINAL_FILES)
 
         files += ["README.md", "model_card"]
         with cd(self.git_path):
             sh.git("add", *files, _fg=True)
 
-        with cd(self.git_path / "eval"):
-            sh.tar("-cvzf", "nbest_predictions.json.tgz", "nbest_predictions.json")
-            sh.rm("nbest_predictions.json")
+        if "nbest_predictions.json" in self.TASK_INFO[self.task]["eval_files"]:
+            with cd(self.git_path / "eval"):
+                sh.tar("-cvzf", "nbest_predictions.json.tgz", "nbest_predictions.json")
+                sh.rm("nbest_predictions.json")
 
         to_copy = self.get_copy_list()
         for files, dest in to_copy:
