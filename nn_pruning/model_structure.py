@@ -73,6 +73,7 @@ class BertStructure(ModelStructure):
         intermediate_size="intermediate_size",
         num_hidden_layers="num_hidden_layers",
         num_attention_heads="num_attention_heads",
+        attention_head_size="attention_head_size",
     )
 
 class BartStructure(ModelStructure):
@@ -96,7 +97,8 @@ class BartStructure(ModelStructure):
         hidden_size="d_model",
         intermediate_size="encoder_ffn_dim",
         num_hidden_layers="num_hidden_layers",
-        num_attention_heads="encoder_attention_heads",
+        num_attention_heads="num_heads",
+        attention_head_size = "head_dim",
     )
 
 class T5Structure(ModelStructure):
@@ -121,6 +123,7 @@ class T5Structure(ModelStructure):
         intermediate_size="d_ff",
         num_hidden_layers="num_layers",
         num_attention_heads="num_heads",
+        attention_head_size="key_value_proj_dim",
     )
 
 config2struct = {

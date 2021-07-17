@@ -180,8 +180,9 @@ class DensityBokehPlotter(BokehHelper):
     def layer_short_name(self, name):
         shortname = name
         shortname = shortname.split(".")
-        shortname = shortname[3:]
+        shortname = shortname[2:]
         shortname = ".".join(shortname)
+        shortname = ("decoder." if self.model_structure.is_decoder(name) else "encoder.") + shortname
         shortname = self.replacements_apply(shortname, [".self", ".weight", ".dense", (".", ".")])
 
         return shortname
@@ -207,7 +208,6 @@ class DensityBokehPlotter(BokehHelper):
         self.full_color = full_color
         self.empty_color = empty_color
         self.url_base = url_base
-        self.attention_size = model.config.hidden_size
 
         self.model_structure = struct_from_config(model.config_class)
         self.attention_size = getattr(model.config, self.model_structure.NAME_CONFIG["hidden_size"])
@@ -217,8 +217,9 @@ class DensityBokehPlotter(BokehHelper):
 
         traces = {}
         part_index = 0
+        max_layer_encoder = -1
+        linear_per_layer = len(self.model_structure.LAYER_PATTERNS)
         positions = []
-        len_layer_pattern = len(self.model_structure.LAYER_PATTERNS)
         for layer in self.layers:
             name = layer["name"]
             density = layer["density"] * 100
@@ -230,9 +231,10 @@ class DensityBokehPlotter(BokehHelper):
                 if v in name:
                     increment = 1
                     if k in self.model_structure.ATTENTION_LAYERS:
-                        kind = k
+                        kind = k.replace('encoder_decoder_', '')
                     else:
                         kind = "fully connected"
+                    break
 
             if kind is None:
                 print(name)
@@ -240,7 +242,6 @@ class DensityBokehPlotter(BokehHelper):
 
             shortname = self.layer_short_name(name)
 
-            linear_per_layer = 6 if not self.model_structure.is_decoder(name) else len_layer_pattern
             x = part_index / linear_per_layer + 1 / (linear_per_layer * 2)
             url = f"{self.url_base}/{layer['filename']}"
             img_height = str(int(layer["size"][0] / 8)) + "px"
@@ -258,7 +259,16 @@ class DensityBokehPlotter(BokehHelper):
             if x not in positions:
                 positions.append(x)
 
-            part_index += increment
+            layer_number = self.model_structure.layer_index(name)
+            is_decoder = self.model_structure.is_decoder(name)
+            if not is_decoder:
+                max_layer_encoder = max(max_layer_encoder, layer_number)
+            else:
+                layer_number += max_layer_encoder + 1
+            if self.model_structure.is_ffn(name) and self.model_structure.LAYER_PATTERNS["output_dense"] in name:
+                part_index = (layer_number + 1 ) * linear_per_layer
+            else:
+                part_index += increment
 
         colors = ["#6573f7", "#ed5642", "#20cb97", "#aa69f7"]
 

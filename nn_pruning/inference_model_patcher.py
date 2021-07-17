@@ -3,19 +3,14 @@ import torch.nn as nn
 from transformers import BertConfig
 from .model_patcher import ModelPatcher
 from .model_structure import struct_from_config, count_num_heads
-
+from collections import defaultdict
 
 class BertHeadsPruner:
     def __init__(self, model):
         self.model = model
         self.model_structure = struct_from_config(model.config_class)
-        attention_layers = [self.model_structure.LAYER_PATTERNS[i] for i in self.model_structure.ATTENTION_LAYERS]
-        if hasattr(self.model_structure, "ATTENTION_PREFIX"):
-            ATTENTION_PREFIX = self.model_structure.ATTENTION_PREFIX
-            self.attention_prefix = ATTENTION_PREFIX[0] if isinstance(ATTENTION_PREFIX, tuple) else ATTENTION_PREFIX
-        else:
-            self.attention_prefix = ".".join(attention_layers[0].split('.')[:-1])
-        self.attention_layers = [attention_layer[len(self.attention_prefix)+1:] for attention_layer in attention_layers]
+        self.attention_head_size = self.model_structure.NAME_CONFIG["attention_head_size"]
+        self.num_attention_heads = self.model_structure.NAME_CONFIG["num_attention_heads"]
 
     def analyze_head(self, p, head_size):
         p0 = (p != 0).reshape(p.shape[0] // head_size, head_size, p.shape[1]).any(-1).any(-1)
@@ -23,32 +18,47 @@ class BertHeadsPruner:
 
     def get_pruned_heads(self):
         heads_count = 0
-        to_prune = {}
+        to_prune = defaultdict(list)
+        max_layer_encoder = -1
+        layer_number = -1
+        shift = 0
         for name, module in self.model.named_modules():
-            if name.endswith(self.attention_prefix):
+            if hasattr(module, self.attention_head_size):
+                head_size = getattr(module, self.attention_head_size)
+                num_heads = getattr(module, self.num_attention_heads)
+                prev_layer = layer_number
                 layer_number = int("".join(ch for ch in name if ch.isnumeric()))
+                is_decoder = self.model_structure.is_decoder(name)
+                if not is_decoder:
+                    max_layer_encoder = max(max_layer_encoder, layer_number)
+                else:
+                    layer_number += max_layer_encoder + 1
+                if prev_layer == layer_number:
+                    shift += num_heads
+                else:
+                    shift = 0
                 parts = []
-                for a in self.attention_layers:
-                    p = self.analyze_head(getattr(module, a).weight, module.attention_head_size)
-                    parts.append(p)
+                for k, v in module.named_children():
+                    if self.model_structure.is_attention(".".join([name, k]), exclude_att_dense=True):
+                        p = self.analyze_head(v.weight, head_size)
+                        parts.append(p)
                 parts = list(torch.stack(parts, 0).all(0).cpu().detach().numpy())
                 heads_count += len(parts)
 
-                heads_to_prune = [i for i, p in enumerate(parts) if not p]
+                heads_to_prune = [i + shift for i, p in enumerate(parts) if not p]
+
                 # TEMPORARY : AT LEAST KEEP ONE HEAD
                 if len(heads_to_prune) == len(parts):
                     heads_to_prune.remove(0)
-
-                to_prune[layer_number] = heads_to_prune
+                to_prune[layer_number].extend(heads_to_prune)
         return to_prune, heads_count
 
     def run(self):
         model = self.model
+        to_prune, heads_count = self.get_pruned_heads()
         if isinstance(self.model.config, BertConfig):
-            to_prune, heads_count = self.get_pruned_heads()
             model.prune_heads(to_prune)
-            return sum([len(p) for p in to_prune.values()]), heads_count
-        return 0, count_num_heads(model)
+        return sum([len(p) for p in to_prune.values()]), heads_count
 
 
 class SparseDimensionsLinear(nn.Module):

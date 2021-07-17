@@ -27,7 +27,7 @@ class ModelStatsExtractBase:
     def open_model(self):
         if self.copy_to_tmp_path:
             self.dest_path_ = tempfile.TemporaryDirectory()
-            self.dest_path = Path(self.dest_path_.name)
+            self.dest_path = self.dest_path_.name
         else:
             self.dest_path = None
 

@@ -67,7 +67,7 @@ class Seq2SeqXPTrainer(Seq2SeqTrainer):
     def instrument_model(self, model):
         if self.args.optimize_model_before_eval != "disabled":
             model = optimize_model(self.model, self.args.optimize_model_before_eval)
-        return TimingModule(model, method_list=["generate"])
+        return TimingModule(model, method_list=["generate", "config"])
 
     def run_dir(self):
         return Path(self.args.output_dir)

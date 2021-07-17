@@ -182,7 +182,10 @@ class SparseXP:
         shutil.copytree(src_path, dest_path, dirs_exist_ok=True)
 
         if remove_head_pruning:
-            del config["pruned_heads"]
+            try:
+                del config["pruned_heads"]
+            except KeyError:
+                pass
             with (dest_path / "config.json").open("w") as f:
                 json.dump(config, f)
 

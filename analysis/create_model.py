@@ -3,10 +3,12 @@ import json
 import sh
 import shutil
 from transformers import (
-    BertForQuestionAnswering,
-    BertForSequenceClassification,
-    TFBertForQuestionAnswering,
-    TFBertForSequenceClassification
+    AutoModelForQuestionAnswering,
+    AutoModelForSequenceClassification,
+    AutoModelForSeq2SeqLM,
+    TFAutoModelForQuestionAnswering,
+    TFAutoModelForSequenceClassification,
+    TFAutoModelForSeq2SeqLM
 )
 from tempfile import TemporaryDirectory
 from nn_pruning.inference_model_patcher import optimize_model
@@ -23,6 +25,7 @@ if sys.version_info.major == 3 and 4 <= sys.version_info.minor <= 8:
 
 from examples.question_answering.qa_sparse_xp import QASparseXP
 from examples.text_classification.glue_sparse_xp import GlueSparseXP
+from examples.seq2seq.summarization_sparse_xp import SummarizationSparseXP
 
 def pretty_json(p):
     return json.dumps(p, sort_keys=True, indent=indent, separators = [", ", ": "])
@@ -61,6 +64,7 @@ class Packager:
     EVAL_DIR = "eval"
     QA_TASKS = {"squadv1", "squadv2"}
     GLUE_TASKS = {"mnli", "qqp", "sst2"}
+    SUMMARIZATION_TASKS = {"cnn_dailymail"}
     TASK_INFO = {
         "squadv1": {
             "main_metric": "f1",
@@ -111,10 +115,22 @@ class Packager:
                 "speed_report.json"
             ],
         },
+        "cnn_dailymail": {
+            "main_metric": "eval_rouge2",
+            "base_value": 30.13,
+            "base_model": "facebook/bart-large-cnn",
+            "eval_files": [
+                "eval_results.json",
+                "evaluate_timing.json",
+                "sparsity_report.json",
+                "speed_report.json"
+            ],
+        },
     }
     METRIC_INFO = {
         "eval_accuracy": {"name": "accuracy", "title_name": "acc"},
         "f1": {"name": "F1", "title_name": "f"},
+        "eval_rouge2": {"name": "R2", "title_name": "r"},
     }
 
     def __init__(self,
@@ -137,7 +153,7 @@ class Packager:
     def build_model_name_(cls, base_name, task, speedup, metric_name, metric_value, linear_sparsity, kind, is_ampere, version):
 
         density = int(100 - linear_sparsity)
-
+        base_name =  base_name.split("/")[-1]
         name = f"{base_name}-{task}-x{speedup:.2f}-{metric_name}{metric_value:.1f}-d{density}-{kind}"
         if is_ampere:
             name += "-ampere"
@@ -239,6 +255,8 @@ class Packager:
                     model = QASparseXP.compile_model(src_path, dest_path=d.name)
                 elif self.task in self.GLUE_TASKS:
                     model = GlueSparseXP.compile_model(src_path, dest_path=d.name)
+                elif self.task in self.SUMMARIZATION_TASKS:
+                    model = SummarizationSparseXP.compile_model(src_path, dest_path=d.name)
                 else:
                     raise Exception(f"Unknown task {self.task}")
 
@@ -249,10 +267,13 @@ class Packager:
                 with TemporaryDirectory() as d2:
                     if self.task in self.QA_TASKS:
                         QASparseXP.final_fine_tune_bertarize(src_path, d2, remove_head_pruning=True)
-                        tf_model = TFBertForQuestionAnswering.from_pretrained(d2, from_pt=True)
+                        tf_model = TFAutoModelForQuestionAnswering.from_pretrained(d2, from_pt=True)
                     elif self.task in self.GLUE_TASKS:
                         GlueSparseXP.final_fine_tune_bertarize(src_path, d2, remove_head_pruning=True)
-                        tf_model = TFBertForSequenceClassification.from_pretrained(d2, from_pt=True)
+                        tf_model = TFAutoModelForSequenceClassification.from_pretrained(d2, from_pt=True)
+                    elif self.task in self.SUMMARIZATION_TASKS:
+                        SummarizationSparseXP.final_fine_tune_bertarize(src_path, d2, remove_head_pruning=True)
+                        tf_model = TFAutoModelForSeq2SeqLM.from_pretrained(d2, from_pt=True)
                     else:
                         raise Exception(f"Unknown task {self.task}")
 
@@ -261,9 +282,11 @@ class Packager:
 
             if force or not (self.git_path / "pytorch_model.bin").exists():
                 if self.task in self.QA_TASKS:
-                    model = BertForQuestionAnswering.from_pretrained(src_path)
+                    model = AutoModelForQuestionAnswering.from_pretrained(src_path)
                 elif self.task in self.GLUE_TASKS:
-                    model = BertForSequenceClassification.from_pretrained(src_path)
+                    model = AutoModelForSequenceClassification.from_pretrained(src_path)
+                elif self.task in self.SUMMARIZATION_TASKS:
+                    model = AutoModelForSeq2SeqLM.from_pretrained(src_path)
                 else:
                     raise Exception(f"Unknown task {self.task}")
                 model.save_pretrained(self.git_path)
@@ -305,9 +328,13 @@ class Packager:
         density_plotter = DensityBokehPlotter("density", self.JS_PATH)
 
         if self.task in self.QA_TASKS:
-            model = BertForQuestionAnswering.from_pretrained(self.git_path)
+            model = AutoModelForQuestionAnswering.from_pretrained(self.git_path)
         elif self.task in self.GLUE_TASKS:
-            model = BertForSequenceClassification.from_pretrained(self.git_path)
+            model = AutoModelForSequenceClassification.from_pretrained(self.git_path)
+        elif self.task in self.SUMMARIZATION_TASKS:
+            model = AutoModelForSeq2SeqLM.from_pretrained(self.git_path)
+        else:
+            raise Exception(f"Unknown task {self.task}")
 
         fig, js, html = density_plotter.run(model=model,
                                             dest_path=model_card_path / "images",
@@ -342,8 +369,16 @@ class Packager:
         template.undefined = jinja2.StrictUndefined
 
         config = checkpoint_info["config"]
-        pruned_heads = sum([len(x) for x in config["pruned_heads"].values()])
-        total_heads = config["num_hidden_layers"] * config["num_attention_heads"]
+        pruned_heads = config.get("pruned_heads", {})
+        pruned_heads = sum([len(x) for x in pruned_heads.values()])
+        total_heads = config.get("heads_count")
+        if total_heads is None:
+            model_structure = name2struct.get(config["model_type"])
+            num_hidden_layers = config.get(model_structure.NAME_CONFIG["num_hidden_layers"])
+            num_attention_heads = config.get(model_structure.NAME_CONFIG["num_attention_heads"])
+            assert num_hidden_layers is not None
+            assert num_attention_heads is not None
+            total_heads = num_hidden_layers * num_attention_heads
 
         sparsity_report = dict(linear_density = self.density,
                                total_density = self.total_density,
