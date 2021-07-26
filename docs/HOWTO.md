@@ -34,10 +34,10 @@ The previous code was itself based on a single class, `ModelPatchingCoordinator`
 You can then use it directly:
 
 **Initialization:**
-- Create your BERT transformers model (the lib just support BERT for the moment, but other models are very easy to add, we just need to configure a few regexps on the layer names)
+- Create your BERT transformers model (the lib just support BERT, BART and T5 for the moment, but other models are very easy to add, we just need to configure a few regexps on the layer names in [model_structure.py](https://github.com/huggingface/nn_pruning/blob/main/nn_pruning/model_structure.py): you can take BertStructure as an example, and add a test in [test_patch.py](https://github.com/huggingface/nn_pruning/blob/main/nn_pruning/tests/test_patch.py) taking `test_patch_module_independent_parameters` as an example too, to make sure the names for the linear layers that should be patched are ok.
 - Create a `SparseTrainingArguments` object
 - Create a `ModelPatchingCoordinator` (see the constructor for more information)
-- Call the `patch_model` method on your ] (trial parameter can be ignored, it's for future use), you can ignore the returned value
+- Call the `patch_model` method on your ModelPatchingCoordinator (trial parameter can be ignored, it's for future use), you can ignore the returned value
 - Call create_optimizer_groups
 
 **Then, at each training step,**
