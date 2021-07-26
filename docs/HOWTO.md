@@ -35,7 +35,7 @@ You can then use it directly:
 
 **Initialization:**
 - Create your BERT transformers model (the lib just support BERT, BART and T5 for the moment, but other models are very easy to add, we just need to configure a few regexps on the layer names in [model_structure.py](https://github.com/huggingface/nn_pruning/blob/main/nn_pruning/model_structure.py): you can take BertStructure as an example, and add a test in [test_patch.py](https://github.com/huggingface/nn_pruning/blob/main/nn_pruning/tests/test_patch.py) taking `test_patch_module_independent_parameters` as an example too, to make sure the names for the linear layers that should be patched are ok.
-- Create a `SparseTrainingArguments` object
+- Create a `SparseTrainingArguments` object (you can use `COMMON_TYPICAL_PARAMETERS` in [command_line.py](https://github.com/huggingface/nn_pruning/blob/main/examples/command_line.py) as a starting point to choose the sparsity parameters (you can test with  `"attention_block_rows":64, "attention_block_cols":64` too ).
 - Create a `ModelPatchingCoordinator` (see the constructor for more information)
 - Call the `patch_model` method on your ModelPatchingCoordinator (trial parameter can be ignored, it's for future use), you can ignore the returned value
 - Call create_optimizer_groups
