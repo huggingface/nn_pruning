@@ -1,4 +1,4 @@
 
-theme: jekyll-theme-slate
+theme: jekyll-theme-minimal
 title: NN-Pruning
 description: Neural Networks Block Movement Pruning
