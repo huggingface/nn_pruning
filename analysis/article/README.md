@@ -1,6 +1,6 @@
 ## Block Pruning For Faster Transformers EMNLP 2021 Paper: Companion Documentation
 
-## Checkpoints used in the paper
+## Retrieving checkpoint metadata
 The files are available in the [files](files) subdirectory, one for each task.
 
 The keys in the "checkpoints" dictonary are Amazon S3 urls to the checkpoints themselves, and the values are the metadata on the checkpoint. This metadata was chosen to be  sufficient to reproduce all the plots in the paper.
@@ -20,7 +20,7 @@ The keys in the "checkpoints" dictonary are Amazon S3 urls to the checkpoints th
  }
 ```
 
-### Retrieving S3 checkpoints
+## Retrieving full checkpoint data
 The most easy way is to use [Amazon S3 command line tools](https://aws.amazon.com/cli/).
 
 The checkpoints are public. The S3 bucket contain some checkpoints that were not used in the final paper.
