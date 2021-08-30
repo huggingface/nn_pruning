@@ -1,3 +1,9 @@
+<style>
+  code {
+    white-space : pre-wrap !important;
+    word-break: break-word;
+  }
+</style>
 ## Block Pruning For Faster Transformers EMNLP 2021 Paper: Companion Documentation
 
 ### Retrieving S3 checkpoints
