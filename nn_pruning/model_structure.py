@@ -56,7 +56,7 @@ class ModelStructure:
         return "layernorm" in module_name.lower().replace("_", "")
 
 class BertStructure(ModelStructure):
-    PATTERN_PREFIX = "bert.encoder.layer.[0-9]+."
+    PATTERN_PREFIX = "(:?bert.)?encoder.layer.[0-9]+."
     LAYER_PATTERNS = dict(
         query="attention.self.query",
         key="attention.self.key",
@@ -77,7 +77,7 @@ class BertStructure(ModelStructure):
     )
 
 class BartStructure(ModelStructure):
-    PATTERN_PREFIX = "model.(en|de)coder.layers.[0-9]+."
+    PATTERN_PREFIX = "(:?model.)?(en|de)coder.layers.[0-9]+."
     LAYER_PATTERNS = dict(
         query="self_attn.q_proj",
         key="self_attn.k_proj",
