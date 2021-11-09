@@ -1,7 +1,7 @@
 import unittest
 from unittest import TestCase
 
-from transformers import BertConfig, BertForQuestionAnswering
+from transformers import BertConfig, BertForQuestionAnswering, BertModel
 
 from nn_pruning.model_structure import BertStructure
 from nn_pruning.modules.masked_nn import (
@@ -25,9 +25,9 @@ class TestFun(TestCase):
         # for regexp, layers in layers.items():
         #    print(regexp)
 
-    def test_patch_module_independent_parameters(self):
+    def test_patch_module_independent_parameters(self, bert_constructor=BertForQuestionAnswering):
         config = BertConfig.from_pretrained("bert-base-uncased")
-        model = BertForQuestionAnswering(config)
+        model = bert_constructor(config)
 
         parameters = LinearPruningArgs(
             method="topK",
@@ -51,6 +51,9 @@ class TestFun(TestCase):
         key_sizes = {k: len(v) for k, v in context.context_modules.items()}
 
         self.assertEqual(key_sizes, {"mask": 72})
+
+    def test_patch_module_independent_parameters_bert_model_only(self):
+        self.test_patch_module_independent_parameters(bert_constructor=BertModel)
 
     def test_patch_module_ampere(self):
         config = BertConfig.from_pretrained("bert-base-uncased")
