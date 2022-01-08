@@ -12,9 +12,9 @@ from torch.quantization.quantize_fx import (
     prepare_fx,
     prepare_qat_fx,
 )
-from transformers.modeling_fx_utils import symbolic_trace
+from transformers.utils.fx import symbolic_trace
 
-from .quantization_config import create_qconfig
+from nn_pruning.modules.quantization_config import create_qconfig
 
 
 def change_attention_mask_value(traced, initial_value=-10000, final_value=-20):

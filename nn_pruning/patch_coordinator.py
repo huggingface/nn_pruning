@@ -27,7 +27,7 @@ from collections import defaultdict
 
 from nn_pruning.model_structure import struct_from_config, ModelStructureNotFound
 
-from .modules.masked_nn import (
+from nn_pruning.modules.masked_nn import (
     ChannelPruningModulePatcher,
     JointPruningModulePatcher,
     LinearPruningModulePatcher,
@@ -37,9 +37,9 @@ from .modules.masked_nn import (
     GenericLinearPruningContextModule,
     head_mask,
 )
-from .modules.nonorm import Layer2NoNorm, NoNorm, NoNormCompiler, Layer2NoNormPatcher
-from .modules.gelu2relu import GeLU2ReLUModelPatcher
-from .inference_model_patcher import BertHeadsPruner
+from nn_pruning.modules.nonorm import Layer2NoNorm, NoNorm, NoNormCompiler, Layer2NoNormPatcher
+from nn_pruning.modules.gelu2relu import GeLU2ReLUModelPatcher
+from nn_pruning.inference_model_patcher import BertHeadsPruner
 
 from nn_pruning.training_patcher import (
     LinearModelPatcher,
