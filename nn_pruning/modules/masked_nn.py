@@ -39,7 +39,7 @@ from nn_pruning.training_patcher import (
     ReplacementModule,
 )
 
-from .binarizer import MagnitudeBinarizer, ThresholdBinarizer, TopKBinarizer
+from nn_pruning.modules.binarizer import MagnitudeBinarizer, ThresholdBinarizer, TopKBinarizer
 import numpy
 
 sparse_patterns = None
