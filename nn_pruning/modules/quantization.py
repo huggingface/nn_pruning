@@ -12,7 +12,11 @@ from torch.quantization.quantize_fx import (
     prepare_fx,
     prepare_qat_fx,
 )
-from transformers.utils.fx import symbolic_trace
+from transformers import __version__ as transformers_version
+if transformers_version > '4.7.0':
+    from transformers.utils.fx import symbolic_trace
+else:
+    from transformers.modeling_fx_utils import symbolic_trace
 
 from nn_pruning.modules.quantization_config import create_qconfig
 
