@@ -33,7 +33,7 @@ setup(
     author_email="",
     license="MIT",
     packages=["nn_pruning", "nn_pruning.modules"],
-    install_requires=["click", "transformers>=4.3.0", "torch>=1.6", "scikit-learn>=0.24"],
+    install_requires=["click", "transformers==4.15.0", "torch==1.9", "scikit-learn>=0.24"],
     extras_require=extras,
     test_suite="nose.collector",
     tests_require=["nose", "nose-cover3"],
